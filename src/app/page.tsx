@@ -31,7 +31,7 @@ import { SpendingOverview } from '@/components/dashboard/spending-overview';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { BudgetsOverview } from '@/components/dashboard/budgets-overview';
 import { GoalsOverview } from '@/components/dashboard/goals-overview';
-import { AIInsights } from '@/components/dashboard/ai-insights';
+import { AIInsightsWrapper } from '@/components/dashboard/ai-insights-wrapper';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
@@ -119,7 +119,7 @@ export default function DashboardPage() {
           </Card>
           <div className="grid auto-rows-max items-start gap-4 md:gap-8">
             <Suspense fallback={<Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent><Skeleton className="h-20 w-full" /></CardContent></Card>}>
-              <AIInsights transactions={transactions} budgets={budgets} />
+              <AIInsightsWrapper transactions={transactions} budgets={budgets} />
             </Suspense>
             <BudgetsOverview budgets={budgets} transactions={transactions} categoryIcons={categoryIcons} />
           </div>

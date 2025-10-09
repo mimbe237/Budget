@@ -1,5 +1,6 @@
+'use client';
+
 import { Lightbulb } from 'lucide-react';
-import { getSpendingInsights } from '@/ai/flows/spending-insights';
 import {
   Card,
   CardContent,
@@ -7,22 +8,13 @@ import {
   CardTitle,
   CardDescription
 } from '@/components/ui/card';
-import type { Transaction, Budget } from '@/lib/types';
 
 interface AIInsightsProps {
-    transactions: Transaction[];
-    budgets: Budget[];
+    insights: string;
+    recommendations: string;
 }
 
-export async function AIInsights({ transactions, budgets }: AIInsightsProps) {
-  const spendingHistory = transactions.map(t => `${t.date}: ${t.description} - $${t.amount.toFixed(2)} [${t.category}]`).join('\n');
-  const budgetGoals = budgets.map(b => `${b.category}: $${b.budgetedAmount.toFixed(2)}`).join('\n');
-  
-  const { insights, recommendations } = await getSpendingInsights({
-    spendingHistory,
-    budgetGoals
-  });
-
+export function AIInsights({ insights, recommendations }: AIInsightsProps) {
   return (
     <Card className="bg-accent/20 border-accent/50">
       <CardHeader>
