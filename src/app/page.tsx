@@ -30,9 +30,9 @@ import { SummaryCard } from '@/components/dashboard/summary-card';
 import { SpendingOverview } from '@/components/dashboard/spending-overview';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { BudgetsOverview } from '@/components/dashboard/budgets-overview';
-import { GoalsOverview } from '@/components/dashboard/goals-overview';
 import { AIInsightsWrapper } from '@/components/dashboard/ai-insights-wrapper';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GoalsOverview } from '@/components/dashboard/goals-overview';
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
