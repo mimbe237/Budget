@@ -1,4 +1,5 @@
-import { Suspense } from 'react';
+'use client';
+import { Suspense, useEffect } from 'react';
 import {
   Car,
   CreditCard,
@@ -17,9 +18,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { transactions, budgets, goals } from '@/lib/data';
-import type { Category } from '@/lib/types';
+import type { Category, Transaction } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+
+import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 
 import { UserNav } from '@/components/user-nav';
 import { Logo } from '@/components/logo';
@@ -32,6 +35,42 @@ import { AIInsights } from '@/components/dashboard/ai-insights';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const firestore = useFirestore();
+
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/expenses`));
+  }, [firestore, user]);
+  const { data: transactions, isLoading: transactionsLoading } = useCollection<Transaction>(transactionsQuery);
+
+  const budgetsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/categories`));
+  }, [firestore, user]);
+  const { data: budgets, isLoading: budgetsLoading } = useCollection<any>(budgetsQuery);
+
+  const goalsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/budgetGoals`));
+  }, [firestore, user]);
+  const { data: goals, isLoading: goalsLoading } = useCollection<any>(goalsQuery);
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  if (isUserLoading || !user || !transactions || !budgets || !goals) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-2xl font-semibold">Loading your dashboard...</div>
+      </div>
+    );
+  }
+
   const totalIncome = transactions
     .filter(t => t.type === 'income')
     .reduce((acc, t) => acc + t.amount, 0);
@@ -80,7 +119,7 @@ export default function DashboardPage() {
           </Card>
           <div className="grid auto-rows-max items-start gap-4 md:gap-8">
             <Suspense fallback={<Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent><Skeleton className="h-20 w-full" /></CardContent></Card>}>
-              <AIInsights />
+              <AIInsights transactions={transactions} budgets={budgets} />
             </Suspense>
             <BudgetsOverview budgets={budgets} transactions={transactions} categoryIcons={categoryIcons} />
           </div>

@@ -22,9 +22,58 @@ import {
   } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { PlusCircle } from 'lucide-react';
-import { budgets } from '@/lib/data';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export function AddTransactionSheet() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [type, setType] = useState('expense');
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [category, setCategory] = useState('');
+  const [date, setDate] = useState('');
+
+  const handleSubmit = () => {
+    if (!user || !firestore) return;
+
+    const transactionData = {
+      type,
+      description,
+      amount: parseFloat(amount),
+      category,
+      date,
+      userId: user.uid,
+    };
+
+    if (!description || !amount || !category || !date) {
+      toast({
+        variant: "destructive",
+        title: "Missing fields",
+        description: "Please fill out all fields to add a transaction.",
+      });
+      return;
+    }
+
+    const expensesCollection = collection(firestore, `users/${user.uid}/expenses`);
+    addDocumentNonBlocking(expensesCollection, transactionData);
+
+    toast({
+      title: "Transaction Added",
+      description: "Your transaction has been successfully added.",
+    });
+
+    // Reset form
+    setType('expense');
+    setDescription('');
+    setAmount('');
+    setCategory('');
+    setDate('');
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -45,7 +94,7 @@ export function AddTransactionSheet() {
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="type">Type</Label>
-            <RadioGroup defaultValue="expense" className="flex">
+            <RadioGroup defaultValue="expense" value={type} onValueChange={setType} className="flex">
                 <div className="flex items-center space-x-2">
                     <RadioGroupItem value="expense" id="r1" />
                     <Label htmlFor="r1">Expense</Label>
@@ -58,36 +107,38 @@ export function AddTransactionSheet() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="description">Description</Label>
-            <Input id="description" placeholder="e.g. Groceries" />
+            <Input id="description" placeholder="e.g. Groceries" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="amount">Amount</Label>
-            <Input id="amount" type="number" placeholder="0.00" />
+            <Input id="amount" type="number" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="category">Category</Label>
-            <Select>
+            <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                    {budgets.map(budget => (
-                        <SelectItem key={budget.category} value={budget.category.toLowerCase()}>
-                            {budget.category}
-                        </SelectItem>
-                    ))}
-                    <SelectItem value="income">Income</SelectItem>
+                    <SelectItem value="Housing">Housing</SelectItem>
+                    <SelectItem value="Food">Food</SelectItem>
+                    <SelectItem value="Transport">Transport</SelectItem>
+                    <SelectItem value="Entertainment">Entertainment</SelectItem>
+                    <SelectItem value="Health">Health</SelectItem>
+                    <SelectItem value="Shopping">Shopping</SelectItem>
+                    <SelectItem value="Utilities">Utilities</SelectItem>
+                    <SelectItem value="Income">Income</SelectItem>
                 </SelectContent>
             </Select>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="date">Date</Label>
-            <Input id="date" type="date" />
+            <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
         </div>
         <SheetFooter>
           <SheetClose asChild>
-            <Button type="submit">Save changes</Button>
+            <Button type="submit" onClick={handleSubmit}>Save changes</Button>
           </SheetClose>
         </SheetFooter>
       </SheetContent>

@@ -5,19 +5,24 @@ export type Transaction = {
   amount: number;
   type: 'income' | 'expense';
   category: Category;
+  userId: string;
 };
 
 export type Category = 'Housing' | 'Food' | 'Transport' | 'Entertainment' | 'Health' | 'Shopping' | 'Utilities' | 'Income';
 
 export type Budget = {
+  id: string;
+  userId: string;
+  name: string;
+  budgetedAmount: number;
   category: Category;
-  limit: number;
 };
 
 export type Goal = {
   id: string;
+  userId: string;
   name: string;
   targetAmount: number;
   currentAmount: number;
-  deadline: string;
+  targetDate: string;
 };

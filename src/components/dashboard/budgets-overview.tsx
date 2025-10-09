@@ -6,7 +6,15 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import type { Budget, Transaction, Category } from '@/lib/types';
+import type { Transaction, Category } from '@/lib/types';
+
+interface Budget {
+    id: string;
+    name: string;
+    budgetedAmount: number;
+    userId: string;
+    category: Category;
+}
 
 interface BudgetsOverviewProps {
   budgets: Budget[];
@@ -33,20 +41,20 @@ export function BudgetsOverview({ budgets, transactions, categoryIcons }: Budget
       </CardHeader>
       <CardContent className="grid gap-4">
         {budgets.map(budget => {
-          const spent = spendingByCategory[budget.category] || 0;
-          const progress = Math.min((spent / budget.limit) * 100, 100);
+          const spent = spendingByCategory[budget.name] || 0;
+          const progress = Math.min((spent / budget.budgetedAmount) * 100, 100);
           return (
-            <div key={budget.category} className="grid gap-2">
+            <div key={budget.id} className="grid gap-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    {categoryIcons[budget.category]}
-                    <span className="font-medium">{budget.category}</span>
+                    {categoryIcons[budget.name as Category]}
+                    <span className="font-medium">{budget.name}</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  ${spent.toFixed(2)} / ${budget.limit.toFixed(2)}
+                  ${spent.toFixed(2)} / ${budget.budgetedAmount.toFixed(2)}
                 </span>
               </div>
-              <Progress value={progress} aria-label={`${budget.category} budget progress`} />
+              <Progress value={progress} aria-label={`${budget.name} budget progress`} />
             </div>
           );
         })}
