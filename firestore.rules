@@ -1,0 +1,112 @@
+/**
+ * @fileoverview Firestore Security Rules for BudgetWise application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model. Each user has complete control
+ * over their own data, and no user can access another user's data.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information, accessible only by the user.
+ * - /users/{userId}/expenses/{expenseId}: Stores expense data, accessible only by the user.
+ * - /users/{userId}/categories/{categoryId}: Stores expense categories, accessible only by the user.
+ * - /users/{userId}/budgetGoals/{budgetGoalId}: Stores budget goals, accessible only by the user.
+ *
+ * Key Security Decisions:
+ * - All collections are secured using path-based authorization, relying on the `userId`
+ *   parameter to match the authenticated user's UID.
+ * - List operations are allowed within user-owned subcollections, enabling the user to
+ *   retrieve their own data.
+ * - No data denormalization is necessary due to the use of path-based authorization.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profile documents.
+     * @path /users/{userId}
+     * @allow (create) - If the user's auth UID matches the `userId` in the path.
+     * @allow (get, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
+     * @allow (list) - Listing all users is disallowed.
+     * @deny (create) - If the user's auth UID does not match the `userId` in the path.
+     * @deny (get, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
+     * @principle Enforces document ownership based on the `userId` path parameter.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to expense documents within a user's subcollection.
+     * @path /users/{userId}/expenses/{expenseId}
+     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
+     * @deny (create, get, list, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
+     * @principle Enforces document ownership based on the `userId` path parameter for expenses.
+     */
+    match /users/{userId}/expenses/{expenseId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to category documents within a user's subcollection.
+     * @path /users/{userId}/categories/{categoryId}
+     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
+     * @deny (create, get, list, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
+     * @principle Enforces document ownership based on the `userId` path parameter for categories.
+     */
+    match /users/{userId}/categories/{categoryId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to budget goal documents within a user's subcollection.
+     * @path /users/{userId}/budgetGoals/{budgetGoalId}
+     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
+     * @deny (create, get, list, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
+     * @principle Enforces document ownership based on the `userId` path parameter for budget goals.
+     */
+    match /users/{userId}/budgetGoals/{budgetGoalId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
