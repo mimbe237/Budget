@@ -34,7 +34,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { Category, Currency, Transaction, UserProfile } from '@/lib/types';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import { useState } from 'react';
 import { startOfMonth, endOfMonth, startOfYesterday, startOfYear, endOfYear } from 'date-fns';
 import { SummaryCard } from '@/components/dashboard/summary-card';
@@ -210,5 +210,3 @@ export default function TransactionsPage() {
     </AppLayout>
   );
 }
-
-    
