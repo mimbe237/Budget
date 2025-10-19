@@ -56,18 +56,19 @@ export const FirebaseContext = createContext<FirebaseContextState | undefined>(u
 
 // Keep track of the original fetch function
 let idToken: string | null = null;
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && !(window as any).__fetch_intercepted) {
     const originalFetch = window.fetch;
 
     // The fetch interceptor
     window.fetch = async (input, init) => {
+        const headers = new Headers(init?.headers);
         if (idToken) {
-            const headers = new Headers(init?.headers);
             headers.set('Authorization', `Bearer ${idToken}`);
-            init = { ...init, headers };
         }
-        return originalFetch(input, init);
+        const newInit = { ...init, headers };
+        return originalFetch(input, newInit);
     };
+    (window as any).__fetch_intercepted = true;
 }
 
 
@@ -103,7 +104,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         setUser(firebaseUser);
         if (firebaseUser) {
             try {
-                idToken = await getIdToken(firebaseUser);
+                idToken = await getIdToken(firebaseUser, true);
             } catch (e) {
                 console.error("Error getting id token", e);
                 idToken = null;
