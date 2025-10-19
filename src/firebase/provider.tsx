@@ -55,18 +55,20 @@ interface FirebaseProviderProps {
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
 // Keep track of the original fetch function
-const originalFetch = globalThis.fetch;
 let idToken: string | null = null;
+if (typeof window !== 'undefined') {
+    const originalFetch = window.fetch;
 
-// The fetch interceptor
-globalThis.fetch = async (input, init) => {
-  if (idToken) {
-    const headers = new Headers(init?.headers);
-    headers.set('Authorization', `Bearer ${idToken}`);
-    init = { ...init, headers };
-  }
-  return originalFetch(input, init);
-};
+    // The fetch interceptor
+    window.fetch = async (input, init) => {
+        if (idToken) {
+            const headers = new Headers(init?.headers);
+            headers.set('Authorization', `Bearer ${idToken}`);
+            init = { ...init, headers };
+        }
+        return originalFetch(input, init);
+    };
+}
 
 
 /**
