@@ -1,6 +1,7 @@
 import { initializeApp, getApp, getApps, App, cert, ServiceAccount } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+import { getAuth, DecodedIdToken } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { headers } from 'next/headers';
 
 // IMPORTANT: DO NOT MODIFY THIS FILE
 
@@ -63,4 +64,19 @@ export function getAdminAuth() {
 
 export function getAdminFirestore() {
     return getFirestore(adminApp);
+}
+
+export async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
+    const authHeader = headers().get('Authorization');
+    if (authHeader) {
+        const token = authHeader.split(' ')[1];
+        try {
+            const adminApp = getFirebaseAdminApp();
+            return await adminApp.auth().verifyIdToken(token);
+        } catch (error) {
+            console.error('Error verifying auth token:', error);
+            return null;
+        }
+    }
+    return null;
 }

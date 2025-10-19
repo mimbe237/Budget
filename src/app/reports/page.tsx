@@ -15,26 +15,10 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { getFirebaseAdminApp } from '@/firebase/admin';
-import { headers } from 'next/headers';
-import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
+import { getAuthenticatedUser, getFirebaseAdminApp } from '@/firebase/admin';
 import { DollarSign, CreditCard, Scale } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
-async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
-    const authHeader = headers().get('Authorization');
-    if (authHeader) {
-        const token = authHeader.split(' ')[1];
-        try {
-            const adminApp = getFirebaseAdminApp();
-            return await adminApp.auth().verifyIdToken(token);
-        } catch (error) {
-            console.error('Error verifying auth token:', error);
-            return null;
-        }
-    }
-    return null;
-}
 
 async function getUserProfile(uid: string): Promise<UserProfile | null> {
     const db = getFirebaseAdminApp().firestore();

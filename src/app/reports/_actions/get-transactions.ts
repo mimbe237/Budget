@@ -1,26 +1,10 @@
 'use server';
 
-import { getFirebaseAdminApp } from '@/firebase/admin';
-import { headers } from 'next/headers';
-import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
+import { getAuthenticatedUser, getFirebaseAdminApp } from '@/firebase/admin';
 import { z } from 'zod';
-import { startOfMonth, endOfMonth, parseISO, isValid } from 'date-fns';
+import { startOfMonth, endOfMonth, parseISO, isValid, format } from 'date-fns';
 import type { Transaction } from '@/lib/types';
 
-async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
-    const authHeader = headers().get('Authorization');
-    if (authHeader) {
-        const token = authHeader.split(' ')[1];
-        try {
-            const adminApp = getFirebaseAdminApp();
-            return await adminApp.auth().verifyIdToken(token);
-        } catch (error) {
-            console.error('Error verifying auth token:', error);
-            return null;
-        }
-    }
-    return null;
-}
 
 const DateRangeSchema = z.object({
   from: z.string().optional(),
