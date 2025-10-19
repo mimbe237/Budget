@@ -14,9 +14,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 import type { Transaction, Category, Currency } from '@/lib/types';
-import { AddTransactionSheet } from './add-transaction-sheet';
+import { PlusCircle } from 'lucide-react';
+import Link from 'next/link';
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
@@ -43,7 +45,14 @@ export function RecentTransactions({ transactions, categoryIcons }: RecentTransa
           </CardDescription>
         </div>
         <div className="ml-auto gap-1">
-            <AddTransactionSheet />
+            <Button asChild size="sm" className="h-8 gap-1">
+              <Link href="/transactions/add">
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                  Add Transaction
+                </span>
+              </Link>
+            </Button>
         </div>
       </CardHeader>
       <CardContent>
