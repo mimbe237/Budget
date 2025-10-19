@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MoreHorizontal, PlusCircle, Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Pencil, Trash2, Wallet, PiggyBank, Scale } from 'lucide-react';
 import {
   useCollection,
   useFirestore,
@@ -49,7 +49,7 @@ import {
   useMemoFirebase,
 } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Budget, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -72,6 +72,8 @@ export default function CategoriesPage() {
   const { toast } = useToast();
 
   const isFrench = userProfile?.locale === 'fr-CM';
+  const displayCurrency = userProfile?.displayCurrency || 'USD';
+  const displayLocale = userProfile?.locale || 'en-US';
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -80,14 +82,20 @@ export default function CategoriesPage() {
   const [budgetedAmount, setBudgetedAmount] = useState('');
   const [categoryToDelete, setCategoryToDelete] = useState<Budget | null>(null);
 
+  const [globalBudget, setGlobalBudget] = useState(0);
+
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, `users/${user.uid}/categories`));
   }, [firestore, user]);
 
   const { data: categories, isLoading } = useCollection<Budget>(categoriesQuery);
-  const displayCurrency = userProfile?.displayCurrency || 'USD';
-  const displayLocale = userProfile?.locale || 'en-US';
+  
+  const totalAllocated = useMemo(() => {
+      return categories?.reduce((acc, cat) => acc + (cat.budgetedAmount || 0), 0) || 0;
+  }, [categories]);
+
+  const remainingToAllocate = globalBudget - totalAllocated;
 
   useEffect(() => {
     if (currentCategory) {
@@ -118,12 +126,10 @@ export default function CategoriesPage() {
     const amount = parseFloat(budgetedAmount) || 0;
 
     if (currentCategory) {
-      // Update existing category
       const categoryRef = doc(firestore, `users/${user.uid}/categories`, currentCategory.id);
       updateDocumentNonBlocking(categoryRef, { name: categoryName, budgetedAmount: amount });
       toast({ title: isFrench ? 'Catégorie mise à jour' : 'Category Updated', description: `"${categoryName}" ${isFrench ? 'a été mis à jour.' : 'has been updated.'}` });
     } else {
-      // Add new category
       const categoriesCollection = collection(firestore, `users/${user.uid}/categories`);
       addDocumentNonBlocking(categoriesCollection, {
         name: categoryName,
@@ -152,15 +158,15 @@ export default function CategoriesPage() {
   };
   
   const translations = {
-      title: isFrench ? 'Catégories & Budgets' : 'Categories & Budgets',
-      description: isFrench ? 'Gérez vos catégories de dépenses et leurs budgets mensuels.' : 'Manage your expense categories and their monthly budgets.',
+      title: isFrench ? 'Budgets Mensuels par Catégorie' : 'Monthly Category Budgets',
+      description: isFrench ? 'Définissez un budget global et répartissez-le par catégorie.' : 'Set a global budget and allocate it across categories.',
       addCategory: isFrench ? 'Ajouter Catégorie' : 'Add Category',
       editCategoryTitle: isFrench ? 'Modifier Catégorie' : 'Edit Category',
       addCategoryTitle: isFrench ? 'Ajouter Nouvelle Catégorie' : 'Add New Category',
       editCategoryDesc: isFrench ? 'Apportez des modifications à votre catégorie ici.' : 'Make changes to your category here.',
       addCategoryDesc: isFrench ? 'Créez une nouvelle catégorie pour vos dépenses.' : 'Create a new category for your expenses.',
       nameLabel: isFrench ? 'Nom' : 'Name',
-      budgetLabel: isFrench ? 'Budget' : 'Budget',
+      budgetLabel: isFrench ? 'Budget Alloué' : 'Allocated Budget',
       cancel: isFrench ? 'Annuler' : 'Cancel',
       save: isFrench ? 'Enregistrer' : 'Save changes',
       categoryNameHeader: isFrench ? 'Nom de la catégorie' : 'Category Name',
@@ -172,121 +178,163 @@ export default function CategoriesPage() {
       deleteConfirmDesc: isFrench ? `Cette action ne peut pas être annulée. Cela supprimera définitivement la catégorie "${categoryToDelete?.name}".` : `This action cannot be undone. This will permanently delete the category "${categoryToDelete?.name}".`,
       delete: isFrench ? 'Supprimer' : 'Delete',
       edit: isFrench ? 'Modifier' : 'Edit',
+      globalBudgetTitle: isFrench ? 'Budget Mensuel Global' : 'Global Monthly Budget',
+      totalAllocatedTitle: isFrench ? 'Total Alloué' : 'Total Allocated',
+      remainingTitle: isFrench ? 'Restant à Allouer' : 'Remaining to Allocate',
   };
 
   return (
     <AppLayout>
-      <Card>
-        <CardHeader className="flex flex-row items-center">
-          <div className="grid gap-2">
-            <CardTitle className="font-headline">{translations.title}</CardTitle>
-            <CardDescription>{translations.description}</CardDescription>
-          </div>
-          <div className="ml-auto gap-1">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="h-8 gap-1" onClick={() => handleOpenDialog()}>
-                  <PlusCircle className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    {translations.addCategory}
-                  </span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>{currentCategory ? translations.editCategoryTitle : translations.addCategoryTitle}</DialogTitle>
-                  <DialogDescription>
-                    {currentCategory ? translations.editCategoryDesc : translations.addCategoryDesc}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">{translations.nameLabel}</Label>
-                    <Input
-                      id="name"
-                      value={categoryName}
-                      onChange={(e) => setCategoryName(e.target.value)}
-                      className="col-span-3"
-                      placeholder="e.g. Groceries"
+      <div className="grid gap-6">
+        <div className="grid md:grid-cols-3 gap-4">
+            <Card>
+                <CardHeader className='flex-row items-center justify-between pb-2'>
+                    <CardTitle className="text-sm font-medium">{translations.globalBudgetTitle}</CardTitle>
+                    <Wallet className="h-4 w-4 text-muted-foreground"/>
+                </CardHeader>
+                <CardContent>
+                    <Input 
+                        type="number"
+                        placeholder={formatMoney(0, displayCurrency, displayLocale)}
+                        className="text-2xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto"
+                        value={globalBudget || ''}
+                        onChange={e => setGlobalBudget(parseFloat(e.target.value) || 0)}
                     />
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader className='flex-row items-center justify-between pb-2'>
+                    <CardTitle className="text-sm font-medium">{translations.totalAllocatedTitle}</CardTitle>
+                    <PiggyBank className="h-4 w-4 text-muted-foreground"/>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{formatMoney(totalAllocated, displayCurrency, displayLocale)}</div>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader className='flex-row items-center justify-between pb-2'>
+                    <CardTitle className="text-sm font-medium">{translations.remainingTitle}</CardTitle>
+                    <Scale className="h-4 w-4 text-muted-foreground"/>
+                </CardHeader>
+                <CardContent>
+                    <div className={`text-2xl font-bold ${remainingToAllocate < 0 ? 'text-destructive' : ''}`}>
+                      {formatMoney(remainingToAllocate, displayCurrency, displayLocale)}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center">
+            <div className="grid gap-2">
+              <CardTitle className="font-headline">{translations.title}</CardTitle>
+              <CardDescription>{translations.description}</CardDescription>
+            </div>
+            <div className="ml-auto gap-1">
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="h-8 gap-1" onClick={() => handleOpenDialog()}>
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                      {translations.addCategory}
+                    </span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>{currentCategory ? translations.editCategoryTitle : translations.addCategoryTitle}</DialogTitle>
+                    <DialogDescription>
+                      {currentCategory ? translations.editCategoryDesc : translations.addCategoryDesc}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="name" className="text-right">{translations.nameLabel}</Label>
+                      <Input
+                        id="name"
+                        value={categoryName}
+                        onChange={(e) => setCategoryName(e.target.value)}
+                        className="col-span-3"
+                        placeholder="e.g. Groceries"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="budget" className="text-right">{translations.budgetLabel}</Label>
+                      <Input
+                        id="budget"
+                        type="number"
+                        value={budgetedAmount}
+                        onChange={(e) => setBudgetedAmount(e.target.value)}
+                        className="col-span-3"
+                        placeholder="e.g. 500"
+                      />
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="budget" className="text-right">{translations.budgetLabel}</Label>
-                    <Input
-                      id="budget"
-                      type="number"
-                      value={budgetedAmount}
-                      onChange={(e) => setBudgetedAmount(e.target.value)}
-                      className="col-span-3"
-                      placeholder="e.g. 500"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">{translations.cancel}</Button>
-                  </DialogClose>
-                  <Button onClick={handleSaveCategory}>{translations.save}</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{translations.categoryNameHeader}</TableHead>
-                <TableHead>{translations.budgetedAmountHeader}</TableHead>
-                <TableHead className="text-right">{translations.actionsHeader}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">{translations.cancel}</Button>
+                    </DialogClose>
+                    <Button onClick={handleSaveCategory}>{translations.save}</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center">
-                    {translations.loading}
-                  </TableCell>
+                  <TableHead>{translations.categoryNameHeader}</TableHead>
+                  <TableHead>{translations.budgetedAmountHeader}</TableHead>
+                  <TableHead className="text-right">{translations.actionsHeader}</TableHead>
                 </TableRow>
-              )}
-              {categories && categories.length > 0 ? (
-                categories.map(category => (
-                  <TableRow key={category.id}>
-                    <TableCell className="font-medium">{category.name}</TableCell>
-                    <TableCell>{formatMoney(category.budgetedAmount, displayCurrency, displayLocale)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenDialog(category)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            <span>{translations.edit}</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openDeleteConfirm(category)} className="text-destructive">
-                             <Trash2 className="mr-2 h-4 w-4" />
-                            <span>{translations.delete}</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+              </TableHeader>
+              <TableBody>
+                {isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center">
+                      {translations.loading}
                     </TableCell>
                   </TableRow>
-                ))
-              ) : !isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="h-24 text-center">
-                    {translations.noCategories}
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                )}
+                {categories && categories.length > 0 ? (
+                  categories.map(category => (
+                    <TableRow key={category.id}>
+                      <TableCell className="font-medium">{category.name}</TableCell>
+                      <TableCell>{formatMoney(category.budgetedAmount, displayCurrency, displayLocale)}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleOpenDialog(category)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              <span>{translations.edit}</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openDeleteConfirm(category)} className="text-destructive">
+                               <Trash2 className="mr-2 h-4 w-4" />
+                              <span>{translations.delete}</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : !isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center">
+                      {translations.noCategories}
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
 
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
