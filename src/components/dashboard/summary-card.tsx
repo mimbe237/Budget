@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Currency } from '@/lib/types';
-import { useDoc, useFirestore, useUser } from '@/firebase';
+import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/lib/types';
 import { doc } from 'firebase/firestore';
 
@@ -21,7 +21,12 @@ function formatMoney(amountInCents: number, currency: Currency = 'USD', locale: 
 export function SummaryCard({ title, amountInCents, icon }: SummaryCardProps) {
     const { user } = useUser();
     const firestore = useFirestore();
-    const userProfileRef = user ? doc(firestore, `users/${user.uid}`) : null;
+
+    const userProfileRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, `users/${user.uid}`);
+    }, [firestore, user]);
+    
     const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
     
     const displayCurrency = userProfile?.displayCurrency || 'USD';

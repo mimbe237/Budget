@@ -8,7 +8,7 @@ import {
   import { Progress } from '@/components/ui/progress';
   import type { Goal, Currency, UserProfile } from '@/lib/types';
   import { Target } from 'lucide-react';
-  import { useDoc, useFirestore, useUser } from '@/firebase';
+  import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
   import { doc } from 'firebase/firestore';
   
   interface GoalsOverviewProps {
@@ -27,7 +27,10 @@ import {
   export function GoalsOverview({ goals }: GoalsOverviewProps) {
     const { user } = useUser();
     const firestore = useFirestore();
-    const userProfileRef = user ? doc(firestore, `users/${user.uid}`) : null;
+    const userProfileRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, `users/${user.uid}`);
+    }, [firestore, user]);
     const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
     const displayCurrency = userProfile?.displayCurrency || 'USD';

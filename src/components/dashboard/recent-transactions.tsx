@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import type { Transaction, Category, Currency, UserProfile } from '@/lib/types';
 import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useDoc, useFirestore, useUser } from '@/firebase';
+import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 
@@ -39,7 +39,11 @@ function formatMoney(amountInCents: number, currency: Currency, locale: string) 
 export function RecentTransactions({ transactions, categoryIcons }: RecentTransactionsProps) {
     const { user } = useUser();
     const firestore = useFirestore();
-    const userProfileRef = user ? doc(firestore, `users/${user.uid}`) : null;
+    const userProfileRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, `users/${user.uid}`);
+    }, [firestore, user]);
+
     const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
     const displayCurrency = userProfile?.displayCurrency || 'USD';

@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import type { Transaction, Budget, Category, Currency, UserProfile } from '@/lib/types';
-import { useDoc, useFirestore, useUser } from '@/firebase';
+import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 interface BudgetsOverviewProps {
@@ -26,7 +26,10 @@ function formatMoney(amount: number, currency: Currency, locale: string) {
 export function BudgetsOverview({ budgets, transactions, categoryIcons }: BudgetsOverviewProps) {
   const { user } = useUser();
   const firestore = useFirestore();
-  const userProfileRef = user ? doc(firestore, `users/${user.uid}`) : null;
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [firestore, user]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
     
   const displayCurrency = userProfile?.displayCurrency || 'USD';

@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { useDoc, useFirestore, useUser, updateDocumentNonBlocking } from '@/firebase';
+import { useDoc, useFirestore, useUser, updateDocumentNonBlocking, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import type { Currency, UserProfile } from '@/lib/types';
@@ -28,7 +28,11 @@ export default function SettingsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const userProfileRef = user ? doc(firestore, `users/${user.uid}`) : null;
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [firestore, user]);
+
   const { data: userProfile, isLoading } = useDoc<UserProfile>(userProfileRef);
 
   const [displayCurrency, setDisplayCurrency] = useState<Currency | undefined>(undefined);
