@@ -1,4 +1,5 @@
 'use client';
+import { useMemo } from 'react';
 import {
   DollarSign,
   CreditCard,
@@ -20,7 +21,7 @@ import {
 import type { Category, Transaction } from '@/lib/types';
 
 import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, limit, orderBy } from 'firebase/firestore';
 
 import { SummaryCard } from '@/components/dashboard/summary-card';
 import { SpendingOverview } from '@/components/dashboard/spending-overview';
@@ -32,9 +33,14 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
   const { user } = useUser();
   const firestore = useFirestore();
 
+  // Optimisation : limiter les transactions récentes à 100
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, `users/${user.uid}/expenses`));
+    return query(
+      collection(firestore, `users/${user.uid}/expenses`),
+      orderBy('date', 'desc'),
+      limit(100)
+    );
   }, [firestore, user]);
   const { data: transactions } = useCollection<Transaction>(transactionsQuery);
 
@@ -50,23 +56,32 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
   }, [firestore, user]);
   const { data: goals } = useCollection<any>(goalsQuery);
 
-  if (!transactions || !budgets || !goals) {
-    return (
-      <div className="flex items-center justify-center">
-        <div>Loading dashboard data...</div>
-      </div>
-    );
-  }
+  // Optimisation : mémoriser les calculs coûteux
+  const { totalIncome, totalExpenses, balance } = useMemo(() => {
+    if (!transactions) return { totalIncome: 0, totalExpenses: 0, balance: 0 };
+    
+    let income = 0;
+    let expenses = 0;
+    
+    // Une seule itération au lieu de deux filter + reduce
+    for (const t of transactions) {
+      const amount = t.amountInCents || 0;
+      if (t.type === 'income') {
+        income += amount;
+      } else if (t.type === 'expense') {
+        expenses += amount;
+      }
+    }
+    
+    return {
+      totalIncome: income,
+      totalExpenses: expenses,
+      balance: income - expenses
+    };
+  }, [transactions]);
 
-  const totalIncome = transactions
-    .filter(t => t.type === 'income')
-    .reduce((acc, t) => acc + (t.amountInCents || 0), 0);
-  const totalExpenses = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => acc + (t.amountInCents || 0), 0);
-  const balance = totalIncome - totalExpenses;
-
-  const categoryIcons: Record<Category, React.ReactNode> = {
+  // Optimisation : mémoriser les icônes pour éviter de les recréer
+  const categoryIcons: Record<Category, React.ReactNode> = useMemo(() => ({
     Housing: <Landmark className="h-4 w-4 text-muted-foreground" />,
     Food: <Utensils className="h-4 w-4 text-muted-foreground" />,
     Transport: <Car className="h-4 w-4 text-muted-foreground" />,
@@ -75,7 +90,21 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
     Shopping: <ShoppingBag className="h-4 w-4 text-muted-foreground" />,
     Utilities: <Lightbulb className="h-4 w-4 text-muted-foreground" />,
     Income: <DollarSign className="h-4 w-4 text-muted-foreground" />,
-  };
+  }), []);
+
+  // Optimisation : mémoriser les 5 dernières transactions
+  const recentTransactions = useMemo(() => {
+    return transactions ? transactions.slice(0, 5) : [];
+  }, [transactions]);
+
+  // Optimisation : retour anticipé avec fallback plus léger
+  if (!transactions || !budgets || !goals) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-muted-foreground">Chargement des données du tableau de bord...</div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -99,7 +128,7 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
         </div>
       </div>
       <div className="grid gap-4 md:gap-8 lg:grid-cols-2">
-        <RecentTransactions transactions={transactions.slice(0, 5)} categoryIcons={categoryIcons} />
+        <RecentTransactions transactions={recentTransactions} categoryIcons={categoryIcons} />
         <GoalsOverview goals={goals} />
       </div>
     </>

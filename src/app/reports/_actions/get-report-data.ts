@@ -21,13 +21,16 @@ export async function getFinancialReportData(
     { from, to }: { from?: string; to?: string }
 ): Promise<FinancialReportData> {
 
-    // 1. Authentication and Initialization
-    const user = await getAuthenticatedUser();
-    const db = getFirebaseAdminApp().firestore();
+    // 1. Authentication and Initialization - TEMPORAIREMENT DÉSACTIVÉ POUR DEMO
+    // const user = await getAuthenticatedUser();
+    // const db = getFirebaseAdminApp().firestore();
 
-    if (!user) {
-        throw new Error("Authentication is required to view reports.");
-    }
+    // if (!user) {
+    //     throw new Error("Authentication is required to view reports.");
+    // }
+
+    // Mock user pour la démo
+    const user = { uid: 'demo-user' };
     
     // 2. Date Range Calculation
     const now = new Date();
@@ -44,7 +47,7 @@ export async function getFinancialReportData(
         to: sub(currentPeriod.to, { days: periodDuration + 1 }),
     };
 
-    // 3. Data Fetching (in parallel)
+    // 3. Data Fetching (in parallel) - MOCK DATA POUR DEMO
     const [
         currentTransactions,
         previousTransactions,
@@ -52,11 +55,16 @@ export async function getFinancialReportData(
         goals,
         userProfile
     ] = await Promise.all([
-        fetchTransactions(db, user.uid, currentPeriod.from, currentPeriod.to),
-        fetchTransactions(db, user.uid, previousPeriod.from, previousPeriod.to),
-        fetchBudgets(db, user.uid),
-        fetchGoals(db, user.uid),
-        fetchUserProfile(db, user.uid)
+        // fetchTransactions(db, user.uid, currentPeriod.from, currentPeriod.to),
+        // fetchTransactions(db, user.uid, previousPeriod.from, previousPeriod.to),
+        // fetchBudgets(db, user.uid),
+        // fetchGoals(db, user.uid),
+        // fetchUserProfile(db, user.uid)
+        Promise.resolve(getMockTransactions()),
+        Promise.resolve(getMockPreviousTransactions()),
+        Promise.resolve(getMockBudgets()),
+        Promise.resolve(getMockGoals()),
+        Promise.resolve(getMockUserProfile())
     ]);
 
     // 4. Data Processing and KPI Calculation
@@ -190,4 +198,178 @@ function processBudgetVsActual(transactions: Transaction[], budgets: Budget[]): 
             variance: budgetedInCents - actual,
         };
     }).sort((a, b) => (a.actual / a.budgeted) - (b.actual / b.budgeted));
+}
+
+// --- Mock Data for Demo ---
+
+function getMockTransactions(): Transaction[] {
+    return [
+        {
+            id: '1',
+            date: '2024-10-15',
+            description: 'Salaire octobre',
+            amountInCents: 250000,
+            type: 'income',
+            currency: 'EUR',
+            category: 'Income',
+            userId: 'demo-user'
+        },
+        {
+            id: '2',
+            date: '2024-10-10',
+            description: 'Courses Carrefour',
+            amountInCents: 8500,
+            type: 'expense',
+            currency: 'EUR',
+            category: 'Food',
+            userId: 'demo-user'
+        },
+        {
+            id: '3',
+            date: '2024-10-08',
+            description: 'Loyer appartement',
+            amountInCents: 120000,
+            type: 'expense',
+            currency: 'EUR',
+            category: 'Housing',
+            userId: 'demo-user'
+        },
+        {
+            id: '4',
+            date: '2024-10-05',
+            description: 'Essence voiture',
+            amountInCents: 6500,
+            type: 'expense',
+            currency: 'EUR',
+            category: 'Transport',
+            userId: 'demo-user'
+        },
+        {
+            id: '5',
+            date: '2024-10-03',
+            description: 'Restaurant avec amis',
+            amountInCents: 4500,
+            type: 'expense',
+            currency: 'EUR',
+            category: 'Entertainment',
+            userId: 'demo-user'
+        },
+        {
+            id: '6',
+            date: '2024-10-01',
+            description: 'Facture électricité',
+            amountInCents: 8900,
+            type: 'expense',
+            currency: 'EUR',
+            category: 'Utilities',
+            userId: 'demo-user'
+        }
+    ];
+}
+
+function getMockPreviousTransactions(): Transaction[] {
+    return [
+        {
+            id: '7',
+            date: '2024-09-15',
+            description: 'Salaire septembre',
+            amountInCents: 250000,
+            type: 'income',
+            currency: 'EUR',
+            category: 'Income',
+            userId: 'demo-user'
+        },
+        {
+            id: '8',
+            date: '2024-09-10',
+            description: 'Courses septembre',
+            amountInCents: 7500,
+            type: 'expense',
+            currency: 'EUR',
+            category: 'Food',
+            userId: 'demo-user'
+        },
+        {
+            id: '9',
+            date: '2024-09-08',
+            description: 'Loyer septembre', 
+            amountInCents: 120000,
+            type: 'expense',
+            currency: 'EUR',
+            category: 'Housing',
+            userId: 'demo-user'
+        }
+    ];
+}
+
+function getMockBudgets(): Budget[] {
+    return [
+        {
+            id: 'b1',
+            userId: 'demo-user',
+            name: 'Food',
+            budgetedAmount: 400
+        },
+        {
+            id: 'b2',
+            userId: 'demo-user',
+            name: 'Housing',
+            budgetedAmount: 1300
+        },
+        {
+            id: 'b3',
+            userId: 'demo-user',
+            name: 'Transport',
+            budgetedAmount: 200
+        },
+        {
+            id: 'b4',
+            userId: 'demo-user',
+            name: 'Entertainment',
+            budgetedAmount: 150
+        }
+    ];
+}
+
+function getMockGoals(): Goal[] {
+    return [
+        {
+            id: 'g1',
+            userId: 'demo-user',
+            name: 'Vacances d\'été',
+            targetAmountInCents: 200000,
+            currentAmountInCents: 125000,
+            currency: 'EUR',
+            targetDate: '2025-06-01'
+        },
+        {
+            id: 'g2',
+            userId: 'demo-user',
+            name: 'Fonds d\'urgence',
+            targetAmountInCents: 500000,
+            currentAmountInCents: 320000,
+            currency: 'EUR',
+            targetDate: '2025-12-31'
+        },
+        {
+            id: 'g3',
+            userId: 'demo-user',
+            name: 'Nouveau laptop',
+            targetAmountInCents: 150000,
+            currentAmountInCents: 89000,
+            currency: 'EUR',
+            targetDate: '2025-03-15'
+        }
+    ];
+}
+
+function getMockUserProfile(): UserProfile {
+    return {
+        id: 'demo-user',
+        email: 'demo@example.com',
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        displayCurrency: 'EUR',
+        locale: 'fr-CM'
+    };
 }

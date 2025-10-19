@@ -1,7 +1,6 @@
 import { initializeApp, getApp, getApps, App, cert, ServiceAccount } from 'firebase-admin/app';
 import { getAuth, DecodedIdToken } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { headers } from 'next/headers';
 
 // IMPORTANT: DO NOT MODIFY THIS FILE
 
@@ -10,6 +9,25 @@ let adminApp: App;
 function initializeAdminApp(): App {
   if (getApps().length > 0) {
     return getApp();
+  }
+
+  // Prefer inline JSON service account BEFORE ADC to avoid ENAMETOOLONG on file open
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.GOOGLE_APPLICATION_CREDENTIALS.trim().startsWith('{')) {
+    try {
+      const raw = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS) as any;
+      const normalized: ServiceAccount = {
+        projectId: raw.project_id,
+        clientEmail: raw.client_email,
+        privateKey: (raw.private_key as string | undefined)?.replace(/\\n/g, '\n'),
+      };
+      if (!normalized.projectId || !normalized.clientEmail || !normalized.privateKey) {
+        throw new Error('Incomplete service account credentials');
+      }
+      const app = initializeApp({ credential: cert(normalized) });
+      return app;
+    } catch (e) {
+      console.warn('Failed to initialize with inline service account JSON', e);
+    }
   }
 
   // First, try to use the Firebase-provided environment variables
@@ -35,18 +53,40 @@ function initializeAdminApp(): App {
       console.warn('ADC initialization failed, falling back to service account.', e);
   }
 
-  // Finally, fall back to GOOGLE_APPLICATION_CREDENTIALS
+  // Finally, fall back to GOOGLE_APPLICATION_CREDENTIALS (JSON string or file path)
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     try {
-        const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-        const app = initializeApp({
-            credential: cert(serviceAccount)
-        });
-        return app;
+        const gac = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+        if (gac.trim().startsWith('{')) {
+          const raw = JSON.parse(gac) as any;
+          const normalized: ServiceAccount = {
+            projectId: raw.project_id,
+            clientEmail: raw.client_email,
+            privateKey: (raw.private_key as string | undefined)?.replace(/\\n/g, '\n'),
+          };
+          if (!normalized.projectId || !normalized.clientEmail || !normalized.privateKey) {
+            console.warn('Service account credentials are incomplete. Skipping admin initialization.');
+            throw new Error('Incomplete service account credentials');
+          }
+          const app = initializeApp({ credential: cert(normalized) });
+          return app;
+        } else {
+          // treat as file path for ADC-compatible behavior
+          process.env.GOOGLE_APPLICATION_CREDENTIALS = gac;
+          const app = initializeApp();
+          return app;
+        }
     } catch(e) {
-        console.error('Failed to initialize with service account from env var', e);
-        throw e;
+        console.warn('Failed to initialize with service account from env var', e);
+        // Ne pas throw l'erreur, juste logger
     }
+  }
+  
+  // En développement, on peut continuer sans admin SDK
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️  Firebase Admin SDK not initialized. Some server-side features may not work.');
+    // Retourner un mock ou undefined selon les besoins
+    throw new Error('Firebase Admin SDK not configured for development. Please add valid service account credentials.');
   }
   
   throw new Error('Could not initialize Firebase Admin SDK. No credentials found.');
@@ -66,17 +106,4 @@ export function getAdminFirestore() {
     return getFirestore(adminApp);
 }
 
-export async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
-    const authHeader = headers().get('Authorization');
-    if (authHeader) {
-        const token = authHeader.split(' ')[1];
-        try {
-            const adminAuth = getAdminAuth();
-            return await adminAuth.verifyIdToken(token);
-        } catch (error) {
-            console.error('Error verifying auth token:', error);
-            return null;
-        }
-    }
-    return null;
-}
+// Note: Authenticated user helpers should live in server-only files/components

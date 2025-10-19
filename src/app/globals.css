@@ -83,3 +83,137 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Styles spécifiques pour l'impression des rapports */
+@media print {
+  /* Configuration générale de la page */
+  @page {
+    margin: 2cm;
+    size: A4 portrait;
+  }
+
+  /* Reset des styles pour l'impression */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Masquer les éléments non imprimables */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Layout spécifique impression */
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+
+  .print\:m-0 {
+    margin: 0 !important;
+  }
+
+  .print\:mt-8 {
+    margin-top: 2rem !important;
+  }
+
+  .print\:space-y-4 > * + * {
+    margin-top: 1rem !important;
+  }
+
+  .print\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .print\:max-w-none {
+    max-width: none !important;
+  }
+
+  /* Éviter les coupures dans les éléments importants */
+  .print-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Amélioration de la lisibilité */
+  body {
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    color: #000 !important;
+    background: white !important;
+  }
+
+  h1 {
+    font-size: 18pt !important;
+    margin-bottom: 0.5rem !important;
+    color: #000 !important;
+  }
+
+  h2, h3 {
+    font-size: 14pt !important;
+    margin-bottom: 0.25rem !important;
+    color: #000 !important;
+  }
+
+  h4 {
+    font-size: 12pt !important;
+    margin-bottom: 0.25rem !important;
+    color: #000 !important;
+  }
+
+  /* Styles pour les cartes en impression */
+  .card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 1rem;
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* Styles pour les graphiques */
+  .recharts-wrapper {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Styles pour les tableaux */
+  table {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Amélioration des tableaux pour l'impression */
+  table th {
+    background-color: #f9fafb !important;
+    border-bottom: 2px solid #d1d5db !important;
+    font-weight: 600 !important;
+  }
+
+  table td {
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+
+  /* Espacement vertical pour une meilleure lisibilité */
+  .grid {
+    gap: 1rem !important;
+  }
+
+  /* Optimisation pour les graphiques Recharts */
+  .recharts-surface {
+    background: white !important;
+  }
+
+  .recharts-cartesian-grid line {
+    stroke: #e5e7eb !important;
+  }
+
+  .recharts-text {
+    fill: #374151 !important;
+    font-size: 10pt !important;
+  }
+}

@@ -1,26 +1,27 @@
 'use server';
 import { Suspense } from 'react';
 import { AppLayout } from '@/components/dashboard/dashboard-client';
-import { DateRangePicker } from './_components/date-range-picker';
-import { FinancialReport } from './_components/financial-report';
+import { FinancialReport } from './_components/financial-report-simple';
+import { DateRangeFilter } from './_components/date-range-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Note: The 'searchParams' prop is automatically provided by Next.js in server components.
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
 
   // Ensure searchParams are defined and get string values
-  const from = typeof searchParams?.from === 'string' ? searchParams.from : undefined;
-  const to = typeof searchParams?.to === 'string' ? searchParams.to : undefined;
+  const params = await searchParams;
+  const from = typeof params?.from === 'string' ? params.from : undefined;
+  const to = typeof params?.to === 'string' ? params.to : undefined;
 
   return (
     <AppLayout>
-      <div className="flex flex-col gap-6">
-        {/* Client component for date selection */}
-        <DateRangePicker />
+      <div className="print:p-0 print:m-0 space-y-6">
+        {/* Filtre de période (masqué à l'impression) */}
+        <DateRangeFilter />
         
         {/* Server Component for displaying the report, with a loading fallback */}
         <Suspense fallback={<ReportSkeleton />}>

@@ -23,90 +23,106 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
+     * @description Helper functions for authentication and authorization
+     */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             (request.auth.token.admin == true || 
+              request.auth.token.role == 'admin' ||
+              (resource != null && resource.data.role == 'admin'));
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
      * @description Controls access to user profile documents.
      * @path /users/{userId}
      * @allow (create) - If the user's auth UID matches the `userId` in the path.
      * @allow (get, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
-     * @allow (list) - Listing all users is disallowed.
+     * @allow (list) - Only admins can list all users.
+     * @allow (read, write) - Admins have full access for administrative purposes.
      * @deny (create) - If the user's auth UID does not match the `userId` in the path.
      * @deny (get, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
-     * @principle Enforces document ownership based on the `userId` path parameter.
+     * @principle Enforces document ownership based on the `userId` path parameter, with admin override.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin(); // Seuls les admins peuvent lister tous les utilisateurs
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow update: if (isExistingOwner(userId) && request.resource.data.id == resource.data.id) || isAdmin();
+      allow delete: if isAdmin(); // Seuls les admins peuvent supprimer des utilisateurs
     }
 
     /**
      * @description Controls access to expense documents within a user's subcollection.
      * @path /users/{userId}/expenses/{expenseId}
      * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
+     * @allow (read, write) - Admins have full access for administrative analytics and user management.
      * @deny (create, get, list, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
-     * @principle Enforces document ownership based on the `userId` path parameter for expenses.
+     * @principle Enforces document ownership based on the `userId` path parameter for expenses, with admin override.
      */
     match /users/{userId}/expenses/{expenseId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
-      allow delete: if isExistingOwner(userId);
+      allow update: if (isExistingOwner(userId) && request.resource.data.userId == userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
     }
 
     /**
      * @description Controls access to category documents within a user's subcollection.
      * @path /users/{userId}/categories/{categoryId}
      * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
+     * @allow (read, write) - Admins have full access for administrative purposes.
      * @deny (create, get, list, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
-     * @principle Enforces document ownership based on the `userId` path parameter for categories.
+     * @principle Enforces document ownership based on the `userId` path parameter for categories, with admin override.
      */
     match /users/{userId}/categories/{categoryId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
-      allow delete: if isExistingOwner(userId);
+      allow update: if (isExistingOwner(userId) && request.resource.data.userId == userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
     }
 
     /**
      * @description Controls access to budget goal documents within a user's subcollection.
      * @path /users/{userId}/budgetGoals/{budgetGoalId}
      * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
+     * @allow (read, write) - Admins have full access for administrative purposes.
      * @deny (create, get, list, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
-     * @principle Enforces document ownership based on the `userId` path parameter for budget goals.
+     * @principle Enforces document ownership based on the `userId` path parameter for budget goals, with admin override.
      */
     match /users/{userId}/budgetGoals/{budgetGoalId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
-      allow delete: if isExistingOwner(userId);
+      allow update: if (isExistingOwner(userId) && request.resource.data.userId == userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
     }
+
+    /**
+     * @description Admin logs collection for auditing administrative actions
+     * @path /admin_logs/{logId}
+     * @allow (create, read) - Only admins can create and read admin logs
+     * @principle Admins can log their actions for audit purposes
+     */
+    match /admin_logs/{logId} {
+      allow create: if isAdmin();
+      allow read: if isAdmin();
+      allow list: if isAdmin();
+    }
+  }
+}
   }
 }

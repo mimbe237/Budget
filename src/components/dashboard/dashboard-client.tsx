@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import {
   Car,
   CreditCard,
@@ -37,14 +37,15 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const isFrench = userProfile?.locale === 'fr-CM';
 
-  const navItems = [
+  // Optimisation : mémoriser les items de navigation
+  const navItems = useMemo(() => [
     { href: '/', label: isFrench ? 'Tableau de bord' : 'Dashboard', icon: LayoutGrid },
     { href: '/transactions', label: isFrench ? 'Transactions' : 'Transactions', icon: List },
     { href: '/categories', label: isFrench ? 'Catégories' : 'Categories', icon: Folder },
     { href: '/goals', label: isFrench ? 'Objectifs' : 'Goals', icon: Target },
     { href: '/reports', label: isFrench ? 'Rapports' : 'Reports', icon: FileBarChart },
     { href: '/settings', label: isFrench ? 'Paramètres' : 'Settings', icon: Settings },
-  ];
+  ], [isFrench]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {

@@ -30,6 +30,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Optimisations de performance
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  // Configuration pour améliorer les performances de build
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@/components/ui'],
+  },
+  // Compression et optimisation
+  compress: true,
+  poweredByHeader: false,
 };
 
 export default nextConfig;

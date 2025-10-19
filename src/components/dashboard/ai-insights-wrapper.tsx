@@ -7,7 +7,8 @@ import { getFirebaseAdminApp } from '@/firebase/admin';
 import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
 
 async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
-    const authHeader = headers().get('Authorization');
+    const headersInstance = await headers();
+    const authHeader = headersInstance.get('Authorization');
     if (authHeader) {
         const token = authHeader.split(' ')[1];
         try {

@@ -20,9 +20,9 @@ export function AIInsights({ insights, recommendations }: AIInsightsProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-headline">
           <Lightbulb className="h-5 w-5 text-primary" />
-          Smart Savings
+          Insights IA
         </CardTitle>
-        <CardDescription>AI-powered tips to improve your finances.</CardDescription>
+        <CardDescription>Analyses et recommandations personnalisées</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 text-sm">
         <div>
@@ -37,3 +37,4 @@ export function AIInsights({ insights, recommendations }: AIInsightsProps) {
     </Card>
   );
 }
+
