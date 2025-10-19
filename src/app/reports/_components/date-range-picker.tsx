@@ -45,8 +45,11 @@ export function DateRangePicker({
   
   const [preset, setPreset] = React.useState<string>(() => {
     const now = new Date();
-    const from = fromParam ? new Date(fromParam) : startOfMonth(now);
-    const to = toParam ? new Date(toParam) : endOfMonth(now);
+    const from = date?.from;
+    const to = date?.to;
+
+    if (!from || !to) return 'custom';
+
     if (from.getTime() === startOfMonth(now).getTime() && to.getTime() === endOfMonth(now).getTime()) return 'this-month';
     if (from.getTime() === startOfQuarter(now).getTime() && to.getTime() === endOfQuarter(now).getTime()) return 'this-quarter';
     if (from.getTime() === startOfYear(now).getTime() && to.getTime() === endOfYear(now).getTime()) return 'this-year';
@@ -87,14 +90,19 @@ export function DateRangePicker({
           case 'this-year':
               newDate = { from: startOfYear(now), to: endOfYear(now) };
               break;
+          case 'custom':
+              // Do nothing, user will pick dates
+              return;
           default:
             return;
       }
-      if (newDate) {
+      if (newDate?.from) {
         newDate.from.setHours(0,0,0,0);
-        newDate.to.setHours(23,59,59,999);
-        setDate(newDate);
       }
+      if (newDate?.to) {
+        newDate.to.setHours(23,59,59,999);
+      }
+      setDate(newDate);
   }
 
   const handleDateChange = (newDate: DateRange | undefined) => {
@@ -109,6 +117,7 @@ export function DateRangePicker({
     thisMonth: isFrench ? 'Ce mois-ci' : 'This month',
     thisQuarter: isFrench ? 'Ce trimestre' : 'This quarter',
     thisYear: isFrench ? 'Cette année' : 'This year',
+    custom: isFrench ? 'Personnalisé' : 'Custom',
     pickDate: isFrench ? 'Choisir une date' : 'Pick a date',
   }
 
@@ -123,6 +132,7 @@ export function DateRangePicker({
                 <SelectItem value="this-month">{translations.thisMonth}</SelectItem>
                 <SelectItem value="this-quarter">{translations.thisQuarter}</SelectItem>
                 <SelectItem value="this-year">{translations.thisYear}</SelectItem>
+                <SelectItem value="custom">{translations.custom}</SelectItem>
             </SelectContent>
         </Select>
         <Popover>

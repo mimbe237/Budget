@@ -32,12 +32,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { Category, Currency, Transaction, UserProfile } from '@/lib/types';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import { useState } from 'react';
-import { startOfMonth, endOfMonth, startOfYesterday, startOfYear, endOfYear } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfYesterday, startOfYear, endOfYear, format } from 'date-fns';
 import { SummaryCard } from '@/components/dashboard/summary-card';
+import { DateRangePicker } from '../reports/_components/date-range-picker';
+import { useSearchParams } from 'next/navigation';
 
 
 function formatMoney(amountInCents: number, currency: Currency, locale: string) {
@@ -48,61 +50,31 @@ function formatMoney(amountInCents: number, currency: Currency, locale: string) 
     }).format(amount);
 }
 
-const categoryIcons: Record<Category, React.ReactNode> = {
-    Housing: <Landmark className="h-4 w-4 text-muted-foreground" />,
-    Food: <Utensils className="h-4 w-4 text-muted-foreground" />,
-    Transport: <Car className="h-4 w-4 text-muted-foreground" />,
-    Entertainment: <PartyPopper className="h-4 w-4 text-muted-foreground" />,
-    Health: <HeartPulse className="h-4 w-4 text-muted-foreground" />,
-    Shopping: <ShoppingBag className="h-4 w-4 text-muted-foreground" />,
-    Utilities: <Lightbulb className="h-4 w-4 text-muted-foreground" />,
-    Income: <DollarSign className="h-4 w-4 text-muted-foreground" />,
-};
-
-function getPeriod(period: string): { gte: string; lte: string } | null {
-  const now = new Date();
-  switch (period) {
-    case 'this-month':
-      return {
-        gte: startOfMonth(now).toISOString(),
-        lte: endOfMonth(now).toISOString(),
-      };
-    case 'last-month':
-        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        return {
-            gte: startOfMonth(lastMonth).toISOString(),
-            lte: endOfMonth(lastMonth).toISOString(),
-        };
-    case 'this-year':
-        return {
-            gte: startOfYear(now).toISOString(),
-            lte: endOfYear(now).toISOString(),
-        };
-    default:
-      return null;
-  }
-}
-
 export default function TransactionsPage() {
   const { user, userProfile } = useUser();
   const firestore = useFirestore();
-  const [activePeriod, setActivePeriod] = useState('this-month');
+  const searchParams = useSearchParams();
 
   const isFrench = userProfile?.locale === 'fr-CM';
+
+  const from = searchParams.get('from');
+  const to = searchParams.get('to');
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     
-    const period = getPeriod(activePeriod);
-    const baseQuery = collection(firestore, `users/${user.uid}/expenses`);
+    let q = query(collection(firestore, `users/${user.uid}/expenses`), orderBy('date', 'desc'));
 
-    if (period) {
-        return query(baseQuery, where('date', '>=', period.gte), where('date', '<=', period.lte), orderBy('date', 'desc'));
+    if (from) {
+        q = query(q, where('date', '>=', from));
+    }
+    if (to) {
+        q = query(q, where('date', '<=', to));
     }
 
-    return query(baseQuery, orderBy('date', 'desc'));
+    return q;
 
-  }, [firestore, user, activePeriod]);
+  }, [firestore, user, from, to]);
 
   const { data: transactions, isLoading } = useCollection<Transaction>(transactionsQuery);
 
@@ -114,10 +86,6 @@ export default function TransactionsPage() {
   const balance = totalIncome - totalExpenses;
 
   const translations = {
-      thisMonth: isFrench ? 'Mois en cours' : 'This Month',
-      lastMonth: isFrench ? 'Mois dernier' : 'Last Month',
-      thisYear: isFrench ? 'Cette année' : 'This Year',
-      allTime: isFrench ? 'Tout' : 'All Time',
       addTransaction: isFrench ? 'Ajouter Transaction' : 'Add Transaction',
       totalIncome: isFrench ? 'Total Revenus' : 'Total Income',
       totalExpenses: isFrench ? 'Total Dépenses' : 'Total Expenses',
@@ -135,94 +103,87 @@ export default function TransactionsPage() {
 
   return (
     <AppLayout>
-        <Tabs value={activePeriod} onValueChange={setActivePeriod}>
-            <div className="flex items-center justify-between">
-                <TabsList>
-                    <TabsTrigger value="this-month">{translations.thisMonth}</TabsTrigger>
-                    <TabsTrigger value="last-month">{translations.lastMonth}</TabsTrigger>
-                    <TabsTrigger value="this-year">{translations.thisYear}</TabsTrigger>
-                    <TabsTrigger value="all-time">{translations.allTime}</TabsTrigger>
-                </TabsList>
-                <div className="ml-auto gap-1">
-                    <Button asChild size="sm" className="h-8 gap-1">
-                    <Link href="/transactions/add">
-                        <PlusCircle className="h-3.5 w-3.5" />
-                        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        {translations.addTransaction}
-                        </span>
-                    </Link>
-                    </Button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex-1">
+                <DateRangePicker />
+            </div>
+            <div className="ml-auto gap-1">
+                <Button asChild size="sm" className="h-8 gap-1">
+                <Link href="/transactions/add">
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                    {translations.addTransaction}
+                    </span>
+                </Link>
+                </Button>
+            </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3 my-4">
+            <SummaryCard title={translations.totalIncome} amountInCents={totalIncome} icon={<DollarSign />} />
+            <SummaryCard title={translations.totalExpenses} amountInCents={totalExpenses} icon={<CreditCard />} />
+            <SummaryCard title={translations.netBalance} amountInCents={balance} icon={<Scale />} />
+        </div>
+        <Card>
+            <CardHeader className="flex flex-row items-center">
+                <div className="grid gap-2">
+                <CardTitle className="font-headline">{translations.transactions}</CardTitle>
+                <CardDescription>
+                    {translations.transactionsDesc}
+                </CardDescription>
                 </div>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3 my-4">
-                <SummaryCard title={translations.totalIncome} amountInCents={totalIncome} icon={<DollarSign />} />
-                <SummaryCard title={translations.totalExpenses} amountInCents={totalExpenses} icon={<CreditCard />} />
-                <SummaryCard title={translations.netBalance} amountInCents={balance} icon={<Scale />} />
-            </div>
-            <TabsContent value={activePeriod}>
-              <Card>
-                <CardHeader className="flex flex-row items-center">
-                  <div className="grid gap-2">
-                    <CardTitle className="font-headline">{translations.transactions}</CardTitle>
-                    <CardDescription>
-                      {translations.transactionsDesc}
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{translations.description}</TableHead>
-                        <TableHead className="hidden sm:table-cell">{translations.category}</TableHead>
-                        <TableHead className="hidden sm:table-cell">{translations.date}</TableHead>
-                        <TableHead className="text-right">{translations.amount}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isLoading && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center">
-                            {translations.loading}
-                          </TableCell>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>{translations.description}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{translations.category}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{translations.date}</TableHead>
+                    <TableHead className="text-right">{translations.amount}</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {isLoading && (
+                    <TableRow>
+                        <TableCell colSpan={4} className="text-center">
+                        {translations.loading}
+                        </TableCell>
+                    </TableRow>
+                    )}
+                    {transactions && transactions.length > 0 ? (
+                    transactions.map(transaction => (
+                        <TableRow key={transaction.id}>
+                        <TableCell>
+                            <div className="font-medium">{transaction.description}</div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                            <Badge className="text-xs" variant="outline">
+                            {transaction.category}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                            {new Date(transaction.date).toLocaleDateString(displayLocale)}
+                        </TableCell>
+                        <TableCell
+                            className={`text-right font-semibold ${
+                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                            }`}
+                        >
+                            {transaction.type === 'income' ? '+' : '-'}{formatMoney(transaction.amountInCents, transaction.currency || displayCurrency, displayLocale)}
+                        </TableCell>
                         </TableRow>
-                      )}
-                      {transactions && transactions.length > 0 ? (
-                        transactions.map(transaction => (
-                          <TableRow key={transaction.id}>
-                            <TableCell>
-                              <div className="font-medium">{transaction.description}</div>
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell">
-                              <Badge className="text-xs" variant="outline">
-                                {transaction.category}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell">
-                              {new Date(transaction.date).toLocaleDateString(displayLocale)}
-                            </TableCell>
-                            <TableCell
-                              className={`text-right font-semibold ${
-                                transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                              }`}
-                            >
-                              {transaction.type === 'income' ? '+' : '-'}{formatMoney(transaction.amountInCents, transaction.currency || displayCurrency, displayLocale)}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : !isLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={4} className="h-24 text-center">
-                            {translations.noTransactions}
-                          </TableCell>
-                        </TableRow>
-                      ) : null}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-        </Tabs>
+                    ))
+                    ) : !isLoading ? (
+                    <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                        {translations.noTransactions}
+                        </TableCell>
+                    </TableRow>
+                    ) : null}
+                </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
     </AppLayout>
   );
 }
