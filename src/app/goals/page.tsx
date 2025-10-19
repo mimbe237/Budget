@@ -77,9 +77,11 @@ function formatMoney(amountInCents: number, currency: Currency, locale: string) 
 }
 
 export default function GoalsPage() {
-  const { user } = useUser();
+  const { user, userProfile } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  const isFrench = userProfile?.locale === 'fr-CM';
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -99,11 +101,6 @@ export default function GoalsPage() {
 
   const { data: goals, isLoading } = useCollection<Goal>(goalsQuery);
   
-  const userProfileRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, `users/${user.uid}`);
-    }, [firestore, user]);
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
   const displayCurrency = userProfile?.displayCurrency || 'USD';
   const displayLocale = userProfile?.locale || 'en-US';
 
@@ -133,8 +130,8 @@ export default function GoalsPage() {
     if (!goalName || !targetAmount || !targetDate) {
       toast({
         variant: 'destructive',
-        title: 'Missing Fields',
-        description: 'Please provide a name, target amount, and target date.',
+        title: isFrench ? 'Champs manquants' : 'Missing Fields',
+        description: isFrench ? 'Veuillez fournir un nom, un montant cible et une date cible.' : 'Please provide a name, target amount, and target date.',
       });
       return;
     }
@@ -154,11 +151,11 @@ export default function GoalsPage() {
     if (currentGoal) {
       const goalRef = doc(firestore, `users/${user.uid}/budgetGoals`, currentGoal.id);
       updateDocumentNonBlocking(goalRef, goalData);
-      toast({ title: 'Goal Updated', description: `"${goalName}" has been updated.` });
+      toast({ title: isFrench ? 'Objectif mis à jour' : 'Goal Updated', description: `"${goalName}" ${isFrench ? 'a été mis à jour.' : 'has been updated.'}` });
     } else {
       const goalsCollection = collection(firestore, `users/${user.uid}/budgetGoals`);
       addDocumentNonBlocking(goalsCollection, goalData);
-      toast({ title: 'Goal Added', description: `"${goalName}" has been created.` });
+      toast({ title: isFrench ? 'Objectif ajouté' : 'Goal Added', description: `"${goalName}" ${isFrench ? 'a été créé.' : 'has been created.'}` });
     }
 
     setIsDialogOpen(false);
@@ -174,9 +171,35 @@ export default function GoalsPage() {
     if (!user || !firestore || !goalToDelete) return;
     const goalRef = doc(firestore, `users/${user.uid}/budgetGoals`, goalToDelete.id);
     deleteDocumentNonBlocking(goalRef);
-    toast({ title: 'Goal Deleted', description: `"${goalToDelete.name}" has been removed.` });
+    toast({ title: isFrench ? 'Objectif supprimé' : 'Goal Deleted', description: `"${goalToDelete.name}" ${isFrench ? 'a été supprimé.' : 'has been removed.'}` });
     setIsAlertOpen(false);
     setGoalToDelete(null);
+  };
+
+  const translations = {
+    title: isFrench ? 'Objectifs Financiers' : 'Financial Goals',
+    description: isFrench ? 'Définissez et suivez vos objectifs financiers pour rester motivé.' : 'Set and track your financial targets to stay motivated.',
+    addGoal: isFrench ? 'Ajouter Objectif' : 'Add Goal',
+    editGoalTitle: isFrench ? 'Modifier Objectif' : 'Edit Goal',
+    addGoalTitle: isFrench ? 'Ajouter Nouvel Objectif' : 'Add New Goal',
+    editGoalDesc: isFrench ? 'Apportez des modifications à votre objectif.' : 'Make changes to your goal.',
+    addGoalDesc: isFrench ? 'Créez un nouvel objectif financier.' : 'Create a new financial goal.',
+    nameLabel: isFrench ? 'Nom' : 'Name',
+    targetLabel: isFrench ? 'Cible' : 'Target',
+    savedLabel: isFrench ? 'Économisé' : 'Saved',
+    targetDateLabel: isFrench ? 'Date Cible' : 'Target Date',
+    cancel: isFrench ? 'Annuler' : 'Cancel',
+    save: isFrench ? 'Enregistrer Objectif' : 'Save Goal',
+    goalHeader: isFrench ? 'Objectif' : 'Goal',
+    progressHeader: isFrench ? 'Progression' : 'Progress',
+    targetDateHeader: isFrench ? 'Date Cible' : 'Target Date',
+    actionsHeader: 'Actions',
+    loading: isFrench ? 'Chargement des objectifs...' : 'Loading goals...',
+    noGoals: isFrench ? 'Aucun objectif trouvé.' : 'No goals found.',
+    deleteConfirmTitle: isFrench ? 'Êtes-vous sûr ?' : 'Are you sure?',
+    deleteConfirmDesc: isFrench ? `Cela supprimera définitivement l'objectif "${goalToDelete?.name}". Cette action est irréversible.` : `This will permanently delete the goal "${goalToDelete?.name}". This action cannot be undone.`,
+    delete: isFrench ? 'Supprimer' : 'Delete',
+    edit: isFrench ? 'Modifier' : 'Edit',
   };
 
   return (
@@ -184,10 +207,8 @@ export default function GoalsPage() {
       <Card>
         <CardHeader className="flex flex-row items-center">
           <div className="grid gap-2">
-            <CardTitle className="font-headline">Financial Goals</CardTitle>
-            <CardDescription>
-              Set and track your financial targets to stay motivated.
-            </CardDescription>
+            <CardTitle className="font-headline">{translations.title}</CardTitle>
+            <CardDescription>{translations.description}</CardDescription>
           </div>
           <div className="ml-auto gap-1">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -195,24 +216,22 @@ export default function GoalsPage() {
                 <Button size="sm" className="h-8 gap-1" onClick={() => handleOpenDialog()}>
                   <PlusCircle className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Add Goal
+                    {translations.addGoal}
                   </span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>{currentGoal ? 'Edit Goal' : 'Add New Goal'}</DialogTitle>
-                  <DialogDescription>
-                    {currentGoal ? "Make changes to your goal." : "Create a new financial goal."}
-                  </DialogDescription>
+                  <DialogTitle>{currentGoal ? translations.editGoalTitle : translations.addGoalTitle}</DialogTitle>
+                  <DialogDescription>{currentGoal ? translations.editGoalDesc : translations.addGoalDesc}</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Name</Label>
-                    <Input id="name" value={goalName} onChange={(e) => setGoalName(e.target.value)} className="col-span-3" placeholder="e.g. Save for Vacation"/>
+                    <Label htmlFor="name" className="text-right">{translations.nameLabel}</Label>
+                    <Input id="name" value={goalName} onChange={(e) => setGoalName(e.target.value)} className="col-span-3" placeholder={isFrench ? 'ex: Épargner pour des vacances' : 'e.g. Save for Vacation'}/>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                     <Label htmlFor="target-amount" className="text-right">Target</Label>
+                     <Label htmlFor="target-amount" className="text-right">{translations.targetLabel}</Label>
                      <Input id="target-amount" type="number" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value)} className="col-span-2" placeholder="1000"/>
                      <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
                         <SelectTrigger className="col-span-1"><SelectValue /></SelectTrigger>
@@ -225,17 +244,17 @@ export default function GoalsPage() {
                      </Select>
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="current-amount" className="text-right">Saved</Label>
+                    <Label htmlFor="current-amount" className="text-right">{translations.savedLabel}</Label>
                     <Input id="current-amount" type="number" value={currentAmount} onChange={(e) => setCurrentAmount(e.target.value)} className="col-span-3" placeholder="0"/>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="target-date" className="text-right">Target Date</Label>
+                    <Label htmlFor="target-date" className="text-right">{translations.targetDateLabel}</Label>
                     <Input id="target-date" type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="col-span-3"/>
                   </div>
                 </div>
                 <DialogFooter>
-                  <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                  <Button onClick={handleSaveGoal}>Save Goal</Button>
+                  <DialogClose asChild><Button variant="outline">{translations.cancel}</Button></DialogClose>
+                  <Button onClick={handleSaveGoal}>{translations.save}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -245,17 +264,17 @@ export default function GoalsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Goal</TableHead>
-                <TableHead>Progress</TableHead>
-                <TableHead>Target Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{translations.goalHeader}</TableHead>
+                <TableHead>{translations.progressHeader}</TableHead>
+                <TableHead>{translations.targetDateHeader}</TableHead>
+                <TableHead className="text-right">{translations.actionsHeader}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={4} className="text-center">Loading goals...</TableCell></TableRow>}
+              {isLoading && <TableRow><TableCell colSpan={4} className="text-center">{translations.loading}</TableCell></TableRow>}
               {goals && goals.length > 0 ? (
                 goals.map(goal => {
-                    const progress = goal.targetAmountInCents > 0 ? Math.min((goal.currentAmountInCents / goal.targetAmountInCents) * 100, 100) : 0;
+                    const progress = goal.targetAmountInCents > 0 ? Math.min(((goal.currentAmountInCents || 0) / goal.targetAmountInCents) * 100, 100) : 0;
                     return (
                       <TableRow key={goal.id}>
                         <TableCell className="font-medium">{goal.name}</TableCell>
@@ -263,7 +282,7 @@ export default function GoalsPage() {
                             <div className="flex flex-col gap-2">
                                 <Progress value={progress} aria-label={`${goal.name} progress`} />
                                 <div className="text-xs text-muted-foreground">
-                                    {formatMoney(goal.currentAmountInCents, goal.currency || displayCurrency, displayLocale)} / {formatMoney(goal.targetAmountInCents, goal.currency || displayCurrency, displayLocale)}
+                                    {formatMoney(goal.currentAmountInCents || 0, goal.currency || displayCurrency, displayLocale)} / {formatMoney(goal.targetAmountInCents || 0, goal.currency || displayCurrency, displayLocale)}
                                 </div>
                             </div>
                         </TableCell>
@@ -274,8 +293,8 @@ export default function GoalsPage() {
                               <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleOpenDialog(goal)}><Pencil className="mr-2 h-4 w-4" /><span>Edit</span></DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openDeleteConfirm(goal)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /><span>Delete</span></DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenDialog(goal)}><Pencil className="mr-2 h-4 w-4" /><span>{translations.edit}</span></DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openDeleteConfirm(goal)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /><span>{translations.delete}</span></DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -283,7 +302,7 @@ export default function GoalsPage() {
                     )
                 })
               ) : !isLoading ? (
-                <TableRow><TableCell colSpan={4} className="h-24 text-center">No goals found.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="h-24 text-center">{translations.noGoals}</TableCell></TableRow>
               ) : null}
             </TableBody>
           </Table>
@@ -292,19 +311,15 @@ export default function GoalsPage() {
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the goal "{goalToDelete?.name}". This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{translations.deleteConfirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{translations.deleteConfirmDesc}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteGoal} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{translations.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteGoal} className="bg-destructive hover:bg-destructive/90">{translations.delete}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </AppLayout>
   );
 }
-
-    

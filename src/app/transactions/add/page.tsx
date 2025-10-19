@@ -20,15 +20,58 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useUser, useFirestore, addDocumentNonBlocking, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import type { Currency } from '@/lib/types';
+import type { Currency, UserProfile, Category } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import { subMonths, format } from 'date-fns';
+
+const categories: Category[] = ['Housing', 'Food', 'Transport', 'Entertainment', 'Health', 'Shopping', 'Utilities', 'Income'];
+
+const generateTestData = (userId: string) => {
+  const transactions = [];
+  const now = new Date();
+
+  for (let i = 0; i < 12; i++) {
+    const monthDate = subMonths(now, i);
+    
+    // 3-4 expenses per category
+    categories.filter(c => c !== 'Income').forEach(category => {
+      const numTransactions = Math.floor(Math.random() * 2) + 3; // 3 or 4
+      for(let j=0; j < numTransactions; j++) {
+        transactions.push({
+          type: 'expense',
+          description: `${category} charge #${j+1}`,
+          amountInCents: Math.floor(Math.random() * 15000) + 1000, // $10 to $150
+          currency: 'USD' as Currency,
+          category: category,
+          date: format(monthDate, 'yyyy-MM-dd'),
+          userId: userId,
+        });
+      }
+    });
+
+    // 1-2 income transactions
+     for(let j=0; j < 2; j++) {
+        transactions.push({
+          type: 'income',
+          description: `Paycheck #${j+1}`,
+          amountInCents: Math.floor(Math.random() * 200000) + 150000, // $1500 to $3500
+          currency: 'USD' as Currency,
+          category: 'Income' as Category,
+          date: format(monthDate, 'yyyy-MM-dd'),
+          userId: userId,
+        });
+      }
+  }
+  return transactions;
+};
+
 
 export default function AddTransactionPage() {
-  const { user } = useUser();
+  const { user, userProfile } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -39,14 +82,38 @@ export default function AddTransactionPage() {
   const [category, setCategory] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
 
+  const isFrench = userProfile?.locale === 'fr-CM';
+
+  const handleGenerateData = () => {
+    if (!user || !firestore) return;
+    const testData = generateTestData(user.uid);
+    const expensesCollection = collection(firestore, `users/${user.uid}/expenses`);
+    
+    const promises = testData.map(data => addDocumentNonBlocking(expensesCollection, data));
+    
+    Promise.all(promises).then(() => {
+        toast({
+            title: isFrench ? "Données générées" : "Data Generated",
+            description: isFrench ? "Les données de test ont été ajoutées." : "Test data has been added.",
+        });
+        router.push('/transactions');
+    }).catch((e) => {
+         toast({
+            variant: 'destructive',
+            title: isFrench ? "Erreur" : "Error",
+            description: isFrench ? "Impossible de générer les données." : "Could not generate data.",
+        });
+    });
+  };
+
   const handleSubmit = () => {
     if (!user || !firestore) return;
 
     if (!description || !amount || !category || !date) {
       toast({
         variant: 'destructive',
-        title: 'Missing fields',
-        description: 'Please fill out all fields to add a transaction.',
+        title: isFrench ? 'Champs manquants' : 'Missing fields',
+        description: isFrench ? 'Veuillez remplir tous les champs pour ajouter une transaction.' : 'Please fill out all fields to add a transaction.',
       });
       return;
     }
@@ -67,8 +134,8 @@ export default function AddTransactionPage() {
     addDocumentNonBlocking(expensesCollection, transactionData);
 
     toast({
-      title: 'Transaction Added',
-      description: 'Your transaction has been successfully added.',
+      title: isFrench ? 'Transaction ajoutée' : 'Transaction Added',
+      description: isFrench ? 'Votre transaction a été ajoutée avec succès.' : 'Your transaction has been successfully added.',
     });
 
     router.push('/transactions');
@@ -78,15 +145,15 @@ export default function AddTransactionPage() {
     <AppLayout>
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle className="font-headline">Add a Transaction</CardTitle>
+          <CardTitle className="font-headline">{isFrench ? 'Ajouter une Transaction' : 'Add a Transaction'}</CardTitle>
           <CardDescription>
-            Log a new income or expense. Click save when you're done.
+            {isFrench ? "Enregistrez un nouveau revenu ou une nouvelle dépense. Cliquez sur Enregistrer lorsque vous avez terminé." : "Log a new income or expense. Click save when you're done."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-6">
             <div className="grid gap-2">
-              <Label htmlFor="type">Type</Label>
+              <Label htmlFor="type">{isFrench ? 'Type' : 'Type'}</Label>
               <RadioGroup
                 defaultValue="expense"
                 value={type}
@@ -95,11 +162,11 @@ export default function AddTransactionPage() {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="expense" id="r1" />
-                  <Label htmlFor="r1">Expense</Label>
+                  <Label htmlFor="r1">{isFrench ? 'Dépense' : 'Expense'}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="income" id="r2" />
-                  <Label htmlFor="r2">Income</Label>
+                  <Label htmlFor="r2">{isFrench ? 'Revenu' : 'Income'}</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -107,14 +174,14 @@ export default function AddTransactionPage() {
               <Label htmlFor="description">Description</Label>
               <Input
                 id="description"
-                placeholder="e.g. Groceries"
+                placeholder={isFrench ? 'ex: Courses' : 'e.g. Groceries'}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
               />
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
-                <Label htmlFor="amount">Amount</Label>
+                <Label htmlFor="amount">{isFrench ? 'Montant' : 'Amount'}</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -124,7 +191,7 @@ export default function AddTransactionPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="currency">Currency</Label>
+                <Label htmlFor="currency">{isFrench ? 'Devise' : 'Currency'}</Label>
                 <Select
                   value={currency}
                   onValueChange={value => setCurrency(value as Currency)}
@@ -142,10 +209,10 @@ export default function AddTransactionPage() {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">{isFrench ? 'Catégorie' : 'Category'}</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder={isFrench ? 'Sélectionner une catégorie' : 'Select a category'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Housing">Housing</SelectItem>
@@ -170,9 +237,12 @@ export default function AddTransactionPage() {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end">
+        <CardFooter className="flex justify-between">
+            <Button type="button" variant="outline" onClick={handleGenerateData}>
+                {isFrench ? 'Générer Données de Test' : 'Generate Test Data'}
+            </Button>
           <Button type="submit" onClick={handleSubmit}>
-            Save Transaction
+            {isFrench ? 'Enregistrer Transaction' : 'Save Transaction'}
           </Button>
         </CardFooter>
       </Card>

@@ -84,9 +84,11 @@ function getPeriod(period: string): { gte: string; lte: string } | null {
 }
 
 export default function TransactionsPage() {
-  const { user } = useUser();
+  const { user, userProfile } = useUser();
   const firestore = useFirestore();
   const [activePeriod, setActivePeriod] = useState('this-month');
+
+  const isFrench = userProfile?.locale === 'fr-CM';
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -104,12 +106,6 @@ export default function TransactionsPage() {
 
   const { data: transactions, isLoading } = useCollection<Transaction>(transactionsQuery);
 
-  const userProfileRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, `users/${user.uid}`);
-    }, [firestore, user]);
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
-
   const displayCurrency = userProfile?.displayCurrency || 'USD';
   const displayLocale = userProfile?.locale || 'en-US';
 
@@ -117,39 +113,59 @@ export default function TransactionsPage() {
   const totalExpenses = transactions?.filter(t => t.type === 'expense').reduce((acc, t) => acc + (t.amountInCents || 0), 0) || 0;
   const balance = totalIncome - totalExpenses;
 
+  const translations = {
+      thisMonth: isFrench ? 'Mois en cours' : 'This Month',
+      lastMonth: isFrench ? 'Mois dernier' : 'Last Month',
+      thisYear: isFrench ? 'Cette année' : 'This Year',
+      allTime: isFrench ? 'Tout' : 'All Time',
+      addTransaction: isFrench ? 'Ajouter Transaction' : 'Add Transaction',
+      totalIncome: isFrench ? 'Total Revenus' : 'Total Income',
+      totalExpenses: isFrench ? 'Total Dépenses' : 'Total Expenses',
+      netBalance: isFrench ? 'Solde Net' : 'Net Balance',
+      transactions: isFrench ? 'Transactions' : 'Transactions',
+      transactionsDesc: isFrench ? 'Liste de vos revenus et dépenses pour la période sélectionnée.' : 'List of your income and expenses for the selected period.',
+      description: 'Description',
+      category: isFrench ? 'Catégorie' : 'Category',
+      date: 'Date',
+      amount: isFrench ? 'Montant' : 'Amount',
+      loading: isFrench ? 'Chargement des transactions...' : 'Loading transactions...',
+      noTransactions: isFrench ? 'Aucune transaction trouvée pour cette période.' : 'No transactions found for this period.',
+  };
+
+
   return (
     <AppLayout>
         <Tabs value={activePeriod} onValueChange={setActivePeriod}>
             <div className="flex items-center justify-between">
                 <TabsList>
-                    <TabsTrigger value="this-month">Mois en cours</TabsTrigger>
-                    <TabsTrigger value="last-month">Mois dernier</TabsTrigger>
-                    <TabsTrigger value="this-year">Cette année</TabsTrigger>
-                    <TabsTrigger value="all-time">Tout</TabsTrigger>
+                    <TabsTrigger value="this-month">{translations.thisMonth}</TabsTrigger>
+                    <TabsTrigger value="last-month">{translations.lastMonth}</TabsTrigger>
+                    <TabsTrigger value="this-year">{translations.thisYear}</TabsTrigger>
+                    <TabsTrigger value="all-time">{translations.allTime}</TabsTrigger>
                 </TabsList>
                 <div className="ml-auto gap-1">
                     <Button asChild size="sm" className="h-8 gap-1">
                     <Link href="/transactions/add">
                         <PlusCircle className="h-3.5 w-3.5" />
                         <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Ajouter Transaction
+                        {translations.addTransaction}
                         </span>
                     </Link>
                     </Button>
                 </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3 my-4">
-                <SummaryCard title="Total Revenus" amountInCents={totalIncome} icon={<DollarSign />} />
-                <SummaryCard title="Total Dépenses" amountInCents={totalExpenses} icon={<CreditCard />} />
-                <SummaryCard title="Solde Net" amountInCents={balance} icon={<Scale />} />
+                <SummaryCard title={translations.totalIncome} amountInCents={totalIncome} icon={<DollarSign />} />
+                <SummaryCard title={translations.totalExpenses} amountInCents={totalExpenses} icon={<CreditCard />} />
+                <SummaryCard title={translations.netBalance} amountInCents={balance} icon={<Scale />} />
             </div>
             <TabsContent value={activePeriod}>
               <Card>
                 <CardHeader className="flex flex-row items-center">
                   <div className="grid gap-2">
-                    <CardTitle className="font-headline">Transactions</CardTitle>
+                    <CardTitle className="font-headline">{translations.transactions}</CardTitle>
                     <CardDescription>
-                      Liste de vos revenus et dépenses pour la période sélectionnée.
+                      {translations.transactionsDesc}
                     </CardDescription>
                   </div>
                 </CardHeader>
@@ -157,17 +173,17 @@ export default function TransactionsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="hidden sm:table-cell">Catégorie</TableHead>
-                        <TableHead className="hidden sm:table-cell">Date</TableHead>
-                        <TableHead className="text-right">Montant</TableHead>
+                        <TableHead>{translations.description}</TableHead>
+                        <TableHead className="hidden sm:table-cell">{translations.category}</TableHead>
+                        <TableHead className="hidden sm:table-cell">{translations.date}</TableHead>
+                        <TableHead className="text-right">{translations.amount}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {isLoading && (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center">
-                            Chargement des transactions...
+                            {translations.loading}
                           </TableCell>
                         </TableRow>
                       )}
@@ -197,7 +213,7 @@ export default function TransactionsPage() {
                       ) : !isLoading ? (
                         <TableRow>
                           <TableCell colSpan={4} className="h-24 text-center">
-                            Aucune transaction trouvée pour cette période.
+                            {translations.noTransactions}
                           </TableCell>
                         </TableRow>
                       ) : null}

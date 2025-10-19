@@ -30,16 +30,18 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading, userProfile } = useUser();
   const router = useRouter();
   const pathname = usePathname();
 
+  const isFrench = userProfile?.locale === 'fr-CM';
+
   const navItems = [
-    { href: '/', label: 'Dashboard', icon: LayoutGrid },
-    { href: '/transactions', label: 'Transactions', icon: List },
-    { href: '/categories', label: 'Categories', icon: Folder },
-    { href: '/goals', label: 'Goals', icon: Target },
-    { href: '/settings', label: 'Settings', icon: Settings },
+    { href: '/', label: isFrench ? 'Tableau de bord' : 'Dashboard', icon: LayoutGrid },
+    { href: '/transactions', label: isFrench ? 'Transactions' : 'Transactions', icon: List },
+    { href: '/categories', label: isFrench ? 'Catégories' : 'Categories', icon: Folder },
+    { href: '/goals', label: isFrench ? 'Objectifs' : 'Goals', icon: Target },
+    { href: '/settings', label: isFrench ? 'Paramètres' : 'Settings', icon: Settings },
   ];
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-2xl font-semibold">Loading your dashboard...</div>
+        <div className="text-2xl font-semibold">{isFrench ? 'Chargement de votre tableau de bord...' : 'Loading your dashboard...'}</div>
       </div>
     );
   }

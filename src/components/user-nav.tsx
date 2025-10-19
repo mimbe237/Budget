@@ -23,14 +23,22 @@ import Link from 'next/link';
 
 export function UserNav() {
   const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
-  const { user } = useUser();
+  const { user, userProfile } = useUser();
   const auth = useAuth();
   const router = useRouter();
+
+  const isFrench = userProfile?.locale === 'fr-CM';
 
   const handleLogout = () => {
     signOut(auth).then(() => {
       router.push('/login');
     });
+  };
+
+  const translations = {
+    profile: isFrench ? 'Profil' : 'Profile',
+    settings: isFrench ? 'Paramètres' : 'Settings',
+    logout: isFrench ? 'Déconnexion' : 'Log out',
   };
 
   return (
@@ -50,7 +58,7 @@ export function UserNav() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.displayName || 'User'}</p>
+            <p className="text-sm font-medium leading-none">{userProfile?.firstName || user?.displayName || 'User'}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user?.email}
             </p>
@@ -59,15 +67,15 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
            <DropdownMenuItem asChild>
-             <Link href="/profile">Profile</Link>
+             <Link href="/settings">{translations.profile}</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-             <Link href="/settings">Settings</Link>
+             <Link href="/settings">{translations.settings}</Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
-          Log out
+          {translations.logout}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

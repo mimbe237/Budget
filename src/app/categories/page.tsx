@@ -50,7 +50,7 @@ import {
 } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
-import type { Budget } from '@/lib/types';
+import type { Budget, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -59,17 +59,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-function formatMoney(amount: number, currency: string = 'USD') {
-  return new Intl.NumberFormat('en-US', {
+function formatMoney(amount: number, currency: string = 'USD', locale: string = 'en-US') {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
   }).format(amount || 0);
 }
 
 export default function CategoriesPage() {
-  const { user } = useUser();
+  const { user, userProfile } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  const isFrench = userProfile?.locale === 'fr-CM';
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -84,6 +86,8 @@ export default function CategoriesPage() {
   }, [firestore, user]);
 
   const { data: categories, isLoading } = useCollection<Budget>(categoriesQuery);
+  const displayCurrency = userProfile?.displayCurrency || 'USD';
+  const displayLocale = userProfile?.locale || 'en-US';
 
   useEffect(() => {
     if (currentCategory) {
@@ -105,8 +109,8 @@ export default function CategoriesPage() {
     if (!categoryName) {
       toast({
         variant: 'destructive',
-        title: 'Missing Name',
-        description: 'Please provide a name for the category.',
+        title: isFrench ? 'Nom manquant' : 'Missing Name',
+        description: isFrench ? 'Veuillez fournir un nom pour la catégorie.' : 'Please provide a name for the category.',
       });
       return;
     }
@@ -117,7 +121,7 @@ export default function CategoriesPage() {
       // Update existing category
       const categoryRef = doc(firestore, `users/${user.uid}/categories`, currentCategory.id);
       updateDocumentNonBlocking(categoryRef, { name: categoryName, budgetedAmount: amount });
-      toast({ title: 'Category Updated', description: `"${categoryName}" has been updated.` });
+      toast({ title: isFrench ? 'Catégorie mise à jour' : 'Category Updated', description: `"${categoryName}" ${isFrench ? 'a été mis à jour.' : 'has been updated.'}` });
     } else {
       // Add new category
       const categoriesCollection = collection(firestore, `users/${user.uid}/categories`);
@@ -126,7 +130,7 @@ export default function CategoriesPage() {
         budgetedAmount: amount,
         userId: user.uid,
       });
-      toast({ title: 'Category Added', description: `"${categoryName}" has been created.` });
+      toast({ title: isFrench ? 'Catégorie ajoutée' : 'Category Added', description: `"${categoryName}" ${isFrench ? 'a été créé.' : 'has been created.'}` });
     }
 
     setIsDialogOpen(false);
@@ -142,9 +146,32 @@ export default function CategoriesPage() {
     if (!user || !firestore || !categoryToDelete) return;
     const categoryRef = doc(firestore, `users/${user.uid}/categories`, categoryToDelete.id);
     deleteDocumentNonBlocking(categoryRef);
-    toast({ title: 'Category Deleted', description: `"${categoryToDelete.name}" has been removed.` });
+    toast({ title: isFrench ? 'Catégorie supprimée' : 'Category Deleted', description: `"${categoryToDelete.name}" ${isFrench ? 'a été supprimé.' : 'has been removed.'}` });
     setIsAlertOpen(false);
     setCategoryToDelete(null);
+  };
+  
+  const translations = {
+      title: isFrench ? 'Catégories & Budgets' : 'Categories & Budgets',
+      description: isFrench ? 'Gérez vos catégories de dépenses et leurs budgets mensuels.' : 'Manage your expense categories and their monthly budgets.',
+      addCategory: isFrench ? 'Ajouter Catégorie' : 'Add Category',
+      editCategoryTitle: isFrench ? 'Modifier Catégorie' : 'Edit Category',
+      addCategoryTitle: isFrench ? 'Ajouter Nouvelle Catégorie' : 'Add New Category',
+      editCategoryDesc: isFrench ? 'Apportez des modifications à votre catégorie ici.' : 'Make changes to your category here.',
+      addCategoryDesc: isFrench ? 'Créez une nouvelle catégorie pour vos dépenses.' : 'Create a new category for your expenses.',
+      nameLabel: isFrench ? 'Nom' : 'Name',
+      budgetLabel: isFrench ? 'Budget' : 'Budget',
+      cancel: isFrench ? 'Annuler' : 'Cancel',
+      save: isFrench ? 'Enregistrer' : 'Save changes',
+      categoryNameHeader: isFrench ? 'Nom de la catégorie' : 'Category Name',
+      budgetedAmountHeader: isFrench ? 'Montant Budgété' : 'Budgeted Amount',
+      actionsHeader: 'Actions',
+      loading: isFrench ? 'Chargement des catégories...' : 'Loading categories...',
+      noCategories: isFrench ? 'Aucune catégorie trouvée.' : 'No categories found.',
+      deleteConfirmTitle: isFrench ? 'Êtes-vous sûr ?' : 'Are you sure?',
+      deleteConfirmDesc: isFrench ? `Cette action ne peut pas être annulée. Cela supprimera définitivement la catégorie "${categoryToDelete?.name}".` : `This action cannot be undone. This will permanently delete the category "${categoryToDelete?.name}".`,
+      delete: isFrench ? 'Supprimer' : 'Delete',
+      edit: isFrench ? 'Modifier' : 'Edit',
   };
 
   return (
@@ -152,10 +179,8 @@ export default function CategoriesPage() {
       <Card>
         <CardHeader className="flex flex-row items-center">
           <div className="grid gap-2">
-            <CardTitle className="font-headline">Categories & Budgets</CardTitle>
-            <CardDescription>
-              Manage your expense categories and their monthly budgets.
-            </CardDescription>
+            <CardTitle className="font-headline">{translations.title}</CardTitle>
+            <CardDescription>{translations.description}</CardDescription>
           </div>
           <div className="ml-auto gap-1">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -163,24 +188,20 @@ export default function CategoriesPage() {
                 <Button size="sm" className="h-8 gap-1" onClick={() => handleOpenDialog()}>
                   <PlusCircle className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Add Category
+                    {translations.addCategory}
                   </span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>{currentCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
+                  <DialogTitle>{currentCategory ? translations.editCategoryTitle : translations.addCategoryTitle}</DialogTitle>
                   <DialogDescription>
-                    {currentCategory
-                      ? "Make changes to your category here."
-                      : "Create a new category for your expenses."}
+                    {currentCategory ? translations.editCategoryDesc : translations.addCategoryDesc}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
-                      Name
-                    </Label>
+                    <Label htmlFor="name" className="text-right">{translations.nameLabel}</Label>
                     <Input
                       id="name"
                       value={categoryName}
@@ -190,9 +211,7 @@ export default function CategoriesPage() {
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="budget" className="text-right">
-                      Budget
-                    </Label>
+                    <Label htmlFor="budget" className="text-right">{translations.budgetLabel}</Label>
                     <Input
                       id="budget"
                       type="number"
@@ -205,9 +224,9 @@ export default function CategoriesPage() {
                 </div>
                 <DialogFooter>
                   <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
+                    <Button variant="outline">{translations.cancel}</Button>
                   </DialogClose>
-                  <Button onClick={handleSaveCategory}>Save changes</Button>
+                  <Button onClick={handleSaveCategory}>{translations.save}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -217,16 +236,16 @@ export default function CategoriesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Category Name</TableHead>
-                <TableHead>Budgeted Amount</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{translations.categoryNameHeader}</TableHead>
+                <TableHead>{translations.budgetedAmountHeader}</TableHead>
+                <TableHead className="text-right">{translations.actionsHeader}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center">
-                    Loading categories...
+                    {translations.loading}
                   </TableCell>
                 </TableRow>
               )}
@@ -234,7 +253,7 @@ export default function CategoriesPage() {
                 categories.map(category => (
                   <TableRow key={category.id}>
                     <TableCell className="font-medium">{category.name}</TableCell>
-                    <TableCell>{formatMoney(category.budgetedAmount, 'USD')}</TableCell>
+                    <TableCell>{formatMoney(category.budgetedAmount, displayCurrency, displayLocale)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -246,11 +265,11 @@ export default function CategoriesPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleOpenDialog(category)}>
                             <Pencil className="mr-2 h-4 w-4" />
-                            <span>Edit</span>
+                            <span>{translations.edit}</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openDeleteConfirm(category)} className="text-destructive">
                              <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Delete</span>
+                            <span>{translations.delete}</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -260,7 +279,7 @@ export default function CategoriesPage() {
               ) : !isLoading ? (
                 <TableRow>
                   <TableCell colSpan={3} className="h-24 text-center">
-                    No categories found.
+                    {translations.noCategories}
                   </TableCell>
                 </TableRow>
               ) : null}
@@ -272,16 +291,13 @@ export default function CategoriesPage() {
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the 
-              category "{categoryToDelete?.name}".
-            </AlertDialogDescription>
+            <AlertDialogTitle>{translations.deleteConfirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{translations.deleteConfirmDesc}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{translations.cancel}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteCategory} className="bg-destructive hover:bg-destructive/90">
-              Delete
+              {translations.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
