@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getFirebaseAdminApp } from '@/firebase/admin';
@@ -48,20 +47,25 @@ export async function getTransactionsForPeriod(dateRange: { from?: string; to?: 
     let startDate: Date;
     let endDate: Date;
 
+    // Default to this month if no dates are provided
+    const now = new Date();
+    const defaultStart = startOfMonth(now);
+    const defaultEnd = endOfMonth(now);
+
     if (from && isValid(parseISO(from))) {
         startDate = parseISO(from);
     } else {
-        startDate = startOfMonth(new Date());
+        startDate = defaultStart;
     }
 
     if (to && isValid(parseISO(to))) {
         endDate = parseISO(to);
     } else {
-        endDate = endOfMonth(new Date());
+        endDate = defaultEnd;
     }
     
-    query = query.where('date', '>=', startDate.toISOString().split('T')[0]);
-    query = query.where('date', '<=', endDate.toISOString().split('T')[0]);
+    query = query.where('date', '>=', format(startDate, 'yyyy-MM-dd'));
+    query = query.where('date', '<=', format(endDate, 'yyyy-MM-dd'));
     query = query.orderBy('date', 'desc');
 
     try {

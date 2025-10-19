@@ -1,9 +1,8 @@
-
 'use client';
 
 import * as React from 'react';
 import { CalendarIcon } from 'lucide-react';
-import { addDays, format, startOfYear, endOfYear, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter } from 'date-fns';
+import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -22,6 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useUser } from '@/firebase';
 
 export function DateRangePicker({
   className,
@@ -29,16 +29,32 @@ export function DateRangePicker({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { userProfile } = useUser();
+  const isFrench = userProfile?.locale === 'fr-CM';
 
   const fromParam = searchParams.get('from');
   const toParam = searchParams.get('to');
   
-  const [date, setDate] = React.useState<DateRange | undefined>({
-    from: fromParam ? new Date(fromParam) : startOfMonth(new Date()),
-    to: toParam ? new Date(toParam) : endOfMonth(new Date()),
+  const [date, setDate] = React.useState<DateRange | undefined>(() => {
+    const from = fromParam ? new Date(fromParam) : startOfMonth(new Date());
+    const to = toParam ? new Date(toParam) : endOfMonth(new Date());
+    from.setHours(0, 0, 0, 0);
+    to.setHours(23, 59, 59, 999);
+    return { from, to };
+  });
+  
+  const [preset, setPreset] = React.useState<string>(() => {
+    const now = new Date();
+    const from = fromParam ? new Date(fromParam) : startOfMonth(now);
+    const to = toParam ? new Date(toParam) : endOfMonth(now);
+    if (from.getTime() === startOfMonth(now).getTime() && to.getTime() === endOfMonth(now).getTime()) return 'this-month';
+    if (from.getTime() === startOfQuarter(now).getTime() && to.getTime() === endOfQuarter(now).getTime()) return 'this-quarter';
+    if (from.getTime() === startOfYear(now).getTime() && to.getTime() === endOfYear(now).getTime()) return 'this-year';
+    return 'custom';
   });
 
-  const updateURL = (newDate: DateRange | undefined) => {
+
+  const updateURL = React.useCallback((newDate: DateRange | undefined) => {
     const params = new URLSearchParams(searchParams);
     if (newDate?.from) {
       params.set('from', format(newDate.from, 'yyyy-MM-dd'));
@@ -51,13 +67,14 @@ export function DateRangePicker({
       params.delete('to');
     }
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }
+  }, [searchParams, router, pathname]);
 
   React.useEffect(() => {
     updateURL(date);
-  }, [date, router, pathname]);
+  }, [date, updateURL]);
 
   const handlePresetChange = (value: string) => {
+      setPreset(value);
       const now = new Date();
       let newDate: DateRange | undefined;
       switch(value) {
@@ -70,23 +87,42 @@ export function DateRangePicker({
           case 'this-year':
               newDate = { from: startOfYear(now), to: endOfYear(now) };
               break;
+          default:
+            return;
       }
       if (newDate) {
-          setDate(newDate);
+        newDate.from.setHours(0,0,0,0);
+        newDate.to.setHours(23,59,59,999);
+        setDate(newDate);
       }
+  }
+
+  const handleDateChange = (newDate: DateRange | undefined) => {
+    if (newDate?.from) newDate.from.setHours(0,0,0,0);
+    if (newDate?.to) newDate.to.setHours(23,59,59,999);
+    setDate(newDate);
+    setPreset('custom');
+  }
+
+  const translations = {
+    selectPeriod: isFrench ? 'Sélectionner une période' : 'Select a period',
+    thisMonth: isFrench ? 'Ce mois-ci' : 'This month',
+    thisQuarter: isFrench ? 'Ce trimestre' : 'This quarter',
+    thisYear: isFrench ? 'Cette année' : 'This year',
+    pickDate: isFrench ? 'Choisir une date' : 'Pick a date',
   }
 
   return (
     <div className={cn('grid gap-2', className)}>
-      <div className="flex items-center gap-2">
-        <Select onValueChange={handlePresetChange} defaultValue="this-month">
-            <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sélectionner une période" />
+      <div className="flex items-center gap-2 flex-wrap">
+        <Select onValueChange={handlePresetChange} value={preset}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder={translations.selectPeriod} />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value="this-month">Mois en cours</SelectItem>
-                <SelectItem value="this-quarter">Ce trimestre</SelectItem>
-                <SelectItem value="this-year">Cette année</SelectItem>
+                <SelectItem value="this-month">{translations.thisMonth}</SelectItem>
+                <SelectItem value="this-quarter">{translations.thisQuarter}</SelectItem>
+                <SelectItem value="this-year">{translations.thisYear}</SelectItem>
             </SelectContent>
         </Select>
         <Popover>
@@ -95,7 +131,7 @@ export function DateRangePicker({
               id="date"
               variant={'outline'}
               className={cn(
-                'w-[300px] justify-start text-left font-normal',
+                'w-full sm:w-[300px] justify-start text-left font-normal',
                 !date && 'text-muted-foreground'
               )}
             >
@@ -110,7 +146,7 @@ export function DateRangePicker({
                   format(date.from, 'LLL dd, y')
                 )
               ) : (
-                <span>Pick a date</span>
+                <span>{translations.pickDate}</span>
               )}
             </Button>
           </PopoverTrigger>
@@ -120,7 +156,7 @@ export function DateRangePicker({
               mode="range"
               defaultMonth={date?.from}
               selected={date}
-              onSelect={setDate}
+              onSelect={handleDateChange}
               numberOfMonths={2}
             />
           </PopoverContent>
@@ -129,4 +165,3 @@ export function DateRangePicker({
     </div>
   );
 }
-

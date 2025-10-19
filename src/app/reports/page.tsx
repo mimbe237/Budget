@@ -19,6 +19,7 @@ import { getFirebaseAdminApp } from '@/firebase/admin';
 import { headers } from 'next/headers';
 import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
 import { DollarSign, CreditCard, Scale } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 
 async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
     const authHeader = headers().get('Authorization');
@@ -62,14 +63,34 @@ export default async function ReportsPage({
   const from = searchParams?.from as string | undefined;
   const to = searchParams?.to as string | undefined;
 
+  const user = await getAuthenticatedUser();
+  const userProfile = user ? await getUserProfile(user.uid) : null;
+  const isFrench = userProfile?.locale === 'fr-CM';
+  
+  const formattedFrom = from ? format(parseISO(from), 'dd MMM yyyy') : 'start';
+  const formattedTo = to ? format(parseISO(to), 'dd MMM yyyy') : 'end';
+  const readablePeriod = from && to ? `${formattedFrom} - ${formattedTo}` : 'All time';
+
+
+  const translations = {
+    title: isFrench ? 'Rapport Financier' : 'Financial Report',
+    subtitle: isFrench ? `Devise: ${userProfile?.displayCurrency || 'USD'} | Période: ${readablePeriod}` : `Currency: ${userProfile?.displayCurrency || 'USD'} | Period: ${readablePeriod}`,
+    loading: isFrench ? 'Chargement...' : 'Loading...',
+    loginPrompt: isFrench ? 'Veuillez vous connecter' : 'Please log in',
+  };
+
+
   return (
     <AppLayout>
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <h1 className="text-2xl font-semibold font-headline">Rapports</h1>
-            <DateRangePicker />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className='grid gap-1'>
+            <h1 className="text-2xl font-semibold font-headline">{translations.title}</h1>
+            <p className="text-sm text-muted-foreground">{translations.subtitle}</p>
+          </div>
+          <DateRangePicker />
         </div>
-        <Suspense fallback={<Card><CardHeader><CardTitle>Chargement...</CardTitle></CardHeader></Card>}>
+        <Suspense fallback={<Card><CardHeader><CardTitle>{translations.loading}</CardTitle></CardHeader></Card>}>
           {/* @ts-expect-error Server Component */}
           <ReportContent from={from} to={to} />
         </Suspense>
@@ -96,9 +117,9 @@ async function ReportContent({ from, to }: { from?: string; to?: string }) {
     const netBalance = totalIncome - totalExpenses;
 
     const spendingByCategory = transactions
-        .filter(t => t.type === 'expense')
+        .filter(t => t.type === 'expense' && t.category)
         .reduce((acc, t) => {
-            const category = t.category || 'Uncategorized';
+            const category = t.category!;
             if (!acc[category]) {
                 acc[category] = 0;
             }
@@ -134,7 +155,7 @@ async function ReportContent({ from, to }: { from?: string; to?: string }) {
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatMoney(totalIncome, displayCurrency, displayLocale)}</div>
+                        <div className="text-2xl font-bold text-green-600">{formatMoney(totalIncome, displayCurrency, displayLocale)}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -143,7 +164,7 @@ async function ReportContent({ from, to }: { from?: string; to?: string }) {
                         <CreditCard className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatMoney(totalExpenses, displayCurrency, displayLocale)}</div>
+                        <div className="text-2xl font-bold text-red-600">{formatMoney(totalExpenses, displayCurrency, displayLocale)}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -152,7 +173,7 @@ async function ReportContent({ from, to }: { from?: string; to?: string }) {
                         <Scale className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatMoney(netBalance, displayCurrency, displayLocale)}</div>
+                        <div className={`text-2xl font-bold ${netBalance >= 0 ? 'text-foreground' : 'text-red-600'}`}>{formatMoney(netBalance, displayCurrency, displayLocale)}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -173,9 +194,11 @@ async function ReportContent({ from, to }: { from?: string; to?: string }) {
                             </TableHeader>
                             <TableBody>
                                 {Object.keys(spendingByCategory).length > 0 ? (
-                                    Object.entries(spendingByCategory).map(([category, amount]) => (
+                                    Object.entries(spendingByCategory)
+                                        .sort(([, a], [, b]) => b - a)
+                                        .map(([category, amount]) => (
                                         <TableRow key={category}>
-                                            <TableCell>{category}</TableCell>
+                                            <TableCell className='font-medium'>{category}</TableCell>
                                             <TableCell className="text-right">{formatMoney(amount, displayCurrency, displayLocale)}</TableCell>
                                         </TableRow>
                                     ))
@@ -210,9 +233,9 @@ async function ReportContent({ from, to }: { from?: string; to?: string }) {
                                             <TableCell className="font-medium">{t.description}</TableCell>
                                             <TableCell className="hidden sm:table-cell"><Badge variant="outline">{t.category}</Badge></TableCell>
                                             <TableCell className="hidden md:table-cell">{new Date(t.date).toLocaleDateString(displayLocale)}</TableCell>
-                                            <TableCell className={`text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                            <TableCell className={`text-right font-medium ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                                                 {t.type === 'income' ? '+' : '-'}
-                                                {formatMoney(t.amountInCents, displayCurrency, displayLocale)}
+                                                {formatMoney(t.amountInCents, t.currency, displayLocale)}
                                             </TableCell>
                                         </TableRow>
                                     ))
