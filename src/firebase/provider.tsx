@@ -3,7 +3,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, doc, onSnapshot } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged, getIdToken } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import type { UserProfile } from '@/lib/types';
 
@@ -54,6 +54,21 @@ interface FirebaseProviderProps {
 // React Context
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
+// Keep track of the original fetch function
+const originalFetch = globalThis.fetch;
+let idToken: string | null = null;
+
+// The fetch interceptor
+globalThis.fetch = async (input, init) => {
+  if (idToken) {
+    const headers = new Headers(init?.headers);
+    headers.set('Authorization', `Bearer ${idToken}`);
+    init = { ...init, headers };
+  }
+  return originalFetch(input, init);
+};
+
+
 /**
  * FirebaseProvider manages and provides Firebase services and user authentication state.
  */
@@ -82,8 +97,18 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      (firebaseUser) => { 
+      async (firebaseUser) => { 
         setUser(firebaseUser);
+        if (firebaseUser) {
+            try {
+                idToken = await getIdToken(firebaseUser);
+            } catch (e) {
+                console.error("Error getting id token", e);
+                idToken = null;
+            }
+        } else {
+            idToken = null;
+        }
         setIsUserLoading(false);
       },
       (error) => {
