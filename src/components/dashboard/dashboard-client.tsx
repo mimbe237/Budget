@@ -12,12 +12,12 @@ import {
   LayoutGrid,
   List,
   Folder,
+  Target,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { useUser } from '@/firebase';
 
 import { UserNav } from '@/components/user-nav';
 import { Logo } from '@/components/logo';
@@ -31,13 +31,13 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const firestore = useFirestore();
   const pathname = usePathname();
 
   const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutGrid },
     { href: '/transactions', label: 'Transactions', icon: List },
     { href: '/categories', label: 'Categories', icon: Folder },
+    { href: '/goals', label: 'Goals', icon: Target },
   ];
 
   useEffect(() => {

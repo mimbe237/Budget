@@ -7,6 +7,7 @@ export type Transaction = {
   currency: 'XOF' | 'XAF' | 'EUR' | 'USD';
   category: Category;
   userId: string;
+  categoryId?: string;
 };
 
 export type Category = 'Housing' | 'Food' | 'Transport' | 'Entertainment' | 'Health' | 'Shopping' | 'Utilities' | 'Income';
@@ -16,7 +17,6 @@ export type Budget = {
   userId: string;
   name: string;
   budgetedAmount: number;
-  category: Category;
 };
 
 export type Goal = {
