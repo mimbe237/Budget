@@ -14,6 +14,7 @@ import {
   Folder,
   Target,
   Settings,
+  FileBarChart,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -41,6 +42,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { href: '/transactions', label: isFrench ? 'Transactions' : 'Transactions', icon: List },
     { href: '/categories', label: isFrench ? 'Catégories' : 'Categories', icon: Folder },
     { href: '/goals', label: isFrench ? 'Objectifs' : 'Goals', icon: Target },
+    { href: '/reports', label: isFrench ? 'Rapports' : 'Reports', icon: FileBarChart },
     { href: '/settings', label: isFrench ? 'Paramètres' : 'Settings', icon: Settings },
   ];
 
