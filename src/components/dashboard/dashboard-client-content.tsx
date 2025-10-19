@@ -60,10 +60,10 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
 
   const totalIncome = transactions
     .filter(t => t.type === 'income')
-    .reduce((acc, t) => acc + t.amountInCents, 0);
+    .reduce((acc, t) => acc + (t.amountInCents || 0), 0);
   const totalExpenses = transactions
     .filter(t => t.type === 'expense')
-    .reduce((acc, t) => acc + t.amountInCents, 0);
+    .reduce((acc, t) => acc + (t.amountInCents || 0), 0);
   const balance = totalIncome - totalExpenses;
 
   const categoryIcons: Record<Category, React.ReactNode> = {
