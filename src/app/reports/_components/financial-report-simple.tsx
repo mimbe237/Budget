@@ -79,7 +79,6 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
 
                 {/* 2. Doubles tableaux Dépenses / Revenus */}
                 {(() => {
-                    const formatFn = (cents: number) => formatMoney(cents, userProfile);
                     // Dépenses: basé sur budgetVsActual
                     const expenseRows: LedgerRow[] = (reportData.budgetVsActual || []).map(item => ({
                         category: item.category,
@@ -100,7 +99,8 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
                             <LedgerTables 
                                 expenses={expenseRows}
                                 incomes={incomeRows}
-                                formatMoney={formatFn}
+                                currency={currency}
+                                locale={userProfile?.locale || 'fr-FR'}
                             />
                         </div>
                     );

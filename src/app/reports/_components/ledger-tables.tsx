@@ -1,5 +1,3 @@
-'use client';
-
 import { ReportSection } from './ui/report-section';
 import { cn } from '@/lib/utils';
 
@@ -14,12 +12,24 @@ interface LedgerTableProps {
   title: string;
   rows: LedgerRow[];
   totals: { plannedInCents: number; actualInCents: number; diffInCents: number };
-  formatMoney: (cents: number) => string;
+  currency: string;
+  locale: string;
   accent?: 'orange' | 'blue';
   alignRight?: boolean;
 }
 
-function LedgerTable({ title, rows, totals, formatMoney, accent = 'orange' }: LedgerTableProps) {
+function formatMoney(amountInCents: number, currency: string, locale: string): string {
+  // Valeurs par défaut si currency ou locale sont undefined/empty
+  const safeCurrency = currency || 'XAF';
+  const safeLocale = locale || 'fr-CM';
+  
+  return new Intl.NumberFormat(safeLocale, {
+    style: 'currency',
+    currency: safeCurrency,
+  }).format(amountInCents / 100);
+}
+
+function LedgerTable({ title, rows, totals, currency, locale, accent = 'orange' }: LedgerTableProps) {
   return (
     <ReportSection title={title} accent={accent}>
       <div className="overflow-x-auto">
@@ -33,10 +43,10 @@ function LedgerTable({ title, rows, totals, formatMoney, accent = 'orange' }: Le
             </tr>
             <tr className="border-b text-gray-600">
               <td className="py-2 pr-2 font-medium">Totaux</td>
-              <td className="py-2 px-2 text-right">{formatMoney(totals.plannedInCents)}</td>
-              <td className="py-2 px-2 text-right">{formatMoney(totals.actualInCents)}</td>
+              <td className="py-2 px-2 text-right">{formatMoney(totals.plannedInCents, currency, locale)}</td>
+              <td className="py-2 px-2 text-right">{formatMoney(totals.actualInCents, currency, locale)}</td>
               <td className={cn('py-2 pl-2 text-right font-semibold', totals.diffInCents >= 0 ? 'text-green-600' : 'text-red-600')}>
-                {formatMoney(totals.diffInCents)}
+                {formatMoney(totals.diffInCents, currency, locale)}
               </td>
             </tr>
           </thead>
@@ -44,10 +54,10 @@ function LedgerTable({ title, rows, totals, formatMoney, accent = 'orange' }: Le
             {rows.map((row, idx) => (
               <tr key={row.category} className={cn('border-b', idx % 2 === 0 ? 'bg-orange-50/40' : 'bg-transparent')}>
                 <td className="py-2 pr-2 font-medium">{row.category}</td>
-                <td className="py-2 px-2 text-right">{formatMoney(row.plannedInCents)}</td>
-                <td className="py-2 px-2 text-right">{formatMoney(row.actualInCents)}</td>
+                <td className="py-2 px-2 text-right">{formatMoney(row.plannedInCents, currency, locale)}</td>
+                <td className="py-2 px-2 text-right">{formatMoney(row.actualInCents, currency, locale)}</td>
                 <td className={cn('py-2 pl-2 text-right font-semibold', row.diffInCents >= 0 ? 'text-green-600' : 'text-red-600')}>
-                  {row.diffInCents >= 0 ? '+' : ''}{formatMoney(row.diffInCents)}
+                  {row.diffInCents >= 0 ? '+' : ''}{formatMoney(row.diffInCents, currency, locale)}
                 </td>
               </tr>
             ))}
@@ -61,10 +71,11 @@ function LedgerTable({ title, rows, totals, formatMoney, accent = 'orange' }: Le
 interface LedgerTablesProps {
   expenses: LedgerRow[];
   incomes: LedgerRow[];
-  formatMoney: (cents: number) => string;
+  currency: string;
+  locale: string;
 }
 
-export function LedgerTables({ expenses, incomes, formatMoney }: LedgerTablesProps) {
+export function LedgerTables({ expenses, incomes, currency, locale }: LedgerTablesProps) {
   const expenseTotals = expenses.reduce((acc, r) => ({
     plannedInCents: acc.plannedInCents + r.plannedInCents,
     actualInCents: acc.actualInCents + r.actualInCents,
@@ -83,14 +94,16 @@ export function LedgerTables({ expenses, incomes, formatMoney }: LedgerTablesPro
         title="Dépenses"
         rows={expenses}
         totals={expenseTotals}
-        formatMoney={formatMoney}
+        currency={currency}
+        locale={locale}
         accent="orange"
       />
       <LedgerTable 
         title="Revenus"
         rows={incomes}
         totals={incomeTotals}
-        formatMoney={formatMoney}
+        currency={currency}
+        locale={locale}
         accent="blue"
       />
     </div>

@@ -3,7 +3,7 @@ import { getSpendingInsights } from '@/ai/flows/spending-insights';
 import type { Transaction, Budget, UserProfile } from '@/lib/types';
 import { AIInsights } from './ai-insights';
 import { headers } from 'next/headers';
-import { getFirebaseAdminApp } from '@/firebase/admin';
+import { getFirebaseAdminApp, getAdminAuth, getAdminFirestore } from '@/firebase/admin';
 import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
 
 async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
@@ -12,8 +12,8 @@ async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
     if (authHeader) {
         const token = authHeader.split(' ')[1];
         try {
-            const adminApp = getFirebaseAdminApp();
-            const decodedToken = await adminApp.auth().verifyIdToken(token);
+            const adminAuth = getAdminAuth();
+            const decodedToken = await adminAuth.verifyIdToken(token);
             return decodedToken;
         } catch (error) {
             console.error('Error verifying auth token:', error);
@@ -31,8 +31,7 @@ export async function AIInsightsWrapper() {
     return <AIInsights insights="Could not load insights." recommendations="User not found." />;
   }
   
-  const adminApp = getFirebaseAdminApp();
-  const db = adminApp.firestore();
+  const db = getAdminFirestore();
   
   const transactionsSnap = await db.collection(`users/${user.uid}/expenses`).get();
   const budgetsSnap = await db.collection(`users/${user.uid}/categories`).get();

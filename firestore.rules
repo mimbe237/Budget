@@ -59,7 +59,7 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin(); // Seuls les admins peuvent lister tous les utilisateurs
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if (isExistingOwner(userId) && request.resource.data.id == resource.data.id) || isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin(); // Seuls les admins peuvent supprimer des utilisateurs
     }
 
@@ -122,7 +122,5 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow list: if isAdmin();
     }
-  }
-}
   }
 }
