@@ -27,7 +27,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   Table,
@@ -43,11 +42,11 @@ import { MoreHorizontal, PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import {
   useCollection,
   useFirestore,
-  useMemoFirebase,
   useUser,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
+  useMemoFirebase,
 } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
@@ -288,5 +287,3 @@ export default function CategoriesPage() {
         </AlertDialogContent>
       </AlertDialog>
     </AppLayout>
-  );
-}
