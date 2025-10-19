@@ -287,3 +287,5 @@ export default function CategoriesPage() {
         </AlertDialogContent>
       </AlertDialog>
     </AppLayout>
+  );
+}
