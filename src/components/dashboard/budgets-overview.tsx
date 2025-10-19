@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import type { Transaction, Category } from '@/lib/types';
+import type { Transaction, Category, Currency } from '@/lib/types';
 
 interface Budget {
     id: string;
@@ -22,6 +22,15 @@ interface BudgetsOverviewProps {
   categoryIcons: Record<Category, React.ReactNode>;
 }
 
+function formatMoney(amount: number, currency: Currency) {
+  // This is a simplified formatter. We'll enhance this later.
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+  }).format(amount);
+}
+
+
 export function BudgetsOverview({ budgets, transactions, categoryIcons }: BudgetsOverviewProps) {
   const spendingByCategory = transactions
     .filter(t => t.type === 'expense')
@@ -29,7 +38,8 @@ export function BudgetsOverview({ budgets, transactions, categoryIcons }: Budget
       if (!acc[t.category]) {
         acc[t.category] = 0;
       }
-      acc[t.category] += t.amount;
+      // TODO: This assumes all transactions are in the same currency. Needs conversion.
+      acc[t.category] += t.amountInCents;
       return acc;
     }, {} as Record<string, number>);
 
@@ -41,8 +51,9 @@ export function BudgetsOverview({ budgets, transactions, categoryIcons }: Budget
       </CardHeader>
       <CardContent className="grid gap-4">
         {budgets.map(budget => {
-          const spent = spendingByCategory[budget.name] || 0;
-          const progress = Math.min((spent / budget.budgetedAmount) * 100, 100);
+          const spentInCents = spendingByCategory[budget.name] || 0;
+          const budgetedInCents = budget.budgetedAmount * 100;
+          const progress = Math.min((spentInCents / budgetedInCents) * 100, 100);
           return (
             <div key={budget.id} className="grid gap-2">
               <div className="flex items-center justify-between">
@@ -51,7 +62,8 @@ export function BudgetsOverview({ budgets, transactions, categoryIcons }: Budget
                     <span className="font-medium">{budget.name}</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  ${spent.toFixed(2)} / ${budget.budgetedAmount.toFixed(2)}
+                  {/* TODO: Use user's display currency */}
+                  {formatMoney(spentInCents / 100, 'USD')} / {formatMoney(budget.budgetedAmount, 'USD')}
                 </span>
               </div>
               <Progress value={progress} aria-label={`${budget.name} budget progress`} />

@@ -1,16 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { Currency } from '@/lib/types';
 
 type SummaryCardProps = {
   title: string;
-  amount: number;
+  amountInCents: number;
+  currency: Currency;
   icon: React.ReactNode;
 };
 
-export function SummaryCard({ title, amount, icon }: SummaryCardProps) {
-  const formattedAmount = new Intl.NumberFormat('en-US', {
+function formatMoney(amountInCents: number, currency: Currency) {
+  const amount = amountInCents / 100;
+  return new Intl.NumberFormat('en-US', { // This can be adapted with user's locale later
     style: 'currency',
-    currency: 'USD',
+    currency: currency,
   }).format(amount);
+}
+
+export function SummaryCard({ title, amountInCents, currency, icon }: SummaryCardProps) {
+  const formattedAmount = formatMoney(amountInCents, currency);
 
   return (
     <Card>

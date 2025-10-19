@@ -26,6 +26,7 @@ import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import type { Currency } from '@/lib/types';
 
 export function AddTransactionSheet() {
   const { user } = useUser();
@@ -34,16 +35,20 @@ export function AddTransactionSheet() {
   const [type, setType] = useState('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState<Currency>('USD');
   const [category, setCategory] = useState('');
   const [date, setDate] = useState('');
 
   const handleSubmit = () => {
     if (!user || !firestore) return;
 
+    const amountInCents = Math.round(parseFloat(amount) * 100);
+
     const transactionData = {
       type,
       description,
-      amount: parseFloat(amount),
+      amountInCents,
+      currency,
       category,
       date,
       userId: user.uid,
@@ -70,6 +75,7 @@ export function AddTransactionSheet() {
     setType('expense');
     setDescription('');
     setAmount('');
+    setCurrency('USD');
     setCategory('');
     setDate('');
   };
@@ -109,9 +115,25 @@ export function AddTransactionSheet() {
             <Label htmlFor="description">Description</Label>
             <Input id="description" placeholder="e.g. Groceries" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="amount">Amount</Label>
-            <Input id="amount" type="number" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-2">
+              <Label htmlFor="amount">Amount</Label>
+              <Input id="amount" type="number" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="currency">Currency</Label>
+              <Select value={currency} onValueChange={(value) => setCurrency(value as Currency)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="XOF">XOF</SelectItem>
+                  <SelectItem value="XAF">XAF</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="category">Category</Label>

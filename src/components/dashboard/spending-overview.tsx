@@ -69,12 +69,13 @@ export function SpendingOverview({ transactions }: SpendingOverviewProps) {
         if (!categoryTotals[t.category]) {
           categoryTotals[t.category] = 0;
         }
-        categoryTotals[t.category] += t.amount;
+        // TODO: This assumes all transactions are in the same currency. Needs conversion logic.
+        categoryTotals[t.category] += t.amountInCents;
       });
 
     return Object.entries(categoryTotals).map(([category, total]) => ({
       name: category,
-      value: total,
+      value: total / 100, // Display value in main currency unit, not cents
       fill: `var(--color-${category})`,
     }));
   }, [transactions]);
@@ -89,7 +90,7 @@ export function SpendingOverview({ transactions }: SpendingOverviewProps) {
       <PieChart>
         <ChartTooltip
           cursor={false}
-          content={<ChartTooltipContent hideLabel />}
+          content={<ChartTooltipContent hideLabel formatter={(value, name, props) => (`$${(value as number).toFixed(2)}`)} />}
         />
         <Pie
           data={spendingData}

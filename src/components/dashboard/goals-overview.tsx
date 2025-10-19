@@ -6,13 +6,22 @@ import {
     CardTitle,
   } from '@/components/ui/card';
   import { Progress } from '@/components/ui/progress';
-  import type { Goal } from '@/lib/types';
+  import type { Goal, Currency } from '@/lib/types';
   import { TrendingUp } from 'lucide-react';
   
   interface GoalsOverviewProps {
     goals: Goal[];
   }
   
+  function formatMoney(amountInCents: number, currency: Currency) {
+    const amount = amountInCents / 100;
+    return new Intl.NumberFormat('en-US', { // This can be adapted with user's locale later
+      style: 'currency',
+      currency: currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  }
+
   export function GoalsOverview({ goals }: GoalsOverviewProps) {
     return (
       <Card>
@@ -22,19 +31,19 @@ import {
         </CardHeader>
         <CardContent className="grid gap-6">
           {goals.map(goal => {
-            const progress = (goal.currentAmount / goal.targetAmount) * 100;
+            const progress = (goal.currentAmountInCents / goal.targetAmountInCents) * 100;
             return (
               <div key={goal.id} className="grid gap-2">
                 <div className="flex items-center">
                     <TrendingUp className="h-4 w-4 mr-2 text-muted-foreground" />
                     <span className="font-semibold">{goal.name}</span>
                     <span className="ml-auto text-sm text-muted-foreground">
-                        ${goal.currentAmount.toLocaleString()} / ${goal.targetAmount.toLocaleString()}
+                        {formatMoney(goal.currentAmountInCents, goal.currency)} / {formatMoney(goal.targetAmountInCents, goal.currency)}
                     </span>
                 </div>
                 <Progress value={progress} aria-label={`${goal.name} progress`} />
                 <div className="text-xs text-muted-foreground">
-                    Deadline: {new Date(goal.deadline).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                    Target: {new Date(goal.targetDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
                 </div>
               </div>
             );

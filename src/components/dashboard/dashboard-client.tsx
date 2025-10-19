@@ -69,12 +69,14 @@ export function DashboardClient({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // NOTE: This logic assumes a single currency. We will need to update this to handle multiple currencies.
+  // For now, we will assume USD for display purposes. This will be the next step.
   const totalIncome = transactions
     .filter(t => t.type === 'income')
-    .reduce((acc, t) => acc + t.amount, 0);
+    .reduce((acc, t) => acc + t.amountInCents, 0);
   const totalExpenses = transactions
     .filter(t => t.type === 'expense')
-    .reduce((acc, t) => acc + t.amount, 0);
+    .reduce((acc, t) => acc + t.amountInCents, 0);
   const balance = totalIncome - totalExpenses;
 
   const categoryIcons: Record<Category, React.ReactNode> = {
@@ -102,9 +104,9 @@ export function DashboardClient({ children }: { children: React.ReactNode }) {
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-          <SummaryCard title="Total Income" amount={totalIncome} icon={<DollarSign />} />
-          <SummaryCard title="Total Expenses" amount={totalExpenses} icon={<CreditCard />} />
-          <SummaryCard title="Balance" amount={balance} icon={<Scale />} />
+          <SummaryCard title="Total Income" amountInCents={totalIncome} icon={<DollarSign />} currency="USD" />
+          <SummaryCard title="Total Expenses" amountInCents={totalExpenses} icon={<CreditCard />} currency="USD" />
+          <SummaryCard title="Balance" amountInCents={balance} icon={<Scale />} currency="USD" />
         </div>
         <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
           <Card className="xl:col-span-2">

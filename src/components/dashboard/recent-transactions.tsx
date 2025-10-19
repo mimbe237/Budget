@@ -15,12 +15,21 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
-import type { Transaction, Category } from '@/lib/types';
+import type { Transaction, Category, Currency } from '@/lib/types';
 import { AddTransactionSheet } from './add-transaction-sheet';
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
   categoryIcons: Record<Category, React.ReactNode>;
+}
+
+function formatMoney(amountInCents: number, currency: Currency) {
+  const amount = amountInCents / 100;
+  // TODO: Use user's locale for formatting
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+  }).format(amount);
 }
 
 export function RecentTransactions({ transactions, categoryIcons }: RecentTransactionsProps) {
@@ -62,7 +71,7 @@ export function RecentTransactions({ transactions, categoryIcons }: RecentTransa
                   {new Date(transaction.date).toLocaleDateString()}
                 </TableCell>
                 <TableCell className={`text-right ${transaction.type === 'income' ? 'text-green-600' : ''}`}>
-                  {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                  {transaction.type === 'income' ? '+' : '-'}{formatMoney(transaction.amountInCents, transaction.currency)}
                 </TableCell>
               </TableRow>
             ))}

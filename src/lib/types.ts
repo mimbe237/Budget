@@ -2,8 +2,9 @@ export type Transaction = {
   id: string;
   date: string;
   description: string;
-  amount: number;
+  amountInCents: number;
   type: 'income' | 'expense';
+  currency: 'XOF' | 'XAF' | 'EUR' | 'USD';
   category: Category;
   userId: string;
 };
@@ -22,7 +23,8 @@ export type Goal = {
   id: string;
   userId: string;
   name: string;
-  targetAmount: number;
-  currentAmount: number;
+  targetAmountInCents: number;
+  currentAmountInCents: number;
+  currency: 'XOF' | 'XAF' | 'EUR' | 'USD';
   targetDate: string;
 };
