@@ -80,7 +80,7 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
             <div className="lg:col-span-2 space-y-6">
                  {/* Placeholder for Category Breakdown */}
                 <Card>
-                    <CardHeader><CardTitle>{isFrench ? 'Dépenses par Catégorie' : 'Spending by Category'}</CardTitle><//CardHeader>
+                    <CardHeader><CardTitle>{isFrench ? 'Dépenses par Catégorie' : 'Spending by Category'}</CardTitle></CardHeader>
                     <CardContent className='h-80'><p className="text-muted-foreground">{isFrench ? 'Graphique de répartition des dépenses à venir...' : 'Spending breakdown chart coming soon...'}</p></CardContent>
                 </Card>
                 {/* Placeholder for Goals */}
