@@ -1,59 +1,44 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import {
   Car,
   CreditCard,
   DollarSign,
   Landmark,
-  Lightbulb,
   PartyPopper,
-  Scale,
   ShoppingBag,
   Utensils,
-  HeartPulse
+  HeartPulse,
+  LayoutGrid,
+  List,
+  Folder,
 } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import type { Category, Transaction } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 
 import { UserNav } from '@/components/user-nav';
 import { Logo } from '@/components/logo';
-import { SummaryCard } from '@/components/dashboard/summary-card';
-import { SpendingOverview } from '@/components/dashboard/spending-overview';
-import { RecentTransactions } from '@/components/dashboard/recent-transactions';
-import { BudgetsOverview } from '@/components/dashboard/budgets-overview';
-import { GoalsOverview } from '@/components/dashboard/goals-overview';
+import { cn } from '@/lib/utils';
+import { usePathname } from 'next/navigation';
 
-export function DashboardClient({ children }: { children: React.ReactNode }) {
+interface AppLayoutProps {
+  children: ReactNode;
+}
+
+export function AppLayout({ children }: AppLayoutProps) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
+  const pathname = usePathname();
 
-  const transactionsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, `users/${user.uid}/expenses`));
-  }, [firestore, user]);
-  const { data: transactions } = useCollection<Transaction>(transactionsQuery);
-
-  const budgetsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, `users/${user.uid}/categories`));
-  }, [firestore, user]);
-  const { data: budgets } = useCollection<any>(budgetsQuery);
-
-  const goalsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, `users/${user.uid}/budgetGoals`));
-  }, [firestore, user]);
-  const { data: goals } = useCollection<any>(goalsQuery);
+  const navItems = [
+    { href: '/', label: 'Dashboard', icon: LayoutGrid },
+    { href: '/transactions', label: 'Transactions', icon: List },
+    { href: '/categories', label: 'Categories', icon: Folder },
+  ];
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -61,7 +46,7 @@ export function DashboardClient({ children }: { children: React.ReactNode }) {
     }
   }, [user, isUserLoading, router]);
 
-  if (isUserLoading || !user || !transactions || !budgets || !goals) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-2xl font-semibold">Loading your dashboard...</div>
@@ -69,64 +54,44 @@ export function DashboardClient({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // NOTE: This logic assumes a single currency. We will need to update this to handle multiple currencies.
-  // For now, we will assume USD for display purposes. This will be the next step.
-  const totalIncome = transactions
-    .filter(t => t.type === 'income')
-    .reduce((acc, t) => acc + t.amountInCents, 0);
-  const totalExpenses = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => acc + t.amountInCents, 0);
-  const balance = totalIncome - totalExpenses;
-
-  const categoryIcons: Record<Category, React.ReactNode> = {
-    Housing: <Landmark className="h-4 w-4 text-muted-foreground" />,
-    Food: <Utensils className="h-4 w-4 text-muted-foreground" />,
-    Transport: <Car className="h-4 w-4 text-muted-foreground" />,
-    Entertainment: <PartyPopper className="h-4 w-4 text-muted-foreground" />,
-    Health: <HeartPulse className="h-4 w-4 text-muted-foreground" />,
-    Shopping: <ShoppingBag className="h-4 w-4 text-muted-foreground" />,
-    Utilities: <Lightbulb className="h-4 w-4 text-muted-foreground" />,
-    Income: <DollarSign className="h-4 w-4 text-muted-foreground" />,
-  };
-  
   return (
-    <div className="flex min-h-screen w-full flex-col">
-      <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-10">
-        <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
-          <Logo />
-        </nav>
-        <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
-          <div className="ml-auto flex-1 sm:flex-initial">
+    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+      <div className="hidden border-r bg-muted/40 md:block">
+        <div className="flex h-full max-h-screen flex-col gap-2">
+          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+            <Logo />
+          </div>
+          <div className="flex-1">
+            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+              {navItems.map(item => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
+                    { 'bg-muted text-primary': pathname === item.href }
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col">
+        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+          {/* Add mobile navigation trigger here if needed */}
+          <div className="w-full flex-1">
+            {/* Can add a search bar or other header content here */}
           </div>
           <UserNav />
-        </div>
-      </header>
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-          <SummaryCard title="Total Income" amountInCents={totalIncome} icon={<DollarSign />} currency="USD" />
-          <SummaryCard title="Total Expenses" amountInCents={totalExpenses} icon={<CreditCard />} currency="USD" />
-          <SummaryCard title="Balance" amountInCents={balance} icon={<Scale />} currency="USD" />
-        </div>
-        <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-          <Card className="xl:col-span-2">
-            <CardHeader>
-              <CardTitle className='font-headline'>Spending Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="pl-2">
-              <SpendingOverview transactions={transactions} />
-            </CardContent>
-          </Card>
-          <div className="grid auto-rows-max items-start gap-4 md:gap-8">
-            {children}
-            <BudgetsOverview budgets={budgets} transactions={transactions} categoryIcons={categoryIcons} />
-          </div>
-        </div>
-        <div className="grid gap-4 md:gap-8 lg:grid-cols-2">
-            <RecentTransactions transactions={transactions.slice(0, 5)} categoryIcons={categoryIcons} />
-            <GoalsOverview goals={goals} />
-        </div>
-      </main>
+        </header>
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
