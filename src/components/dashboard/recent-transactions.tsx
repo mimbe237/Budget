@@ -16,25 +16,35 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-import type { Transaction, Category, Currency } from '@/lib/types';
+import type { Transaction, Category, Currency, UserProfile } from '@/lib/types';
 import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useDoc, useFirestore, useUser } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
   categoryIcons: Record<Category, React.ReactNode>;
 }
 
-function formatMoney(amountInCents: number, currency: Currency = 'USD') {
+function formatMoney(amountInCents: number, currency: Currency, locale: string) {
   const amount = amountInCents / 100;
-  // TODO: Use user's locale for formatting
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
   }).format(amount);
 }
 
 export function RecentTransactions({ transactions, categoryIcons }: RecentTransactionsProps) {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const userProfileRef = user ? doc(firestore, `users/${user.uid}`) : null;
+    const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
+    const displayCurrency = userProfile?.displayCurrency || 'USD';
+    const displayLocale = userProfile?.locale || 'en-US';
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center">
@@ -80,7 +90,7 @@ export function RecentTransactions({ transactions, categoryIcons }: RecentTransa
                   {new Date(transaction.date).toLocaleDateString()}
                 </TableCell>
                 <TableCell className={`text-right ${transaction.type === 'income' ? 'text-green-600' : ''}`}>
-                  {transaction.type === 'income' ? '+' : '-'}{formatMoney(transaction.amountInCents, transaction.currency)}
+                  {transaction.type === 'income' ? '+' : '-'}{formatMoney(transaction.amountInCents, transaction.currency || displayCurrency, displayLocale)}
                 </TableCell>
               </TableRow>
             ))}

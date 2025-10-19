@@ -48,6 +48,7 @@ import {
 import { MoreHorizontal, PlusCircle, Pencil, Trash2, Target } from 'lucide-react';
 import {
   useCollection,
+  useDoc,
   useFirestore,
   useMemoFirebase,
   useUser,
@@ -57,7 +58,7 @@ import {
 } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
-import type { Goal, Currency } from '@/lib/types';
+import type { Goal, Currency, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -67,9 +68,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Progress } from '@/components/ui/progress';
 
-function formatMoney(amountInCents: number, currency: Currency = 'USD') {
+function formatMoney(amountInCents: number, currency: Currency, locale: string) {
   const amount = amountInCents / 100;
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
   }).format(amount);
@@ -99,6 +100,21 @@ export default function GoalsPage() {
 
   const { data: goals, isLoading } = useCollection<Goal>(goalsQuery);
 
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `users/${user.uid}`);
+    }, [firestore, user]);
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
+  const displayCurrency = userProfile?.displayCurrency || 'USD';
+  const displayLocale = userProfile?.locale || 'en-US';
+
+  useEffect(() => {
+    if (userProfile) {
+        setCurrency(userProfile.displayCurrency || 'USD');
+    }
+  }, [userProfile]);
+
   useEffect(() => {
     if (currentGoal) {
       setGoalName(currentGoal.name);
@@ -110,10 +126,10 @@ export default function GoalsPage() {
       setGoalName('');
       setTargetAmount('');
       setCurrentAmount('0');
-      setCurrency('USD');
+      setCurrency(displayCurrency);
       setTargetDate('');
     }
-  }, [currentGoal]);
+  }, [currentGoal, displayCurrency]);
 
   const handleOpenDialog = (goal: Goal | null = null) => {
     setCurrentGoal(goal);
@@ -272,11 +288,11 @@ export default function GoalsPage() {
                                 <div className="flex flex-col gap-2">
                                     <Progress value={progress} aria-label={`${goal.name} progress`} />
                                     <div className="text-xs text-muted-foreground">
-                                        {formatMoney(goal.currentAmountInCents, goal.currency)} of {formatMoney(goal.targetAmountInCents, goal.currency)}
+                                        {formatMoney(goal.currentAmountInCents, goal.currency || displayCurrency, displayLocale)} of {formatMoney(goal.targetAmountInCents, goal.currency || displayCurrency, displayLocale)}
                                     </div>
                                 </div>
                             </TableCell>
-                            <TableCell>{new Date(goal.targetDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</TableCell>
+                            <TableCell>{new Date(goal.targetDate).toLocaleDateString(displayLocale, { month: 'short', year: 'numeric' })}</TableCell>
                             <TableCell className="text-right">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>

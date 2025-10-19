@@ -18,6 +18,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { doc } from 'firebase/firestore';
 import { Logo } from '@/components/logo';
+import type { UserProfile } from '@/lib/types';
 
 export default function SignupPage() {
   const [firstName, setFirstName] = useState('');
@@ -30,14 +31,17 @@ export default function SignupPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading && user) {
+    if (!isUserLoading && user && firestore) {
       const userRef = doc(firestore, 'users', user.uid);
-      setDocumentNonBlocking(userRef, {
+      const userProfile: Partial<UserProfile> = {
         firstName,
         lastName,
         email: user.email,
         id: user.uid,
-      }, { merge: true });
+        displayCurrency: 'USD',
+        locale: 'en-US'
+      };
+      setDocumentNonBlocking(userRef, userProfile, { merge: true });
       router.push('/');
     }
   }, [user, isUserLoading, router, firestore, firstName, lastName]);

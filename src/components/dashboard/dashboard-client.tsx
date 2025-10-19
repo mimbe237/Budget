@@ -13,6 +13,7 @@ import {
   List,
   Folder,
   Target,
+  Settings,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -38,6 +39,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { href: '/transactions', label: 'Transactions', icon: List },
     { href: '/categories', label: 'Categories', icon: Folder },
     { href: '/goals', label: 'Goals', icon: Target },
+    { href: '/settings', label: 'Settings', icon: Settings },
   ];
 
   useEffect(() => {

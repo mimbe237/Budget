@@ -30,13 +30,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import type { Category, Currency, Transaction } from '@/lib/types';
-import { collection, query } from 'firebase/firestore';
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import type { Category, Currency, Transaction, UserProfile } from '@/lib/types';
+import { collection, query, doc } from 'firebase/firestore';
 
-function formatMoney(amountInCents: number, currency: Currency = 'USD') {
+function formatMoney(amountInCents: number, currency: Currency, locale: string) {
     const amount = amountInCents / 100;
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency,
     }).format(amount);
@@ -63,6 +63,15 @@ export default function TransactionsPage() {
   }, [firestore, user]);
 
   const { data: transactions, isLoading } = useCollection<Transaction>(transactionsQuery);
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `users/${user.uid}`);
+    }, [firestore, user]);
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
+  const displayCurrency = userProfile?.displayCurrency || 'USD';
+  const displayLocale = userProfile?.locale || 'en-US';
 
   return (
     <AppLayout>
@@ -115,14 +124,14 @@ export default function TransactionsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      {new Date(transaction.date).toLocaleDateString('fr-CM')}
+                      {new Date(transaction.date).toLocaleDateString(displayLocale)}
                     </TableCell>
                     <TableCell
                       className={`text-right ${
                         transaction.type === 'income' ? 'text-green-600' : ''
                       }`}
                     >
-                      {transaction.type === 'income' ? '+' : '-'}{formatMoney(transaction.amountInCents, transaction.currency)}
+                      {transaction.type === 'income' ? '+' : '-'}{formatMoney(transaction.amountInCents, transaction.currency || displayCurrency, displayLocale)}
                     </TableCell>
                   </TableRow>
                 ))

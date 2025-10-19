@@ -6,16 +6,18 @@ import {
     CardTitle,
   } from '@/components/ui/card';
   import { Progress } from '@/components/ui/progress';
-  import type { Goal, Currency } from '@/lib/types';
+  import type { Goal, Currency, UserProfile } from '@/lib/types';
   import { Target } from 'lucide-react';
+  import { useDoc, useFirestore, useUser } from '@/firebase';
+  import { doc } from 'firebase/firestore';
   
   interface GoalsOverviewProps {
     goals: Goal[];
   }
   
-  function formatMoney(amountInCents: number, currency: Currency = 'USD') {
+  function formatMoney(amountInCents: number, currency: Currency, locale: string) {
     const amount = amountInCents / 100;
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency,
       maximumFractionDigits: 0,
@@ -23,6 +25,14 @@ import {
   }
 
   export function GoalsOverview({ goals }: GoalsOverviewProps) {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const userProfileRef = user ? doc(firestore, `users/${user.uid}`) : null;
+    const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
+    const displayCurrency = userProfile?.displayCurrency || 'USD';
+    const displayLocale = userProfile?.locale || 'en-US';
+
     return (
       <Card>
         <CardHeader>
@@ -39,12 +49,12 @@ import {
                       <Target className="h-4 w-4 mr-2 text-muted-foreground" />
                       <span className="font-semibold">{goal.name}</span>
                       <span className="ml-auto text-sm text-muted-foreground">
-                          {formatMoney(goal.currentAmountInCents, goal.currency)} / {formatMoney(goal.targetAmountInCents, goal.currency)}
+                          {formatMoney(goal.currentAmountInCents, goal.currency || displayCurrency, displayLocale)} / {formatMoney(goal.targetAmountInCents, goal.currency || displayCurrency, displayLocale)}
                       </span>
                   </div>
                   <Progress value={progress} aria-label={`${goal.name} progress`} />
                   <div className="text-xs text-muted-foreground">
-                      Target: {new Date(goal.targetDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                      Target: {new Date(goal.targetDate).toLocaleDateString(displayLocale, { year: 'numeric', month: 'long' })}
                   </div>
                 </div>
               );

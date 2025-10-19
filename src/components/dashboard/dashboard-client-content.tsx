@@ -79,10 +79,10 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-        <SummaryCard title="Total Income" amountInCents={totalIncome} currency="USD" icon={<DollarSign />} />
-        <SummaryCard title="Total Expenses" amountInCents={totalExpenses} currency="USD" icon={<CreditCard />} />
-        <SummaryCard title="Balance" amountInCents={balance} currency="USD" icon={<Scale />} />
+      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+        <SummaryCard title="Total Income" amountInCents={totalIncome} icon={<DollarSign />} />
+        <SummaryCard title="Total Expenses" amountInCents={totalExpenses} icon={<CreditCard />} />
+        <SummaryCard title="Balance" amountInCents={balance} icon={<Scale />} />
       </div>
       <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
         <Card className="xl:col-span-2">

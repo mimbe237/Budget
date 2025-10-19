@@ -6,7 +6,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import type { Transaction, Budget, Category, Currency } from '@/lib/types';
+import type { Transaction, Budget, Category, Currency, UserProfile } from '@/lib/types';
+import { useDoc, useFirestore, useUser } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 interface BudgetsOverviewProps {
   budgets: Budget[];
@@ -14,14 +16,22 @@ interface BudgetsOverviewProps {
   categoryIcons: Record<Category, React.ReactNode>;
 }
 
-function formatMoney(amount: number, currency: Currency = 'USD') {
-  return new Intl.NumberFormat('en-US', {
+function formatMoney(amount: number, currency: Currency, locale: string) {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
   }).format(amount);
 }
 
 export function BudgetsOverview({ budgets, transactions, categoryIcons }: BudgetsOverviewProps) {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const userProfileRef = user ? doc(firestore, `users/${user.uid}`) : null;
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+    
+  const displayCurrency = userProfile?.displayCurrency || 'USD';
+  const displayLocale = userProfile?.locale || 'en-US';
+
   const spendingByCategory = transactions
     .filter(t => t.type === 'expense')
     .reduce((acc, t) => {
@@ -54,7 +64,7 @@ export function BudgetsOverview({ budgets, transactions, categoryIcons }: Budget
                       <span className="font-medium">{budget.name}</span>
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    {formatMoney(spentInCents / 100)} / {formatMoney(budget.budgetedAmount)}
+                    {formatMoney(spentInCents / 100, displayCurrency, displayLocale)} / {formatMoney(budget.budgetedAmount, displayCurrency, displayLocale)}
                   </span>
                 </div>
                 <Progress value={progress} aria-label={`${budget.name} budget progress`} />

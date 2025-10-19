@@ -28,3 +28,14 @@ export type Goal = {
   currency: 'XOF' | 'XAF' | 'EUR' | 'USD';
   targetDate: string;
 };
+
+export type UserProfile = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  displayCurrency?: 'XOF' | 'XAF' | 'EUR' | 'USD';
+  locale?: 'fr-CM' | 'en-US';
+}
+
+export type Currency = 'XOF' | 'XAF' | 'EUR' | 'USD';
