@@ -26,14 +26,17 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Currency, UserProfile, Category } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { subMonths, format } from 'date-fns';
+import { subMonths, format, addYears } from 'date-fns';
 
 const categories: Category[] = ['Housing', 'Food', 'Transport', 'Entertainment', 'Health', 'Shopping', 'Utilities', 'Income'];
 
 const generateTestData = (userId: string) => {
   const transactions = [];
+  const budgets = [];
+  const goals = [];
   const now = new Date();
 
+  // Generate transactions for the last 12 months
   for (let i = 0; i < 12; i++) {
     const monthDate = subMonths(now, i);
     
@@ -66,7 +69,47 @@ const generateTestData = (userId: string) => {
         });
       }
   }
-  return transactions;
+
+  // Generate Budgets
+  const budgetAmounts: Record<string, number> = {
+    Housing: 1200,
+    Food: 500,
+    Transport: 250,
+    Entertainment: 150,
+    Health: 200,
+    Shopping: 300,
+    Utilities: 180,
+  };
+
+  categories.filter(c => c !== 'Income').forEach(category => {
+    budgets.push({
+      name: category,
+      budgetedAmount: budgetAmounts[category] || 200,
+      userId: userId,
+    });
+  });
+
+  // Generate Goals
+  goals.push({
+    name: 'Save for Vacation',
+    targetAmountInCents: 300000,
+    currentAmountInCents: 75000,
+    currency: 'USD' as Currency,
+    targetDate: format(addYears(now, 1), 'yyyy-MM-dd'),
+    userId: userId,
+  });
+
+  goals.push({
+    name: 'New Laptop Fund',
+    targetAmountInCents: 150000,
+    currentAmountInCents: 110000,
+    currency: 'USD' as Currency,
+    targetDate: format(addYears(now, 1), 'yyyy-MM-dd'),
+    userId: userId,
+  });
+
+
+  return {transactions, budgets, goals};
 };
 
 
@@ -86,23 +129,35 @@ export default function AddTransactionPage() {
 
   const handleGenerateData = () => {
     if (!user || !firestore) return;
-    const testData = generateTestData(user.uid);
-    const expensesCollection = collection(firestore, `users/${user.uid}/expenses`);
+    const { transactions, budgets, goals } = generateTestData(user.uid);
     
-    const promises = testData.map(data => addDocumentNonBlocking(expensesCollection, data));
+    const promises = [];
+
+    // Add transactions
+    const expensesCollection = collection(firestore, `users/${user.uid}/expenses`);
+    promises.push(...transactions.map(data => addDocumentNonBlocking(expensesCollection, data)));
+
+    // Add budgets
+    const categoriesCollection = collection(firestore, `users/${user.uid}/categories`);
+    promises.push(...budgets.map(data => addDocumentNonBlocking(categoriesCollection, data)));
+
+    // Add goals
+    const goalsCollection = collection(firestore, `users/${user.uid}/budgetGoals`);
+    promises.push(...goals.map(data => addDocumentNonBlocking(goalsCollection, data)));
     
     Promise.all(promises).then(() => {
         toast({
             title: isFrench ? "Données générées" : "Data Generated",
-            description: isFrench ? "Les données de test ont été ajoutées." : "Test data has been added.",
+            description: isFrench ? "Données de test pour transactions, budgets et objectifs ont été ajoutées." : "Test data for transactions, budgets, and goals has been added.",
         });
         router.push('/transactions');
     }).catch((e) => {
          toast({
             variant: 'destructive',
             title: isFrench ? "Erreur" : "Error",
-            description: isFrench ? "Impossible de générer les données." : "Could not generate data.",
+            description: isFrench ? "Impossible de générer les données de test." : "Could not generate test data.",
         });
+        console.error(e);
     });
   };
 
