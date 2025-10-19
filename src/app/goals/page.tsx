@@ -69,7 +69,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 
 function formatMoney(amountInCents: number, currency: Currency, locale: string) {
-  const amount = amountInCents / 100;
+  const amount = (amountInCents || 0) / 100;
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
@@ -118,8 +118,8 @@ export default function GoalsPage() {
   useEffect(() => {
     if (currentGoal) {
       setGoalName(currentGoal.name);
-      setTargetAmount(String(currentGoal.targetAmountInCents / 100));
-      setCurrentAmount(String(currentGoal.currentAmountInCents / 100));
+      setTargetAmount(String((currentGoal.targetAmountInCents || 0) / 100));
+      setCurrentAmount(String((currentGoal.currentAmountInCents || 0) / 100));
       setCurrency(currentGoal.currency);
       setTargetDate(new Date(currentGoal.targetDate).toISOString().split('T')[0]);
     } else {
@@ -148,17 +148,9 @@ export default function GoalsPage() {
       return;
     }
     
-    const targetAmountInCents = Math.round(parseFloat(targetAmount) * 100);
-    const currentAmountInCents = Math.round(parseFloat(currentAmount) * 100);
+    const targetAmountInCents = Math.round(parseFloat(targetAmount) * 100) || 0;
+    const currentAmountInCents = Math.round(parseFloat(currentAmount) * 100) || 0;
 
-    if (isNaN(targetAmountInCents) || isNaN(currentAmountInCents)) {
-        toast({
-            variant: 'destructive',
-            title: 'Invalid Amount',
-            description: 'Please enter a valid number for the amounts.',
-        });
-        return;
-    }
 
     const goalData = {
         name: goalName,
@@ -280,7 +272,9 @@ export default function GoalsPage() {
               )}
               {goals && goals.length > 0 ? (
                 goals.map(goal => {
-                    const progress = goal.targetAmountInCents > 0 ? (goal.currentAmountInCents / goal.targetAmountInCents) * 100 : 0;
+                    const currentAmount = goal.currentAmountInCents || 0;
+                    const targetAmount = goal.targetAmountInCents || 0;
+                    const progress = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
                     return (
                         <TableRow key={goal.id}>
                             <TableCell className="font-medium">{goal.name}</TableCell>
@@ -288,7 +282,7 @@ export default function GoalsPage() {
                                 <div className="flex flex-col gap-2">
                                     <Progress value={progress} aria-label={`${goal.name} progress`} />
                                     <div className="text-xs text-muted-foreground">
-                                        {formatMoney(goal.currentAmountInCents, goal.currency || displayCurrency, displayLocale)} of {formatMoney(goal.targetAmountInCents, goal.currency || displayCurrency, displayLocale)}
+                                        {formatMoney(currentAmount, goal.currency || displayCurrency, displayLocale)} of {formatMoney(targetAmount, goal.currency || displayCurrency, displayLocale)}
                                     </div>
                                 </div>
                             </TableCell>

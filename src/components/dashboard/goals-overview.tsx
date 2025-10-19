@@ -16,7 +16,7 @@ import {
   }
   
   function formatMoney(amountInCents: number, currency: Currency, locale: string) {
-    const amount = amountInCents / 100;
+    const amount = (amountInCents || 0) / 100;
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency,
@@ -42,14 +42,16 @@ import {
         <CardContent className="grid gap-6">
           {goals && goals.length > 0 ? (
             goals.map(goal => {
-              const progress = goal.targetAmountInCents > 0 ? (goal.currentAmountInCents / goal.targetAmountInCents) * 100 : 0;
+              const currentAmount = goal.currentAmountInCents || 0;
+              const targetAmount = goal.targetAmountInCents || 0;
+              const progress = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
               return (
                 <div key={goal.id} className="grid gap-2">
                   <div className="flex items-center">
                       <Target className="h-4 w-4 mr-2 text-muted-foreground" />
                       <span className="font-semibold">{goal.name}</span>
                       <span className="ml-auto text-sm text-muted-foreground">
-                          {formatMoney(goal.currentAmountInCents, goal.currency || displayCurrency, displayLocale)} / {formatMoney(goal.targetAmountInCents, goal.currency || displayCurrency, displayLocale)}
+                          {formatMoney(currentAmount, goal.currency || displayCurrency, displayLocale)} / {formatMoney(targetAmount, goal.currency || displayCurrency, displayLocale)}
                       </span>
                   </div>
                   <Progress value={progress} aria-label={`${goal.name} progress`} />

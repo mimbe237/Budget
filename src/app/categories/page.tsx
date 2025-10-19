@@ -64,7 +64,7 @@ function formatMoney(amount: number, currency: string = 'USD') {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
-  }).format(amount);
+  }).format(amount || 0);
 }
 
 export default function CategoriesPage() {
@@ -89,7 +89,7 @@ export default function CategoriesPage() {
   useEffect(() => {
     if (currentCategory) {
       setCategoryName(currentCategory.name);
-      setBudgetedAmount(String(currentCategory.budgetedAmount));
+      setBudgetedAmount(String(currentCategory.budgetedAmount || ''));
     } else {
       setCategoryName('');
       setBudgetedAmount('');
@@ -103,24 +103,16 @@ export default function CategoriesPage() {
 
   const handleSaveCategory = () => {
     if (!user || !firestore) return;
-    if (!categoryName || !budgetedAmount) {
+    if (!categoryName) {
       toast({
         variant: 'destructive',
-        title: 'Missing Fields',
-        description: 'Please provide a name and a budget amount.',
+        title: 'Missing Name',
+        description: 'Please provide a name for the category.',
       });
       return;
     }
     
-    const amount = parseFloat(budgetedAmount);
-    if(isNaN(amount)) {
-         toast({
-            variant: 'destructive',
-            title: 'Invalid Amount',
-            description: 'Please enter a valid number for the budget.',
-        });
-        return;
-    }
+    const amount = parseFloat(budgetedAmount) || 0;
 
     if (currentCategory) {
       // Update existing category

@@ -20,7 +20,7 @@ function formatMoney(amount: number, currency: Currency, locale: string) {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
-  }).format(amount);
+  }).format(amount || 0);
 }
 
 export function BudgetsOverview({ budgets, transactions, categoryIcons }: BudgetsOverviewProps) {
@@ -39,7 +39,7 @@ export function BudgetsOverview({ budgets, transactions, categoryIcons }: Budget
       if (!acc[categoryName]) {
         acc[categoryName] = 0;
       }
-      acc[categoryName] += t.amountInCents;
+      acc[categoryName] += t.amountInCents || 0;
       return acc;
     }, {} as Record<string, number>);
 
@@ -53,7 +53,7 @@ export function BudgetsOverview({ budgets, transactions, categoryIcons }: Budget
         {budgets.length > 0 ? (
           budgets.map(budget => {
             const spentInCents = spendingByCategory[budget.name] || 0;
-            const budgetedInCents = budget.budgetedAmount * 100;
+            const budgetedInCents = (budget.budgetedAmount || 0) * 100;
             const progress = budgetedInCents > 0 ? Math.min((spentInCents / budgetedInCents) * 100, 100) : 0;
             
             return (

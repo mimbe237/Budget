@@ -11,7 +11,7 @@ type SummaryCardProps = {
 };
 
 function formatMoney(amountInCents: number, currency: Currency = 'USD', locale: string = 'en-US') {
-  const amount = amountInCents / 100;
+  const amount = (amountInCents || 0) / 100;
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,

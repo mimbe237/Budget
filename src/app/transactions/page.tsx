@@ -35,7 +35,7 @@ import type { Category, Currency, Transaction, UserProfile } from '@/lib/types';
 import { collection, query, doc } from 'firebase/firestore';
 
 function formatMoney(amountInCents: number, currency: Currency, locale: string) {
-    const amount = amountInCents / 100;
+    const amount = (amountInCents || 0) / 100;
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency,
