@@ -112,6 +112,22 @@ export function formatMoneyFromCents(
 }
 
 /**
+ * Formate FCFA (XAF) avec conventions locales fr-CM
+ */
+export function formatXAF(amountInCents: number, locale: string = 'fr-CM'): string {
+  return formatMoneyFromCents(amountInCents, 'XAF', locale);
+}
+
+/**
+ * Retourne un formateur pratique en fonction du profil utilisateur
+ */
+export function makeCurrencyFormatter(profile?: { displayCurrency?: string; locale?: string }) {
+  const currency = profile?.displayCurrency || (profile?.locale === 'fr-CM' ? 'XAF' : 'EUR');
+  const locale = profile?.locale || (currency === 'XAF' ? 'fr-CM' : 'fr-FR');
+  return (amountInCents: number) => formatMoneyFromCents(amountInCents, currency, locale);
+}
+
+/**
  * Formate une date de manière lisible
  */
 export function formatDate(date: Date | any, locale: string = 'fr-FR'): string {

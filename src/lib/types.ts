@@ -5,12 +5,24 @@ export type Transaction = {
   amountInCents: number;
   type: 'income' | 'expense';
   currency: 'XOF' | 'XAF' | 'EUR' | 'USD';
-  category: Category;
+  category: string; // Now supports dynamic category names
   userId: string;
   categoryId?: string;
 };
 
+// Legacy type for backward compatibility
 export type Category = 'Housing' | 'Food' | 'Transport' | 'Entertainment' | 'Health' | 'Shopping' | 'Utilities' | 'Income';
+
+// New interface for category documents in Firestore
+export type CategoryDocument = {
+  id: string;
+  userId: string;
+  name: string;
+  type: 'income' | 'expense';
+  budgetedAmount: number;
+  icon?: string; // Optional icon name
+  isCustom: boolean; // Distinguish custom vs predefined
+};
 
 export type Budget = {
   id: string;
@@ -49,6 +61,8 @@ export type FinancialReportData = {
     // Chart Data
     cashflow: { date: string; income: number; expenses: number }[];
     spendingByCategory: { name: string; value: number }[];
+  // Income breakdown by category (for Revenus table)
+  incomeByCategory?: { name: string; value: number }[];
     // Table Data
     budgetVsActual: {
         category: string;

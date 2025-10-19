@@ -35,7 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { Category, Currency, Transaction, UserProfile } from '@/lib/types';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { startOfMonth, endOfMonth, startOfYesterday, startOfYear, endOfYear, format } from 'date-fns';
 import { SummaryCard } from '@/components/dashboard/summary-card';
 import { DateRangePicker } from '../reports/_components/date-range-picker';
@@ -50,7 +50,7 @@ function formatMoney(amountInCents: number, currency: Currency, locale: string) 
     }).format(amount);
 }
 
-export default function TransactionsPage() {
+function TransactionsContent() {
   const { user, userProfile } = useUser();
   const firestore = useFirestore();
   const searchParams = useSearchParams();
@@ -100,10 +100,9 @@ export default function TransactionsPage() {
       noTransactions: isFrench ? 'Aucune transaction trouvée pour cette période.' : 'No transactions found for this period.',
   };
 
-
   return (
-    <AppLayout>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex-1">
                 <DateRangePicker />
             </div>
@@ -123,12 +122,15 @@ export default function TransactionsPage() {
             <SummaryCard title={translations.totalExpenses} amountInCents={totalExpenses} icon={<CreditCard />} />
             <SummaryCard title={translations.netBalance} amountInCents={balance} icon={<Scale />} />
         </div>
-        <Card>
+        {/* Two column layout for large screens */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Expenses Card */}
+          <Card>
             <CardHeader className="flex flex-row items-center">
                 <div className="grid gap-2">
-                <CardTitle className="font-headline">{translations.transactions}</CardTitle>
+                <CardTitle className="font-headline text-red-600">{isFrench ? 'Dépenses' : 'Expenses'}</CardTitle>
                 <CardDescription>
-                    {translations.transactionsDesc}
+                    {isFrench ? 'Liste de vos dépenses pour la période sélectionnée.' : 'List of your expenses for the selected period.'}
                 </CardDescription>
                 </div>
             </CardHeader>
@@ -150,8 +152,8 @@ export default function TransactionsPage() {
                         </TableCell>
                     </TableRow>
                     )}
-                    {transactions && transactions.length > 0 ? (
-                    transactions.map(transaction => (
+                    {transactions && transactions.filter(t => t.type === 'expense').length > 0 ? (
+                    transactions.filter(t => t.type === 'expense').map(transaction => (
                         <TableRow key={transaction.id}>
                         <TableCell>
                             <div className="font-medium">{transaction.description}</div>
@@ -164,26 +166,92 @@ export default function TransactionsPage() {
                         <TableCell className="hidden sm:table-cell">
                             {new Date(transaction.date).toLocaleDateString(displayLocale)}
                         </TableCell>
-                        <TableCell
-                            className={`text-right font-semibold ${
-                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                            }`}
-                        >
-                            {transaction.type === 'income' ? '+' : '-'}{formatMoney(transaction.amountInCents, transaction.currency || displayCurrency, displayLocale)}
+                        <TableCell className="text-right font-semibold text-red-600">
+                            -{formatMoney(transaction.amountInCents, transaction.currency || displayCurrency, displayLocale)}
                         </TableCell>
                         </TableRow>
                     ))
                     ) : !isLoading ? (
                     <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center">
-                        {translations.noTransactions}
+                        {isFrench ? 'Aucune dépense trouvée.' : 'No expenses found.'}
                         </TableCell>
                     </TableRow>
                     ) : null}
                 </TableBody>
                 </Table>
             </CardContent>
-        </Card>
+          </Card>
+
+          {/* Income Card */}
+          <Card>
+            <CardHeader className="flex flex-row items-center">
+                <div className="grid gap-2">
+                <CardTitle className="font-headline text-green-600">{isFrench ? 'Revenus' : 'Income'}</CardTitle>
+                <CardDescription>
+                    {isFrench ? 'Liste de vos revenus pour la période sélectionnée.' : 'List of your income for the selected period.'}
+                </CardDescription>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>{translations.description}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{translations.category}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{translations.date}</TableHead>
+                    <TableHead className="text-right">{translations.amount}</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {isLoading && (
+                    <TableRow>
+                        <TableCell colSpan={4} className="text-center">
+                        {translations.loading}
+                        </TableCell>
+                    </TableRow>
+                    )}
+                    {transactions && transactions.filter(t => t.type === 'income').length > 0 ? (
+                    transactions.filter(t => t.type === 'income').map(transaction => (
+                        <TableRow key={transaction.id}>
+                        <TableCell>
+                            <div className="font-medium">{transaction.description}</div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                            <Badge className="text-xs" variant="outline">
+                            {transaction.category}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                            {new Date(transaction.date).toLocaleDateString(displayLocale)}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-green-600">
+                            +{formatMoney(transaction.amountInCents, transaction.currency || displayCurrency, displayLocale)}
+                        </TableCell>
+                        </TableRow>
+                    ))
+                    ) : !isLoading ? (
+                    <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                        {isFrench ? 'Aucun revenu trouvé.' : 'No income found.'}
+                        </TableCell>
+                    </TableRow>
+                    ) : null}
+                </TableBody>
+                </Table>
+            </CardContent>
+          </Card>
+        </div>
+    </>
+  );
+}
+
+export default function TransactionsPage() {
+  return (
+    <AppLayout>
+      <Suspense fallback={<div className="p-6 text-center text-gray-500">Chargement des transactions…</div>}>
+        <TransactionsContent />
+      </Suspense>
     </AppLayout>
   );
 }

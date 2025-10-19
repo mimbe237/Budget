@@ -86,6 +86,7 @@ export async function getFinancialReportData(
 
     // 5. Chart Data Generation
     const spendingByCategory = processSpendingByCategory(currentTransactions);
+    const incomeByCategory = processIncomeByCategory(currentTransactions);
     const cashflow = processCashflow(currentTransactions, currentPeriod.from, currentPeriod.to);
 
     // 6. Table Data Generation
@@ -98,7 +99,8 @@ export async function getFinancialReportData(
         netBalance: totalIncome - totalExpenses,
         expenseDelta: expenseDelta,
         cashflow,
-        spendingByCategory,
+    spendingByCategory,
+    incomeByCategory,
         budgetVsActual,
         goals,
         recentTransactions: currentTransactions.slice(0, 10),
@@ -149,6 +151,19 @@ function processSpendingByCategory(transactions: Transaction[]): { name: string;
         });
     
     return Object.entries(expenseByCategory)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value);
+}
+
+function processIncomeByCategory(transactions: Transaction[]): { name: string; value: number }[] {
+    const incomeByCategory: Record<string, number> = {};
+    transactions
+        .filter(t => t.type === 'income')
+        .forEach(t => {
+            incomeByCategory[t.category] = (incomeByCategory[t.category] || 0) + t.amountInCents;
+        });
+    
+    return Object.entries(incomeByCategory)
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value);
 }
@@ -369,7 +384,7 @@ function getMockUserProfile(): UserProfile {
         email: 'demo@example.com',
         firstName: 'Jean',
         lastName: 'Dupont',
-        displayCurrency: 'EUR',
+        displayCurrency: 'XAF',
         locale: 'fr-CM'
     };
 }

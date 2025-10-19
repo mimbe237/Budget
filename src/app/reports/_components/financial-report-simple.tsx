@@ -7,6 +7,8 @@ import { fr } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowUp, ArrowDown, TrendingUp, TrendingDown, Target, Lightbulb, Calendar } from 'lucide-react';
 import { ExportButtons } from './export-buttons';
+import { LedgerTables, LedgerRow } from './ledger-tables';
+import { makeCurrencyFormatter } from '@/lib/format';
 
 interface FinancialReportProps {
   from?: string;
@@ -15,9 +17,8 @@ interface FinancialReportProps {
 
 // Helper to format currency consistently
 const formatMoney = (amountInCents: number, profile: UserProfile | null) => {
-    const currency = profile?.displayCurrency || 'USD';
-    const locale = profile?.locale || 'en-US';
-    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format((amountInCents || 0) / 100);
+    const fmt = makeCurrencyFormatter(profile || undefined);
+    return fmt(amountInCents || 0);
 };
 
 export async function FinancialReport({ from, to }: FinancialReportProps) {
@@ -76,7 +77,36 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
                     }} />
                 </div>
 
-                {/* 2. KPIs - 4 cartes en ligne */}
+                {/* 2. Doubles tableaux Dépenses / Revenus */}
+                {(() => {
+                    const formatFn = (cents: number) => formatMoney(cents, userProfile);
+                    // Dépenses: basé sur budgetVsActual
+                    const expenseRows: LedgerRow[] = (reportData.budgetVsActual || []).map(item => ({
+                        category: item.category,
+                        plannedInCents: item.budgeted,
+                        actualInCents: item.actual,
+                        diffInCents: item.budgeted - item.actual,
+                    }));
+                    // Revenus: basé sur incomeByCategory (planned=0 par défaut)
+                    const incomeRows: LedgerRow[] = (reportData.incomeByCategory || []).map(item => ({
+                        category: item.name,
+                        plannedInCents: 0,
+                        actualInCents: item.value,
+                        diffInCents: item.value - 0,
+                    }));
+
+                    return (
+                        <div className="mb-8 print-section">
+                            <LedgerTables 
+                                expenses={expenseRows}
+                                incomes={incomeRows}
+                                formatMoney={formatFn}
+                            />
+                        </div>
+                    );
+                })()}
+
+                {/* 3. KPIs - 4 cartes en ligne */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 print-section">
                     {/* Revenus */}
                     <Card className="border-l-4 border-l-green-500">
@@ -156,7 +186,7 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
                     </Card>
                 </div>
 
-                {/* 3. Layout principal - 2 colonnes */}
+                {/* 4. Layout principal - 2 colonnes */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                     
                     {/* Colonne gauche */}
@@ -385,7 +415,7 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
                     </div>
                 </div>
 
-                {/* 4. Aperçu des transactions */}
+                {/* 5. Aperçu des transactions */}
                 <Card className="print-section mb-8">
                     <CardHeader>
                         <CardTitle className="text-lg font-semibold text-gray-900">
@@ -437,7 +467,7 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
                     </CardContent>
                 </Card>
 
-                {/* 5. Pied de page */}
+                {/* 6. Pied de page */}
                 <div className="mt-12 pt-6 border-t border-gray-200 text-center">
                     <div className="text-xs text-gray-500 space-y-1">
                         <p>

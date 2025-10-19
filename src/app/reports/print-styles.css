@@ -3,7 +3,7 @@
 @media print {
   /* Configuration générale de la page */
   @page {
-    margin: 2cm;
+    margin: 1.5cm;
     size: A4 portrait;
     
     @top-left {
@@ -22,7 +22,6 @@
   /* Reset des styles pour l'impression */
   * {
     -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
@@ -71,6 +70,8 @@
   table {
     break-inside: avoid;
     page-break-inside: avoid;
+    border-collapse: collapse !important;
+    width: 100% !important;
   }
 
   tbody tr {
@@ -226,14 +227,22 @@
   }
 
   /* Amélioration des tableaux pour l'impression */
-  table th {
-    background-color: #f9fafb !important;
-    border-bottom: 2px solid #d1d5db !important;
-    font-weight: 600 !important;
+  table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f3f4f6 !important; /* gris clair */
+    border-bottom: 2px solid #cbd5e1 !important;
+    font-weight: 700 !important;
+    z-index: 1;
   }
 
   table td {
     border-bottom: 1px solid #e5e7eb !important;
+  }
+
+  /* Fond alterné léger pour lignes données */
+  tr:nth-child(even) td {
+    background-color: #fff7ed !important; /* orange-50 */
   }
 
   /* Styles pour le footer */
@@ -247,5 +256,20 @@
     padding: 0.5rem;
     font-size: 9pt;
     color: #6b7280;
+  }
+
+  /* Deux colonnes équilibrées pour sections jumelles si besoin */
+  .two-columns {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1.25rem !important;
+  }
+
+  /* Titres de section orange soutenus */
+  .section-title-orange {
+    color: #f97316 !important; /* orange-500 */
+    border-bottom: 3px solid #f97316 !important;
+    padding-bottom: 0.25rem !important;
+    margin-bottom: 0.5rem !important;
   }
 }

@@ -46,7 +46,6 @@ import {
   AlertTriangle,
   Loader2,
 } from 'lucide-react';
-import { getUserDetails } from '@/lib/analyticsAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase/provider';
 import { TransactionsView, TransactionsFetchParams, TransactionsFetchResult } from '@/components/transactions/TransactionsView';
@@ -110,7 +109,10 @@ export function UserDrawer({
   const loadUserDetails = async (userId: string) => {
     setIsLoading(true);
     try {
-      const details = await getUserDetails(userId);
+      const headers = await authHeader();
+      const res = await fetch(`/api/admin/users/${userId}/details`, { headers });
+      if (!res.ok) throw new Error('Failed to load user details');
+      const details = await res.json();
       setUserDetails(details);
     } catch (error) {
       console.error('Erreur chargement détails:', error);

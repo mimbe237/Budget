@@ -20,20 +20,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useUser, useFirestore, addDocumentNonBlocking, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useUser, useFirestore, addDocumentNonBlocking, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { collection, doc, query, where } from 'firebase/firestore';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import type { Currency, UserProfile, Category } from '@/lib/types';
+import type { Currency, UserProfile, CategoryDocument } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { subMonths, format, addYears } from 'date-fns';
 
-const categories: Category[] = ['Housing', 'Food', 'Transport', 'Entertainment', 'Health', 'Shopping', 'Utilities', 'Income'];
+// Categories are now loaded dynamically from Firestore
+
+const DEFAULT_TEST_CATEGORIES = ['Housing', 'Food', 'Transport', 'Entertainment', 'Health', 'Shopping', 'Utilities'];
 
 const generateTestData = (userId: string) => {
-  const transactions = [];
-  const budgets = [];
-  const goals = [];
+  const transactions: any[] = [];
+  const budgets: any[] = [];
+  const goals: any[] = [];
   const now = new Date();
 
   // Generate transactions for the last 12 months
@@ -41,7 +43,7 @@ const generateTestData = (userId: string) => {
     const monthDate = subMonths(now, i);
     
     // 3-4 expenses per category
-    categories.filter(c => c !== 'Income').forEach(category => {
+    DEFAULT_TEST_CATEGORIES.forEach((category: string) => {
       const numTransactions = Math.floor(Math.random() * 2) + 3; // 3 or 4
       for(let j=0; j < numTransactions; j++) {
         transactions.push({
@@ -63,7 +65,7 @@ const generateTestData = (userId: string) => {
           description: `Paycheck #${j+1}`,
           amountInCents: Math.floor(Math.random() * 200000) + 150000, // $1500 to $3500
           currency: 'USD' as Currency,
-          category: 'Income' as Category,
+          category: 'Salary',
           date: format(monthDate, 'yyyy-MM-dd'),
           userId: userId,
         });
@@ -81,7 +83,7 @@ const generateTestData = (userId: string) => {
     Utilities: 180,
   };
 
-  categories.filter(c => c !== 'Income').forEach(category => {
+  DEFAULT_TEST_CATEGORIES.forEach((category: string) => {
     budgets.push({
       name: category,
       budgetedAmount: budgetAmounts[category] || 200,
@@ -118,7 +120,7 @@ export default function AddTransactionPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
-  const [type, setType] = useState('expense');
+  const [type, setType] = useState<'income' | 'expense'>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('USD');
@@ -126,6 +128,17 @@ export default function AddTransactionPage() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
 
   const isFrench = userProfile?.locale === 'fr-CM';
+
+  // Load categories from Firestore
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+      collection(firestore, `users/${user.uid}/categories`),
+      where('type', '==', type)
+    );
+  }, [firestore, user, type]);
+
+  const { data: categories } = useCollection<CategoryDocument>(categoriesQuery);
 
   const handleGenerateData = () => {
     if (!user || !firestore) return;
@@ -212,7 +225,7 @@ export default function AddTransactionPage() {
               <RadioGroup
                 defaultValue="expense"
                 value={type}
-                onValueChange={setType}
+                onValueChange={(value) => setType(value as 'income' | 'expense')}
                 className="flex"
               >
                 <div className="flex items-center space-x-2">
@@ -270,14 +283,17 @@ export default function AddTransactionPage() {
                   <SelectValue placeholder={isFrench ? 'Sélectionner une catégorie' : 'Select a category'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Housing">Housing</SelectItem>
-                  <SelectItem value="Food">Food</SelectItem>
-                  <SelectItem value="Transport">Transport</SelectItem>
-                  <SelectItem value="Entertainment">Entertainment</SelectItem>
-                  <SelectItem value="Health">Health</SelectItem>
-                  <SelectItem value="Shopping">Shopping</SelectItem>
-                  <SelectItem value="Utilities">Utilities</SelectItem>
-                  <SelectItem value="Income">Income</SelectItem>
+                  {categories && categories.length > 0 ? (
+                    categories.map(cat => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>
+                      {isFrench ? 'Aucune catégorie disponible' : 'No categories available'}
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
