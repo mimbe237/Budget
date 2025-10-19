@@ -39,3 +39,33 @@ export type UserProfile = {
 }
 
 export type Currency = 'XOF' | 'XAF' | 'EUR' | 'USD';
+
+export type FinancialReportData = {
+    // KPIs
+    totalIncome: number;
+    totalExpenses: number;
+    netBalance: number;
+    expenseDelta: number | null; // % change from previous period
+    // Chart Data
+    cashflow: { date: string; income: number; expenses: number }[];
+    spendingByCategory: { name: string; value: number }[];
+    // Table Data
+    budgetVsActual: {
+        category: string;
+        budgeted: number;
+        actual: number;
+        variance: number;
+    }[];
+    // Goals
+    goals: Goal[];
+    // Summary
+    recentTransactions: Transaction[];
+    // Period Info
+    period: {
+        from: Date;
+        to: Date;
+        isCustom: boolean;
+    };
+    // User profile for formatting
+    userProfile: UserProfile | null;
+};
