@@ -71,8 +71,8 @@ export async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
     if (authHeader) {
         const token = authHeader.split(' ')[1];
         try {
-            const adminApp = getFirebaseAdminApp();
-            return await adminApp.auth().verifyIdToken(token);
+            const adminAuth = getAdminAuth();
+            return await adminAuth.verifyIdToken(token);
         } catch (error) {
             console.error('Error verifying auth token:', error);
             return null;
