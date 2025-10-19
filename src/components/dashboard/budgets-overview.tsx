@@ -22,7 +22,7 @@ interface BudgetsOverviewProps {
   categoryIcons: Record<Category, React.ReactNode>;
 }
 
-function formatMoney(amount: number, currency: Currency) {
+function formatMoney(amount: number, currency: Currency = 'USD') {
   // This is a simplified formatter. We'll enhance this later.
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

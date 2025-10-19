@@ -23,7 +23,7 @@ interface RecentTransactionsProps {
   categoryIcons: Record<Category, React.ReactNode>;
 }
 
-function formatMoney(amountInCents: number, currency: Currency) {
+function formatMoney(amountInCents: number, currency: Currency = 'USD') {
   const amount = amountInCents / 100;
   // TODO: Use user's locale for formatting
   return new Intl.NumberFormat('en-US', {

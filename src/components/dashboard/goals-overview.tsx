@@ -13,7 +13,7 @@ import {
     goals: Goal[];
   }
   
-  function formatMoney(amountInCents: number, currency: Currency) {
+  function formatMoney(amountInCents: number, currency: Currency = 'USD') {
     const amount = amountInCents / 100;
     return new Intl.NumberFormat('en-US', { // This can be adapted with user's locale later
       style: 'currency',
