@@ -46,3 +46,5 @@ export function SummaryCard({ title, amountInCents, icon }: SummaryCardProps) {
     </Card>
   );
 }
+
+    
