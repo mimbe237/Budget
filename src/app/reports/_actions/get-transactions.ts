@@ -6,6 +6,7 @@ import { headers } from 'next/headers';
 import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
 import { z } from 'zod';
 import { startOfMonth, endOfMonth, parseISO, isValid } from 'date-fns';
+import type { Transaction } from '@/lib/types';
 
 async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
     const authHeader = headers().get('Authorization');
@@ -27,7 +28,7 @@ const DateRangeSchema = z.object({
   to: z.string().optional(),
 });
 
-export async function getTransactionsForPeriod(dateRange: { from?: string; to?: string }) {
+export async function getTransactionsForPeriod(dateRange: { from?: string; to?: string }): Promise<Transaction[]> {
     const validatedRange = DateRangeSchema.safeParse(dateRange);
     if (!validatedRange.success) {
         throw new Error('Invalid date range provided.');
@@ -40,10 +41,8 @@ export async function getTransactionsForPeriod(dateRange: { from?: string; to?: 
     }
 
     const db = getFirebaseAdminApp().firestore();
-    const transactionsCollection = db.collection(`users/${user.uid}/expenses`);
+    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection(`users/${user.uid}/expenses`);
     
-    let query = transactionsCollection.orderBy('date', 'desc');
-
     const { from, to } = validatedRange.data;
     
     let startDate: Date;
@@ -52,25 +51,25 @@ export async function getTransactionsForPeriod(dateRange: { from?: string; to?: 
     if (from && isValid(parseISO(from))) {
         startDate = parseISO(from);
     } else {
-        startDate = startOfMonth(new Date()); // Default to start of current month
+        startDate = startOfMonth(new Date());
     }
 
     if (to && isValid(parseISO(to))) {
         endDate = parseISO(to);
     } else {
-        endDate = endOfMonth(startDate); // Default to end of the month derived from start date
+        endDate = endOfMonth(new Date());
     }
-
+    
     query = query.where('date', '>=', startDate.toISOString().split('T')[0]);
     query = query.where('date', '<=', endDate.toISOString().split('T')[0]);
+    query = query.orderBy('date', 'desc');
 
     try {
         const snapshot = await query.get();
         if (snapshot.empty) {
             return [];
         }
-        // Assuming documents have a 'data' method that returns the transaction object.
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
     } catch (error) {
         console.error("Error fetching transactions for period:", error);
         return [];
