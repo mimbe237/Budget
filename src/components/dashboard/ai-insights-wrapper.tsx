@@ -24,7 +24,9 @@ async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
     const decodedToken = await adminAuth.verifyIdToken(token);
     return decodedToken;
   } catch (error) {
-    console.error('Error verifying auth token:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('[AIInsights] Unable to verify auth token.', error);
+    }
     return null;
   }
 }

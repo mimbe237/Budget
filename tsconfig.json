@@ -36,6 +36,9 @@
   ],
   "exclude": [
     "node_modules",
-    ".next"
+    ".next",
+    "functions",
+    "tests",
+    "e2e"
   ]
 }
