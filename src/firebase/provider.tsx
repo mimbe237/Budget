@@ -3,7 +3,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, doc, onSnapshot } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, getIdToken } from 'firebase/auth';
+import { Auth, User, onIdTokenChanged, getIdToken } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import type { UserProfile } from '@/lib/types';
 
@@ -71,6 +71,16 @@ if (typeof window !== 'undefined' && !(window as any).__fetch_intercepted) {
     (window as any).__fetch_intercepted = true;
 }
 
+function setIdTokenCookie(token: string | null) {
+  if (typeof document === 'undefined') return;
+  const secureFlag = typeof window !== 'undefined' && window.location?.protocol === 'https:' ? '; Secure' : '';
+  if (token) {
+    document.cookie = `firebaseIdToken=${token}; Path=/; Max-Age=3600; SameSite=Lax${secureFlag}`;
+  } else {
+    document.cookie = `firebaseIdToken=; Path=/; Max-Age=0; SameSite=Lax${secureFlag}`;
+  }
+}
+
 
 /**
  * FirebaseProvider manages and provides Firebase services and user authentication state.
@@ -98,24 +108,27 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     setIsUserLoading(true);
 
-    const unsubscribe = onAuthStateChanged(
+    const unsubscribe = onIdTokenChanged(
       auth,
       async (firebaseUser) => { 
         setUser(firebaseUser);
         if (firebaseUser) {
             try {
-                idToken = await getIdToken(firebaseUser, true);
+                idToken = await getIdToken(firebaseUser);
+                setIdTokenCookie(idToken);
             } catch (e) {
                 console.error("Error getting id token", e);
                 idToken = null;
+                setIdTokenCookie(null);
             }
         } else {
             idToken = null;
+            setIdTokenCookie(null);
         }
         setIsUserLoading(false);
       },
       (error) => {
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
+        console.error("FirebaseProvider: onIdTokenChanged error:", error);
         setUserError(error);
         setIsUserLoading(false);
       }

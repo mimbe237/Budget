@@ -2,31 +2,49 @@
 
 import { Button } from '@/components/ui/button';
 import { FileText, Download, FileSpreadsheet } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { exportToExcel } from '@/lib/excel-export';
+import { exportToCSV, downloadCSV, generateFilename } from '@/lib/export-utils';
+import type { FinancialReportData, UserProfile } from '@/lib/types';
 
 interface ReportHeaderProps {
   title: string;
   subtitle: string;
   currency: string;
+  reportData: FinancialReportData;
+  userProfile: UserProfile | null;
 }
 
-export function ReportHeader({ title, subtitle, currency }: ReportHeaderProps) {
-  const searchParams = useSearchParams();
+export function ReportHeader({ title, subtitle, currency, reportData, userProfile }: ReportHeaderProps) {
+  // Helper pour formater l'argent
+  const formatMoney = (amountInCents: number) => {
+    const curr = userProfile?.displayCurrency || 'USD';
+    const locale = userProfile?.locale || 'en-US';
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: curr }).format((amountInCents || 0) / 100);
+  };
   
   const handleExportPDF = () => {
     window.print();
   };
 
   const handleExportExcel = () => {
-    const params = new URLSearchParams(searchParams);
-    params.set('export', 'excel');
-    window.location.href = `/api/reports/export?${params.toString()}`;
+    try {
+      const filename = generateFilename('rapport-financier', 'xlsx');
+      exportToExcel(reportData, formatMoney, filename);
+    } catch (error) {
+      console.error('Erreur lors de l\'export Excel:', error);
+      alert('Une erreur est survenue lors de l\'export Excel');
+    }
   };
 
   const handleExportCSV = () => {
-    const params = new URLSearchParams(searchParams);
-    params.set('export', 'csv');
-    window.location.href = `/api/reports/export?${params.toString()}`;
+    try {
+      const csvContent = exportToCSV(reportData, formatMoney);
+      const filename = generateFilename('rapport-financier', 'csv');
+      downloadCSV(csvContent, filename);
+    } catch (error) {
+      console.error('Erreur lors de l\'export CSV:', error);
+      alert('Une erreur est survenue lors de l\'export CSV');
+    }
   };
 
   return (

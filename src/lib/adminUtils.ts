@@ -108,8 +108,8 @@ export async function listAdmins(): Promise<{ success: boolean; admins?: any[]; 
     }));
     
     console.log(`📋 ${admins.length} admin(s) trouvé(s):`);
-    admins.forEach(admin => {
-      console.log(`  - ${admin.email} (${admin.firstName} ${admin.lastName})`);
+    admins.forEach((admin: any) => {
+      console.log(`  - ${admin.email ?? admin.id} (${admin.firstName ?? ''} ${admin.lastName ?? ''})`);
     });
     
     return { success: true, admins };

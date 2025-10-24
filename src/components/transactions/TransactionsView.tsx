@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Download, Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { Loader2, Download, Plus, Eye, Edit, Trash2, Paperclip } from 'lucide-react';
 import { formatMoneyFromCents } from '@/lib/format';
 import { useToast } from '@/hooks/use-toast';
+import { FileAttachment } from '@/components/ui/file-attachment';
 
 export type TransactionItem = {
   id: string;
@@ -21,6 +22,9 @@ export type TransactionItem = {
   amountInCents: number;
   date: any; // Firestore Timestamp ou Date
   notes?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentType?: string;
 };
 
 export type TransactionsFetchParams = {
@@ -65,7 +69,7 @@ export function TransactionsView({
   onEdit?: (t: TransactionItem) => void;
   onDelete?: (t: TransactionItem) => void;
   loadCategories?: (type: 'income'|'expense'|'all') => Promise<{ income: string[]; expense: string[]; all: string[] } | null>;
-  onSave?: (payload: { description:string; category:string; type:'income'|'expense'; amountInCents:number; date:string; notes?:string }, mode: 'create'|'edit', current: TransactionItem|null) => Promise<void>;
+  onSave?: (payload: { description:string; category:string; type:'income'|'expense'; amountInCents:number; date:string; notes?:string; attachmentUrl?:string; attachmentName?:string; attachmentType?:string }, mode: 'create'|'edit', current: TransactionItem|null) => Promise<void>;
   onRemove?: (t: TransactionItem) => Promise<void>;
 }) {
   const [search, setSearch] = useState('');
@@ -98,6 +102,7 @@ export function TransactionsView({
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create'|'edit'>('create');
   const [formData, setFormData] = useState<{description:string;category:string;type:'income'|'expense';amount:number;date:string;notes:string}>({description:'',category:'',type:'expense',amount:0,date:'',notes:''});
+  const [formAttachment, setFormAttachment] = useState<{ url: string; name: string; type: string } | null>(null);
   const { toast } = useToast();
 
   const load = async () => {
@@ -118,10 +123,17 @@ export function TransactionsView({
   };
 
   const openCreate = () => {
-    setFormMode('create'); setFormData({ description:'', category:'', type:'expense', amount:0, date:'', notes:'' }); setFormOpen(true);
+    setFormMode('create');
+    setFormData({ description:'', category:'', type:'expense', amount:0, date:'', notes:'' });
+    setFormAttachment(null);
+    setFormOpen(true);
   };
   const openEdit = (t: TransactionItem) => {
-    setFormMode('edit'); setSelected(t); setFormData({ description:t.description, category:t.category, type:t.type, amount: Math.round((t.amountInCents||0)/100), date: (t.date?.toDate? t.date.toDate(): new Date(t.date)).toISOString().slice(0,10), notes: t.notes||'' }); setFormOpen(true);
+    setFormMode('edit');
+    setSelected(t);
+    setFormData({ description:t.description, category:t.category, type:t.type, amount: Math.round((t.amountInCents||0)/100), date: (t.date?.toDate? t.date.toDate(): new Date(t.date)).toISOString().slice(0,10), notes: t.notes||'' });
+    setFormAttachment(t.attachmentUrl ? { url: t.attachmentUrl, name: t.attachmentName || 'piece-jointe', type: t.attachmentType || 'application/octet-stream' } : null);
+    setFormOpen(true);
   };
   const submitForm = async () => {
     try {
@@ -132,6 +144,9 @@ export function TransactionsView({
         amountInCents: Math.max(0, Math.round(formData.amount)) * 100,
         date: formData.date,
         notes: formData.notes,
+        attachmentUrl: formAttachment?.url,
+        attachmentName: formAttachment?.name,
+        attachmentType: formAttachment?.type,
       };
       await onSave?.(payload, formMode, selected||null);
       setFormOpen(false);
@@ -251,6 +266,7 @@ export function TransactionsView({
                     <TableHead>Catégorie</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className="text-right">Montant</TableHead>
+                    <TableHead>Pièce jointe</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -273,6 +289,29 @@ export function TransactionsView({
                         </TableCell>
                         <TableCell className={`text-right font-medium ${t.type==='income'?'text-green-600':'text-red-600'}`} title={t.type==='income'?'Revenu':'Dépense'}>
                           {t.type==='income' ? '+' : '-'}{formatMoneyFromCents(Math.abs(t.amountInCents||0))}
+                        </TableCell>
+                        <TableCell>
+                          {t.attachmentUrl && (
+                            t.attachmentType?.startsWith('image/') ? (
+                              <img
+                                src={t.attachmentUrl}
+                                alt={t.attachmentName || 'pièce jointe'}
+                                className="h-8 w-8 object-cover rounded cursor-pointer"
+                                onClick={(e)=>{ e.stopPropagation(); window.open(t.attachmentUrl!, '_blank'); }}
+                                title="Cliquer pour agrandir"
+                              />
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e)=>{ e.stopPropagation(); const a=document.createElement('a'); a.href=t.attachmentUrl!; a.download=t.attachmentName || 'piece-jointe'; document.body.appendChild(a); a.click(); document.body.removeChild(a); }}
+                                title={t.attachmentName || 'Télécharger'}
+                              >
+                                <Paperclip className="h-4 w-4 mr-1"/>
+                                <Download className="h-3 w-3"/>
+                              </Button>
+                            )
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2" onClick={(e)=>e.stopPropagation()}>
@@ -405,6 +444,31 @@ export function TransactionsView({
                     <div className="text-sm text-gray-700">{selected.notes}</div>
                   </div>
                 )}
+                {selected.attachmentUrl && (
+                  <div>
+                    <div className="text-xs text-gray-500">Pièce jointe</div>
+                    {selected.attachmentType?.startsWith('image/') ? (
+                      <div className="mt-1">
+                        <img
+                          src={selected.attachmentUrl}
+                          alt={selected.attachmentName || 'pièce jointe'}
+                          className="h-32 w-32 object-cover rounded cursor-pointer"
+                          onClick={()=>window.open(selected.attachmentUrl!, '_blank')}
+                          title="Cliquer pour agrandir"
+                        />
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={()=>{ const a=document.createElement('a'); a.href=selected.attachmentUrl!; a.download=selected.attachmentName || 'piece-jointe'; document.body.appendChild(a); a.click(); document.body.removeChild(a); }}
+                      >
+                        <Paperclip className="h-4 w-4 mr-2"/>
+                        {selected.attachmentName || 'Télécharger'}
+                      </Button>
+                    )}
+                  </div>
+                )}
                 <Separator/>
                 <div className="flex items-center justify-between">
                   <Button variant="outline" onClick={()=>onEdit ? onEdit(selected!) : openEdit(selected!)}><Edit className="h-4 w-4 mr-2"/>Modifier</Button>
@@ -471,6 +535,22 @@ export function TransactionsView({
                 <div className="text-xs text-gray-500">Notes</div>
                 <Input value={formData.notes} onChange={(e)=>setFormData(v=>({...v, notes:e.target.value}))} />
               </div>
+            </div>
+            {/* Pièce jointe */}
+            <div>
+              <div className="text-xs text-gray-500">Pièce jointe</div>
+              <FileAttachment
+                value={formAttachment}
+                onChange={setFormAttachment}
+                isFrench={true}
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                maxSize={5}
+              />
+              {formAttachment?.url && formAttachment.type?.startsWith('image/') && (
+                <div className="mt-2">
+                  <img src={formAttachment.url} alt="Aperçu" className="h-24 w-24 object-cover rounded" />
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-end gap-2 pt-2">
               <Button variant="outline" onClick={()=>setFormOpen(false)}>Annuler</Button>

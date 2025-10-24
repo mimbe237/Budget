@@ -9,13 +9,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+  searchParams?: { [key: string]: string | string[] | undefined };
 }) {
 
-  // Ensure searchParams are defined and get string values
-  const params = await searchParams;
-  const from = typeof params?.from === 'string' ? params.from : undefined;
-  const to = typeof params?.to === 'string' ? params.to : undefined;
+  const params = searchParams || {};
+  const from = typeof params.from === 'string' ? params.from : undefined;
+  const to = typeof params.to === 'string' ? params.to : undefined;
 
   return (
     <AppLayout>
@@ -25,7 +24,6 @@ export default async function ReportsPage({
         
         {/* Server Component for displaying the report, with a loading fallback */}
         <Suspense fallback={<ReportSkeleton />}>
-          {/* @ts-expect-error Server Component */}
           <FinancialReport from={from} to={to} />
         </Suspense>
       </div>

@@ -14,12 +14,14 @@ export function DateRangeFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(
-    searchParams.get('from') ? new Date(searchParams.get('from')!) : undefined
-  );
-  const [dateTo, setDateTo] = useState<Date | undefined>(
-    searchParams.get('to') ? new Date(searchParams.get('to')!) : undefined
-  );
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(() => {
+    const f = searchParams ? searchParams.get('from') : null;
+    return f ? new Date(f) : undefined;
+  });
+  const [dateTo, setDateTo] = useState<Date | undefined>(() => {
+    const t = searchParams ? searchParams.get('to') : null;
+    return t ? new Date(t) : undefined;
+  });
 
   const handleApplyFilter = () => {
     const params = new URLSearchParams();
@@ -201,12 +203,6 @@ export function DateRangeFilter() {
             disabled={!dateFrom && !dateTo}
           >
             Réinitialiser
-          </Button>
-          <Button
-            onClick={handleApplyFilter}
-            disabled={!dateFrom && !dateTo}
-          >
-            Appliquer le filtre
           </Button>
         </div>
       </div>

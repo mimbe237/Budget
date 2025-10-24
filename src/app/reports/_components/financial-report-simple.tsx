@@ -52,7 +52,6 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
         exportPDF: isFrench ? 'Exporter PDF' : 'Export PDF',
         exportExcel: isFrench ? 'Exporter Excel' : 'Export Excel',
         exportCSV: isFrench ? 'Exporter CSV' : 'Export CSV',
-        exportCSV: isFrench ? 'Exporter CSV' : 'Export CSV',
     };
 
     return (
@@ -70,11 +69,15 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
                         </p>
                     </div>
                     
-                    <ExportButtons translations={{
-                        exportPDF: translations.exportPDF,
-                        exportExcel: translations.exportExcel,
-                        exportCSV: translations.exportCSV
-                    }} />
+                    <ExportButtons 
+                        translations={{
+                            exportPDF: translations.exportPDF,
+                            exportExcel: translations.exportExcel,
+                            exportCSV: translations.exportCSV
+                        }}
+                        reportData={reportData}
+                        userProfile={userProfile}
+                    />
                 </div>
 
                 {/* 2. Doubles tableaux Dépenses / Revenus */}
@@ -250,7 +253,7 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
                                 {reportData.goals.length > 0 ? (
                                     <div className="space-y-4">
                                         {reportData.goals.slice(0, 3).map((goal) => {
-                                            const progress = (goal.currentAmountInCents / goal.targetAmountInCents) * 100;
+                                            const progress = goal.targetAmountInCents > 0 ? (goal.currentAmountInCents / goal.targetAmountInCents) * 100 : 0;
                                             const remaining = goal.targetAmountInCents - goal.currentAmountInCents;
                                             
                                             return (
@@ -292,10 +295,12 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
-                                                        <Calendar className="h-3 w-3" />
-                                                        {format(new Date(goal.targetDate), 'd MMM yyyy', { locale })}
-                                                    </div>
+                                                    {goal.targetDate && (
+                                                        <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+                                                            <Calendar className="h-3 w-3" />
+                                                            {format(new Date(goal.targetDate), 'd MMM yyyy', { locale })}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}

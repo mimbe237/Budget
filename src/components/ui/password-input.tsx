@@ -1,26 +1,34 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 interface PasswordInputProps {
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   error?: string;
   showStrength?: boolean;
   className?: string;
+  autoComplete?: string;
+  showValidation?: boolean;
+  isValid?: boolean;
 }
 
 export function PasswordInput({ 
   value, 
   onChange, 
+  onBlur,
   placeholder = "••••••••", 
   error,
   showStrength = true,
-  className = ""
+  className = "",
+  autoComplete,
+  showValidation = false,
+  isValid = false
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -43,23 +51,33 @@ export function PasswordInput({
           type={showPassword ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           placeholder={placeholder}
-          className={`pr-10 ${error ? 'border-red-500 focus:border-red-500' : ''} ${className}`}
+          autoComplete={autoComplete}
+          className={`pr-20 ${error ? 'border-red-500 focus:border-red-500' : isValid && showValidation ? 'border-green-500' : ''} ${className}`}
         />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-          onClick={() => setShowPassword(!showPassword)}
-          aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-        >
-          {showPassword ? (
-            <EyeOff className="h-4 w-4 text-gray-500" />
-          ) : (
-            <Eye className="h-4 w-4 text-gray-500" />
+        <div className="absolute right-0 top-0 h-full flex items-center gap-1 pr-1">
+          {showValidation && isValid && !error && (
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
           )}
-        </Button>
+          {showValidation && error && (
+            <AlertCircle className="h-4 w-4 text-red-500" />
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-full px-3 py-2 hover:bg-transparent"
+            onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4 text-gray-500" />
+            ) : (
+              <Eye className="h-4 w-4 text-gray-500" />
+            )}
+          </Button>
+        </div>
       </div>
       
       {showStrength && value.length > 0 && (

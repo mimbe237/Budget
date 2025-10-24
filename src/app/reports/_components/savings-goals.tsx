@@ -5,16 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Target, Calendar } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
-
-interface Goal {
-  id: string;
-  userId: string;
-  name: string;
-  targetAmountInCents: number;
-  currentAmountInCents: number;
-  currency: string;
-  targetDate: string;
-}
+import type { Goal } from '@/lib/types';
 
 interface SavingsGoalsProps {
   goals: Goal[];
@@ -36,7 +27,7 @@ export function SavingsGoals({ goals, formatMoney, isFrench }: SavingsGoalsProps
     noGoals: isFrench ? 'Aucun objectif d\'épargne configuré' : 'No savings goals configured',
   };
 
-  const locale = isFrench ? fr : undefined;
+  const dfnLocale = isFrench ? fr : undefined;
 
   if (goals.length === 0) {
     return (
@@ -59,13 +50,17 @@ export function SavingsGoals({ goals, formatMoney, isFrench }: SavingsGoalsProps
   // Limiter à 3 objectifs maximum et trier par progression
   const displayGoals = goals
     .sort((a, b) => {
-      const aProgress = (a.currentAmountInCents / a.targetAmountInCents) * 100;
-      const bProgress = (b.currentAmountInCents / b.targetAmountInCents) * 100;
+      const aProgress = a.targetAmountInCents > 0 ? (a.currentAmountInCents / a.targetAmountInCents) * 100 : 0;
+      const bProgress = b.targetAmountInCents > 0 ? (b.currentAmountInCents / b.targetAmountInCents) * 100 : 0;
       return bProgress - aProgress;
     })
     .slice(0, 3);
 
   const getETA = (goal: Goal) => {
+    if (!goal.targetDate) {
+      return { text: translations.onTrack, color: 'text-gray-600' };
+    }
+    
     const now = new Date();
     const targetDate = new Date(goal.targetDate);
     const daysRemaining = differenceInDays(targetDate, now);
@@ -103,7 +98,7 @@ export function SavingsGoals({ goals, formatMoney, isFrench }: SavingsGoalsProps
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {displayGoals.map((goal) => {
-            const progress = (goal.currentAmountInCents / goal.targetAmountInCents) * 100;
+            const progress = goal.targetAmountInCents > 0 ? (goal.currentAmountInCents / goal.targetAmountInCents) * 100 : 0;
             const remaining = goal.targetAmountInCents - goal.currentAmountInCents;
             const eta = getETA(goal);
             
@@ -158,10 +153,12 @@ export function SavingsGoals({ goals, formatMoney, isFrench }: SavingsGoalsProps
                 </div>
                 
                 {/* Target Date */}
-                <div className="flex items-center gap-1 mt-3 text-xs text-gray-500">
-                  <Calendar className="h-3 w-3" />
-                  {format(new Date(goal.targetDate), 'd MMM yyyy', { locale })}
-                </div>
+                {goal.targetDate && (
+                  <div className="flex items-center gap-1 mt-3 text-xs text-gray-500">
+                    <Calendar className="h-3 w-3" />
+                    {format(new Date(goal.targetDate), 'd MMM yyyy', { locale: dfnLocale })}
+                  </div>
+                )}
               </div>
             );
           })}

@@ -9,7 +9,7 @@
  * - SpendingInsightsOutput - The return type for the getSpendingInsights function.
  */
 
-import {ai} from '@/ai/genkit';
+import { ai, aiEnabled } from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SpendingInsightsInputSchema = z.object({
@@ -41,6 +41,14 @@ export type SpendingInsightsOutput = z.infer<typeof SpendingInsightsOutputSchema
 export async function getSpendingInsights(
   input: SpendingInsightsInput
 ): Promise<SpendingInsightsOutput> {
+  if (!aiEnabled) {
+    return {
+      insights:
+        'L\'analyse IA est désactivée en environnement local. Ajoutez GEMINI_API_KEY ou GOOGLE_API_KEY pour activer cette fonctionnalité.',
+      recommendations:
+        'Continuez à enregistrer vos transactions et configurez vos budgets pour obtenir des recommandations personnalisées.',
+    };
+  }
   return spendingInsightsFlow(input);
 }
 
@@ -48,12 +56,33 @@ const prompt = ai.definePrompt({
   name: 'spendingInsightsPrompt',
   input: {schema: SpendingInsightsInputSchema},
   output: {schema: SpendingInsightsOutputSchema},
-  prompt: `You are a personal finance advisor. Analyze the user's spending history and budget goals to provide personalized insights and recommendations.
+  prompt: `You are a professional personal finance advisor specializing in budget analysis and spending optimization. Analyze the user's complete financial data to provide personalized, actionable insights and recommendations.
 
-Spending History: {{{spendingHistory}}}
-Budget Goals: {{{budgetGoals}}}
+**FINANCIAL DATA:**
+{{{spendingHistory}}}
 
-Provide clear and actionable insights and recommendations to help the user improve their budgeting and reduce overspending.`,
+**BUDGET GOALS:**
+{{{budgetGoals}}}
+
+**INSTRUCTIONS:**
+1. **Insights Section**: Analyze the user's spending patterns, identify trends, highlight achievements, and point out potential issues (overspending, budget adherence, savings rate, etc.). Be specific with numbers and percentages. Keep it concise (3-5 key points).
+
+2. **Recommendations Section**: Provide 3-5 specific, actionable recommendations to help the user:
+   - Reduce overspending in specific categories
+   - Optimize their budget allocation
+   - Increase savings rate
+   - Achieve their financial goals faster
+   - Avoid common financial pitfalls
+
+**TONE:** Professional yet friendly, encouraging, data-driven, and actionable.
+
+**FORMAT:** 
+- Use clear paragraphs for insights
+- Use numbered or bulleted lists for recommendations
+- Include specific amounts and percentages when relevant
+- If the data is in French, respond in French; if in English, respond in English
+
+Provide clear and actionable insights and recommendations to help the user improve their budgeting and financial health.`,
 });
 
 const spendingInsightsFlow = ai.defineFlow(

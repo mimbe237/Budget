@@ -14,7 +14,6 @@ export default async function DashboardPage() {
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardClientContent>
           <Suspense fallback={<Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent><Skeleton className="h-20 w-full" /></CardContent></Card>}>
-            {/* @ts-expect-error Server Component */}
             <AIInsightsWrapper />
           </Suspense>
         </DashboardClientContent>

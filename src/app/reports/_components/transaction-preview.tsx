@@ -40,7 +40,7 @@ export function TransactionPreview({ transactions, formatMoney, isFrench }: Tran
   };
 
   const handleExportAll = () => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(searchParams ?? undefined);
     params.set('export', 'transactions');
     window.location.href = `/api/reports/export-transactions?${params.toString()}`;
   };

@@ -1,6 +1,9 @@
 'use client';
 
 import { FileText, FileSpreadsheet, Download } from 'lucide-react';
+import { exportToExcel } from '@/lib/excel-export';
+import { exportToCSV, downloadCSV, generateFilename } from '@/lib/export-utils';
+import type { FinancialReportData, UserProfile } from '@/lib/types';
 
 interface ExportButtonsProps {
   translations: {
@@ -8,21 +11,41 @@ interface ExportButtonsProps {
     exportExcel: string;
     exportCSV: string;
   };
+  reportData: FinancialReportData;
+  userProfile: UserProfile | null;
 }
 
-export function ExportButtons({ translations }: ExportButtonsProps) {
+export function ExportButtons({ translations, reportData, userProfile }: ExportButtonsProps) {
+  // Helper pour formater l'argent
+  const formatMoney = (amountInCents: number) => {
+    const currency = userProfile?.displayCurrency || 'USD';
+    const locale = userProfile?.locale || 'en-US';
+    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format((amountInCents || 0) / 100);
+  };
+  
   const handlePrint = () => {
     window.print();
   };
 
   const handleExportExcel = () => {
-    // Placeholder for Excel export functionality
-    console.log('Export Excel functionality to be implemented');
+    try {
+      const filename = generateFilename('rapport-financier', 'xlsx');
+      exportToExcel(reportData, formatMoney, filename);
+    } catch (error) {
+      console.error('Erreur lors de l\'export Excel:', error);
+      alert('Une erreur est survenue lors de l\'export Excel');
+    }
   };
 
   const handleExportCSV = () => {
-    // Placeholder for CSV export functionality
-    console.log('Export CSV functionality to be implemented');
+    try {
+      const csvContent = exportToCSV(reportData, formatMoney);
+      const filename = generateFilename('rapport-financier', 'csv');
+      downloadCSV(csvContent, filename);
+    } catch (error) {
+      console.error('Erreur lors de l\'export CSV:', error);
+      alert('Une erreur est survenue lors de l\'export CSV');
+    }
   };
 
   return (

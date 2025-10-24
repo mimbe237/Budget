@@ -27,7 +27,9 @@ import { SummaryCard } from '@/components/dashboard/summary-card';
 import { SpendingOverview } from '@/components/dashboard/spending-overview';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { BudgetsOverview } from '@/components/dashboard/budgets-overview';
-import { GoalsOverview } from '@/components/dashboard/goals-overview';
+import GoalsOverview from '@/components/dashboard/goals-overview-new';
+import { BudgetOverviewMonthly } from '@/components/dashboard/budget-overview-monthly';
+import { BudgetAlertMonitor, BudgetHealthIndicator } from '@/components/budgets/budget-alert-monitor';
 
 export function DashboardClientContent({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
@@ -50,11 +52,7 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
   }, [firestore, user]);
   const { data: budgets } = useCollection<any>(budgetsQuery);
 
-  const goalsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, `users/${user.uid}/budgetGoals`));
-  }, [firestore, user]);
-  const { data: goals } = useCollection<any>(goalsQuery);
+  // Les objectifs sont désormais chargés depuis le composant GoalsOverview lui-même
 
   // Optimisation : mémoriser les calculs coûteux
   const { totalIncome, totalExpenses, balance } = useMemo(() => {
@@ -98,7 +96,7 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
   }, [transactions]);
 
   // Optimisation : retour anticipé avec fallback plus léger
-  if (!transactions || !budgets || !goals) {
+  if (!transactions || !budgets) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-muted-foreground">Chargement des données du tableau de bord...</div>
@@ -108,28 +106,35 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
 
   return (
     <>
+      {/* Moniteur d'alertes budgétaires (invisible, agit en arrière-plan) */}
+      <BudgetAlertMonitor />
+
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
         <SummaryCard title="Total Income" amountInCents={totalIncome} icon={<DollarSign />} />
         <SummaryCard title="Total Expenses" amountInCents={totalExpenses} icon={<CreditCard />} />
         <SummaryCard title="Balance" amountInCents={balance} icon={<Scale />} />
       </div>
-      <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
-          <CardHeader>
-            <CardTitle className='font-headline'>Spending Overview</CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <SpendingOverview transactions={transactions} />
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-headline">Spending Overview</CardTitle>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <SpendingOverview transactions={transactions} />
+            </CardContent>
+          </Card>
+          {children ? (
+            <div className="space-y-4">{children}</div>
+          ) : null}
+          <RecentTransactions transactions={recentTransactions} categoryIcons={categoryIcons} />
+          <GoalsOverview />
+        </div>
         <div className="grid auto-rows-max items-start gap-4 md:gap-8">
-          {children}
+          {/* NOUVEAU : Vue budgétaire mensuelle avec pourcentages */}
+          <BudgetOverviewMonthly />
           <BudgetsOverview budgets={budgets} transactions={transactions} categoryIcons={categoryIcons} />
         </div>
-      </div>
-      <div className="grid gap-4 md:gap-8 lg:grid-cols-2">
-        <RecentTransactions transactions={recentTransactions} categoryIcons={categoryIcons} />
-        <GoalsOverview goals={goals} />
       </div>
     </>
   );

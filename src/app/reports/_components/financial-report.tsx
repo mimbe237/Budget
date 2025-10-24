@@ -6,14 +6,14 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 // Import all our new components
-import { ReportHeader } from './report-header';
+import { ReportHeader } from './report-header-client';
 import { PeriodSelector } from './period-selector';
 import { KPICards } from './kpi-cards';
 import { CashflowChart } from './cashflow-chart';
 import { CategoryBreakdown } from './category-breakdown';
 import { BudgetTable } from './budget-table';
 import { SavingsGoals } from './savings-goals';
-import { AISummary } from './ai-summary';
+import { AIRecommendations } from './ai-recommendations';
 import { TransactionPreview } from './transaction-preview';
 import { ReportFooter } from './report-footer';
 
@@ -99,6 +99,8 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
                     title={`${title} — ${period.from.getFullYear()}`}
                     subtitle={periodString}
                     currency={currency}
+                    reportData={reportData}
+                    userProfile={userProfile}
                 />
 
                 {/* 2. Sélecteur de période (masqué en impression) */}
@@ -158,18 +160,17 @@ export async function FinancialReport({ from, to }: FinancialReportProps) {
                             />
                         </div>
 
-                        {/* 8. Résumé IA */}
-                        <div className="print-section">
-                            <AISummary
-                                totalIncome={reportData.totalIncome}
-                                totalExpenses={reportData.totalExpenses}
-                                netBalance={reportData.netBalance}
-                                topCategory={topCategory}
-                                formatMoney={formatReportMoney}
-                                isFrench={isFrench}
-                            />
-                        </div>
+                        {/* Bloc IA supprimé */}
                     </div>
+                </div>
+
+                {/* 8. Recommandations IA avec Genkit */}
+                <div className="print-section">
+                    <AIRecommendations
+                        reportData={reportData}
+                        userProfile={userProfile}
+                        isFrench={isFrench}
+                    />
                 </div>
 
                 {/* 9. Aperçu des transactions */}

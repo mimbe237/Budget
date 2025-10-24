@@ -43,18 +43,10 @@ const chartConfig = {
   Shopping: {
     label: 'Shopping',
     color: 'hsl(var(--chart-1))',
-    theme: {
-      light: 'hsl(var(--chart-1) / 0.8)',
-      dark: 'hsl(var(--chart-1) / 0.6)',
-    },
   },
   Utilities: {
     label: 'Utilities',
     color: 'hsl(var(--chart-2))',
-    theme: {
-        light: 'hsl(var(--chart-2) / 0.8)',
-        dark: 'hsl(var(--chart-2) / 0.6)',
-    },
   },
 };
 
@@ -99,7 +91,7 @@ export function SpendingOverview({ transactions }: SpendingOverviewProps) {
           innerRadius={60}
           strokeWidth={5}
           activeIndex={activeIndex}
-          activeShape={props => (
+          activeShape={(props: any) => (
             <Sector
               {...props}
               outerRadius={props.outerRadius ? props.outerRadius + 5 : 0}

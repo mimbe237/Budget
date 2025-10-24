@@ -304,7 +304,7 @@ export function CountrySelect({ value, onChange, error, className = "" }: Countr
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden sm:max-w-none max-w-[90vw]">
           {/* Search */}
           <div className="p-2 border-b border-gray-100">
             <div className="relative">
@@ -319,7 +319,7 @@ export function CountrySelect({ value, onChange, error, className = "" }: Countr
             </div>
           </div>
 
-          <div className="max-h-48 overflow-y-auto">
+          <div className="max-h-48 overflow-y-auto overscroll-contain">
             {/* Popular countries */}
             {popularFiltered.length > 0 && (
               <div>
@@ -333,7 +333,7 @@ export function CountrySelect({ value, onChange, error, className = "" }: Countr
                     key={country.code}
                     type="button"
                     onClick={() => handleSelect(country)}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                    className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
                   >
                     <span className="text-lg">{country.flag}</span>
                     <span className="text-sm font-medium text-gray-900">
@@ -362,7 +362,7 @@ export function CountrySelect({ value, onChange, error, className = "" }: Countr
                     key={country.code}
                     type="button"
                     onClick={() => handleSelect(country)}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                    className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
                   >
                     <span className="text-lg">{country.flag}</span>
                     <span className="text-sm font-medium text-gray-900">

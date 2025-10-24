@@ -297,13 +297,13 @@ export function PhoneInput({
   };
 
   return (
-    <div className={`flex ${className}`}>
+  <div className={`flex flex-col sm:flex-row gap-2 sm:gap-0 ${className}`}>
       {/* Country Code Selector */}
-      <div className="relative" ref={dropdownRef}>
+  <div className="relative sm:static" ref={dropdownRef}>
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center gap-2 px-3 py-2 border border-r-0 rounded-l-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`flex items-center gap-2 px-3 py-2 border sm:border-r-0 sm:rounded-l-md rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             error ? 'border-red-500' : 'border-gray-300'
           }`}
         >
@@ -319,7 +319,7 @@ export function PhoneInput({
         </button>
 
         {isOpen && (
-          <div className="absolute z-50 mt-1 w-72 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
+          <div className="absolute z-50 mt-1 w-[85vw] sm:w-72 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
             {/* Search */}
             <div className="p-2 border-b border-gray-100">
               <div className="relative">
@@ -334,7 +334,7 @@ export function PhoneInput({
               </div>
             </div>
 
-            <div className="max-h-48 overflow-y-auto">
+            <div className="max-h-48 overflow-y-auto overscroll-contain">
               {/* Popular countries */}
               {popularFiltered.length > 0 && (
                 <div>
@@ -348,7 +348,7 @@ export function PhoneInput({
                       key={item.code}
                       type="button"
                       onClick={() => handleSelect(item)}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                      className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
                     >
                       <span className="text-lg">{item.flag}</span>
                       <div className="flex-1 min-w-0">
@@ -382,7 +382,7 @@ export function PhoneInput({
                       key={item.code}
                       type="button"
                       onClick={() => handleSelect(item)}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                      className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
                     >
                       <span className="text-lg">{item.flag}</span>
                       <div className="flex-1 min-w-0">
@@ -409,7 +409,9 @@ export function PhoneInput({
           placeholder="Numéro de téléphone"
           value={phoneNumber}
           onChange={handlePhoneChange}
-          className={`rounded-l-none ${error ? 'border-red-500' : ''}`}
+          inputMode="tel"
+          autoComplete="tel"
+          className={`sm:rounded-l-none ${error ? 'border-red-500' : ''}`}
         />
       </div>
 

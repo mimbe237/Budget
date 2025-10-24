@@ -25,8 +25,8 @@ export function PeriodSelector({ userProfile }: PeriodSelectorProps) {
   const isFrench = userProfile?.locale === 'fr-CM';
   const locale = isFrench ? fr : undefined;
 
-  const fromParam = searchParams.get('from');
-  const toParam = searchParams.get('to');
+  const fromParam = searchParams?.get('from') ?? null;
+  const toParam = searchParams?.get('to') ?? null;
   
   const [date, setDate] = useState<DateRange | undefined>(() => {
     const from = fromParam ? new Date(fromParam) : startOfMonth(new Date());
@@ -50,7 +50,7 @@ export function PeriodSelector({ userProfile }: PeriodSelectorProps) {
   });
 
   const updateURL = (newDate: DateRange | undefined) => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(searchParams ?? undefined);
     if (newDate?.from) {
       params.set('from', format(newDate.from, 'yyyy-MM-dd'));
     } else {

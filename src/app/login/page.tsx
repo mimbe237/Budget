@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SocialAuthButtons } from '@/components/auth/social-auth-buttons';
 import { useAuth, useUser, initiateEmailSignIn } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -48,6 +49,21 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
+          {/* Authentification sociale */}
+          <SocialAuthButtons mode="login" />
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Ou continuer avec
+              </span>
+            </div>
+          </div>
+
+          {/* Authentification par email */}
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input 

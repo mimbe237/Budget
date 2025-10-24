@@ -1,6 +1,6 @@
 'use server';
 
-import { getAuthenticatedUser, getFirebaseAdminApp } from '@/firebase/admin';
+// import { getAuthenticatedUser, getFirebaseAdminApp } from '@/firebase/admin'; // Désactivé pour démo
 import type { FinancialReportData, Transaction, Budget, Goal, UserProfile } from '@/lib/types';
 import { 
     startOfMonth, 
@@ -355,7 +355,8 @@ function getMockGoals(): Goal[] {
             targetAmountInCents: 200000,
             currentAmountInCents: 125000,
             currency: 'EUR',
-            targetDate: '2025-06-01'
+            targetDate: '2025-06-01',
+            createdAt: '2024-01-01T00:00:00.000Z'
         },
         {
             id: 'g2',
@@ -364,7 +365,8 @@ function getMockGoals(): Goal[] {
             targetAmountInCents: 500000,
             currentAmountInCents: 320000,
             currency: 'EUR',
-            targetDate: '2025-12-31'
+            targetDate: '2025-12-31',
+            createdAt: '2024-01-01T00:00:00.000Z'
         },
         {
             id: 'g3',
@@ -373,7 +375,8 @@ function getMockGoals(): Goal[] {
             targetAmountInCents: 150000,
             currentAmountInCents: 89000,
             currency: 'EUR',
-            targetDate: '2025-03-15'
+            targetDate: '2025-03-15',
+            createdAt: '2024-01-01T00:00:00.000Z'
         }
     ];
 }

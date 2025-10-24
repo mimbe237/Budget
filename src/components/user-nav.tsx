@@ -50,6 +50,7 @@ export function UserNav() {
               src={user?.photoURL || userAvatar?.imageUrl} 
               alt="User avatar" 
               data-ai-hint={userAvatar?.imageHint} 
+              loading="lazy"
             />
             <AvatarFallback>{user?.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>

@@ -32,8 +32,12 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && 
              (request.auth.token.admin == true || 
-              request.auth.token.role == 'admin' ||
-              (resource != null && resource.data.role == 'admin'));
+              request.auth.token.role == 'admin');
+    }
+
+    function isChangingProtectedProfileFields() {
+      return resource != null &&
+        request.resource.data.diff(resource.data).changedKeys().hasAny(['role', 'admin', 'status']);
     }
 
     function isOwner(userId) {
@@ -58,8 +62,11 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin(); // Seuls les admins peuvent lister tous les utilisateurs
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) &&
+                    request.resource.data.id == userId &&
+                    (!('role' in request.resource.data) || request.resource.data.role == 'user') &&
+                    (!('admin' in request.resource.data) || request.resource.data.admin == false);
+      allow update: if isAdmin() || (isOwner(userId) && !isChangingProtectedProfileFields());
       allow delete: if isAdmin(); // Seuls les admins peuvent supprimer des utilisateurs
     }
 
@@ -74,9 +81,9 @@ service cloud.firestore {
     match /users/{userId}/expenses/{expenseId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if (isExistingOwner(userId) && request.resource.data.userId == userId) || isAdmin();
-      allow delete: if isExistingOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     /**
@@ -90,9 +97,9 @@ service cloud.firestore {
     match /users/{userId}/categories/{categoryId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if (isExistingOwner(userId) && request.resource.data.userId == userId) || isAdmin();
-      allow delete: if isExistingOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     /**
@@ -106,9 +113,55 @@ service cloud.firestore {
     match /users/{userId}/budgetGoals/{budgetGoalId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if (isExistingOwner(userId) && request.resource.data.userId == userId) || isAdmin();
-      allow delete: if isExistingOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    /**
+     * @description Controls access to goal documents within a user's subcollection.
+     * @path /users/{userId}/goals/{goalId}
+     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path.
+     * @allow (read, write) - Admins have full access for administrative purposes.
+     * @principle Enforces document ownership based on the `userId` path parameter for goals, with admin override.
+     */
+    match /users/{userId}/goals/{goalId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    /**
+     * @description Controls access to goal transaction documents (contribution history) within a user's subcollection.
+     * @path /users/{userId}/goalTransactions/{transactionId}
+     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path.
+     * @allow (read, write) - Admins have full access for administrative purposes.
+     * @principle Enforces document ownership based on the `userId` path parameter for goal transactions, with admin override.
+     */
+    match /users/{userId}/goalTransactions/{transactionId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    /**
+     * @description Controls access to monthly budget plan documents within a user's subcollection.
+     * @path /users/{userId}/monthlyBudgets/{period}
+     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path.
+     * @allow (read, write) - Admins have full access for administrative purposes.
+     * @principle Enforces document ownership based on the `userId` path parameter for monthly budgets, with admin override.
+     * @note Period format is YYYY-MM (e.g., "2024-01")
+     */
+    match /users/{userId}/monthlyBudgets/{period} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     /**

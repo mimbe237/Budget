@@ -243,10 +243,12 @@ export function FiltersBar({ filters, onFiltersChange, onReset, isLoading }: Fil
                     handleFilterChange('dateTo', date?.toISOString().split('T')[0]);
                     setDateToOpen(false);
                   }}
-                  disabled={(date) => {
+                  disabled={(date: Date) => {
                     const today = new Date();
                     const fromDate = filters.dateFrom ? new Date(filters.dateFrom) : null;
-                    return date > today || (fromDate && date < fromDate);
+                    if (date > today) return true;
+                    if (fromDate && date < fromDate) return true;
+                    return false;
                   }}
                   initialFocus
                 />

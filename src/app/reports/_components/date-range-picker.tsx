@@ -32,8 +32,8 @@ export function DateRangePicker({
   const { userProfile } = useUser();
   const isFrench = userProfile?.locale === 'fr-CM';
 
-  const fromParam = searchParams.get('from');
-  const toParam = searchParams.get('to');
+  const fromParam = searchParams?.get('from') ?? null;
+  const toParam = searchParams?.get('to') ?? null;
   
   const [date, setDate] = React.useState<DateRange | undefined>(() => {
     const from = fromParam ? new Date(fromParam) : startOfMonth(new Date());
@@ -58,7 +58,7 @@ export function DateRangePicker({
 
 
   const updateURL = React.useCallback((newDate: DateRange | undefined) => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(searchParams ?? undefined);
     if (newDate?.from) {
       params.set('from', format(newDate.from, 'yyyy-MM-dd'));
     } else {

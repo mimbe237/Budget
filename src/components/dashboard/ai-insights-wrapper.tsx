@@ -1,26 +1,32 @@
 'use server';
 import { getSpendingInsights } from '@/ai/flows/spending-insights';
-import type { Transaction, Budget, UserProfile } from '@/lib/types';
+import type { Transaction, Budget } from '@/lib/types';
 import { AIInsights } from './ai-insights';
-import { headers } from 'next/headers';
-import { getFirebaseAdminApp, getAdminAuth, getAdminFirestore } from '@/firebase/admin';
-import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
+import { cookies, headers } from 'next/headers';
+import { getAdminAuth, getAdminFirestore } from '@/firebase/admin';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
-    const headersInstance = await headers();
-    const authHeader = headersInstance.get('Authorization');
-    if (authHeader) {
-        const token = authHeader.split(' ')[1];
-        try {
-            const adminAuth = getAdminAuth();
-            const decodedToken = await adminAuth.verifyIdToken(token);
-            return decodedToken;
-        } catch (error) {
-            console.error('Error verifying auth token:', error);
-            return null;
-        }
-    }
+  const headersInstance = headers();
+  let token = headersInstance.get('Authorization')?.split(' ')[1] || null;
+
+  if (!token) {
+    const cookieStore = cookies();
+    token = cookieStore.get('firebaseIdToken')?.value || null;
+  }
+
+  if (!token) {
     return null;
+  }
+
+  try {
+    const adminAuth = getAdminAuth();
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    return decodedToken;
+  } catch (error) {
+    console.error('Error verifying auth token:', error);
+    return null;
+  }
 }
 
 

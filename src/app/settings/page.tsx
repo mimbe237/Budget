@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { useDoc, useFirestore, useUser, updateDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { NotificationSettings } from '@/components/notifications/notification-settings';
+import { useDoc, useFirestore, useUser, updateDocumentNonBlocking, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import type { Currency, UserProfile } from '@/lib/types';
@@ -48,12 +49,15 @@ export default function SettingsPage() {
   }, [userProfile]);
 
   const handleSaveChanges = () => {
-    if (!userProfileRef) return;
+    if (!userProfileRef || !user) return;
 
-    updateDocumentNonBlocking(userProfileRef, {
-        displayCurrency,
-        locale
-    });
+    // Utiliser setDoc en merge pour créer OU mettre à jour le document profil.
+    // Les règles Firestore exigent id == userId lors de la création.
+    setDocumentNonBlocking(userProfileRef, {
+        id: user.uid,
+        displayCurrency: (displayCurrency || 'USD'),
+        locale: (locale || 'en-US')
+    }, { merge: true });
     
     toast({
       title: isFrench ? 'Paramètres enregistrés' : 'Settings Saved',
@@ -121,6 +125,9 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Notifications Push */}
+      <NotificationSettings />
     </AppLayout>
   );
 }

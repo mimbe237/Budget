@@ -19,14 +19,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useUser, useFirestore, addDocumentNonBlocking, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
-import { useState } from 'react';
+import { FileAttachment } from '@/components/ui/file-attachment';
+import { useUser, useFirestore, addDocumentNonBlocking, useMemoFirebase, useCollection } from '@/firebase';
+import { addGoalTransaction } from '@/firebase/firestore/use-goal-transactions';
+import { collection, doc, query, where, updateDoc, increment } from 'firebase/firestore';
+import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import type { Currency, UserProfile, CategoryDocument } from '@/lib/types';
+import type { Currency, CategoryDocument, Goal } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { subMonths, format, addYears } from 'date-fns';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Categories are now loaded dynamically from Firestore
 
@@ -123,11 +126,46 @@ export default function AddTransactionPage() {
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState<Currency>('USD');
   const [category, setCategory] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
+  const [attachment, setAttachment] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [goalAllocations, setGoalAllocations] = useState<Record<string, string>>({});
+  const [allocationError, setAllocationError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isFrench = userProfile?.locale === 'fr-CM';
+  const currency = (userProfile?.displayCurrency || 'USD') as Currency;
+  const displayLocale = userProfile?.locale || (isFrench ? 'fr-CM' : 'en-US');
+
+  const formatMoney = (valueInCents: number, targetCurrency: Currency = currency) => {
+    return new Intl.NumberFormat(displayLocale, {
+      style: 'currency',
+      currency: targetCurrency,
+    }).format((valueInCents || 0) / 100);
+  };
+
+  const parseAmount = (value: string) => {
+    if (!value) return 0;
+    const normalized = value.replace(',', '.');
+    const parsed = parseFloat(normalized);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  };
+
+  const handleAllocationChange = (goalId: string, rawValue: string) => {
+    const sanitizedInput = rawValue.replace(',', '.');
+    if (!/^\d*(?:[.,]\d{0,2})?$/.test(rawValue)) {
+      return;
+    }
+    setGoalAllocations(prev => {
+      const next = { ...prev };
+      if (!sanitizedInput) {
+        delete next[goalId];
+      } else {
+        next[goalId] = rawValue;
+      }
+      return next;
+    });
+  };
 
   // Load categories from Firestore
   const categoriesQuery = useMemoFirebase(() => {
@@ -139,6 +177,62 @@ export default function AddTransactionPage() {
   }, [firestore, user, type]);
 
   const { data: categories } = useCollection<CategoryDocument>(categoriesQuery);
+
+  const goalsQuery = useMemoFirebase(() => {
+    if (!firestore || !user || type !== 'income') return null;
+    return collection(firestore, `users/${user.uid}/budgetGoals`);
+  }, [firestore, user, type]);
+
+  const { data: goalsRaw } = useCollection<Goal>(goalsQuery);
+  const activeGoals = useMemo(() => goalsRaw?.filter(goal => !goal.archived) || [], [goalsRaw]);
+
+  const allocationEntries = useMemo(() => {
+    return Object.entries(goalAllocations).map(([goalId, rawValue]) => {
+      const numeric = parseAmount(rawValue);
+      return [goalId, numeric] as [string, number];
+    }).filter(([, numeric]) => numeric > 0);
+  }, [goalAllocations]);
+
+  const amountNumeric = parseAmount(amount);
+  const amountInCents = Math.round(amountNumeric * 100);
+  const totalAllocatedValue = allocationEntries.reduce((sum, [, value]) => sum + value, 0);
+  const totalAllocatedInCents = Math.round(totalAllocatedValue * 100);
+  const remainingAllocationInCents = Math.max(amountInCents - totalAllocatedInCents, 0);
+  const isOverAllocated = type === 'income' && amountInCents > 0 && totalAllocatedInCents > amountInCents;
+
+  useEffect(() => {
+    if (type !== 'income') {
+      setGoalAllocations({});
+      setAllocationError(null);
+      return;
+    }
+    if (isOverAllocated) {
+      setAllocationError(isFrench ? 'Le montant alloué dépasse le revenu saisi.' : 'Allocated amount exceeds the income.');
+    } else {
+      setAllocationError(null);
+    }
+  }, [type, isOverAllocated, isFrench]);
+
+  useEffect(() => {
+    if (type !== 'income') return;
+    if (!activeGoals.length) {
+      setGoalAllocations(prev => (Object.keys(prev).length ? {} : prev));
+      return;
+    }
+    const activeIds = new Set(activeGoals.map(goal => goal.id));
+    setGoalAllocations(prev => {
+      let changed = false;
+      const next: Record<string, string> = {};
+      for (const [goalId, value] of Object.entries(prev)) {
+        if (activeIds.has(goalId)) {
+          next[goalId] = value;
+        } else {
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [activeGoals, type]);
 
   const handleGenerateData = () => {
     if (!user || !firestore) return;
@@ -174,8 +268,8 @@ export default function AddTransactionPage() {
     });
   };
 
-  const handleSubmit = () => {
-    if (!user || !firestore) return;
+  const handleSubmit = async () => {
+    if (!user || !firestore || isSubmitting) return;
 
     if (!description || !amount || !category || !date) {
       toast({
@@ -186,7 +280,21 @@ export default function AddTransactionPage() {
       return;
     }
 
-    const amountInCents = Math.round(parseFloat(amount) * 100);
+    if (type === 'income' && isOverAllocated) {
+      setAllocationError(isFrench ? 'Le montant alloué dépasse le revenu saisi.' : 'Allocated amount exceeds the income.');
+      return;
+    }
+
+    if (amountNumeric <= 0) {
+      toast({
+        variant: 'destructive',
+        title: isFrench ? 'Montant invalide' : 'Invalid amount',
+        description: isFrench ? 'Veuillez saisir un montant positif.' : 'Please enter a positive amount.',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
 
     const transactionData = {
       type,
@@ -196,17 +304,72 @@ export default function AddTransactionPage() {
       category,
       date,
       userId: user.uid,
+      attachmentUrl: attachment?.url,
+      attachmentName: attachment?.name,
+      attachmentType: attachment?.type,
     };
 
-    const expensesCollection = collection(firestore, `users/${user.uid}/expenses`);
-    addDocumentNonBlocking(expensesCollection, transactionData);
+    try {
+      const expensesCollection = collection(firestore, `users/${user.uid}/expenses`);
+      const newTransactionRef = await addDocumentNonBlocking(expensesCollection, transactionData);
 
-    toast({
-      title: isFrench ? 'Transaction ajoutée' : 'Transaction Added',
-      description: isFrench ? 'Votre transaction a été ajoutée avec succès.' : 'Your transaction has been successfully added.',
-    });
+      if (type === 'income' && allocationEntries.length > 0) {
+        const transactionId = newTransactionRef?.id;
+        const allocationPromises = allocationEntries.map(async ([goalId, allocatedAmount]) => {
+          const allocationInCents = Math.round(allocatedAmount * 100);
+          if (allocationInCents <= 0) return;
 
-    router.push('/transactions');
+          const goalRef = doc(firestore, `users/${user.uid}/budgetGoals`, goalId);
+          await updateDoc(goalRef, {
+            currentAmountInCents: increment(allocationInCents),
+            updatedAt: new Date().toISOString(),
+          });
+
+          const goalDetails = activeGoals.find(g => g.id === goalId);
+          const allocationNote = isFrench
+            ? `Allocation de ${formatMoney(allocationInCents, goalDetails?.currency || currency)} depuis le revenu « ${description} » du ${date}`
+            : `Allocated ${formatMoney(allocationInCents, goalDetails?.currency || currency)} from income "${description}" dated ${date}`;
+
+          await addGoalTransaction(
+            firestore,
+            user.uid,
+            goalId,
+            allocationInCents,
+            allocationNote,
+            undefined,
+            {
+              sourceTransactionId: transactionId,
+              sourceType: 'income_allocation',
+            }
+          );
+        });
+
+        await Promise.all(allocationPromises);
+      }
+
+      toast({
+        title: isFrench ? 'Transaction ajoutée' : 'Transaction Added',
+        description:
+          type === 'income' && allocationEntries.length > 0
+            ? (isFrench
+                ? 'Revenu enregistré et montants alloués à vos objectifs.'
+                : 'Income recorded and allocations applied to your goals.')
+            : (isFrench
+                ? 'Votre transaction a été ajoutée avec succès.'
+                : 'Your transaction has been successfully added.'),
+      });
+
+      router.push('/transactions');
+    } catch (error) {
+      console.error('[AddTransaction] Failed to add transaction', error);
+      toast({
+        variant: 'destructive',
+        title: isFrench ? 'Erreur' : 'Error',
+        description: isFrench ? 'Impossible d\'ajouter la transaction.' : 'Could not add the transaction.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -220,66 +383,83 @@ export default function AddTransactionPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-6">
-            <div className="grid gap-2">
-              <Label htmlFor="type">{isFrench ? 'Type' : 'Type'}</Label>
-              <RadioGroup
-                defaultValue="expense"
-                value={type}
-                onValueChange={(value) => setType(value as 'income' | 'expense')}
-                className="flex"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="expense" id="r1" />
-                  <Label htmlFor="r1">{isFrench ? 'Dépense' : 'Expense'}</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="income" id="r2" />
-                  <Label htmlFor="r2">{isFrench ? 'Revenu' : 'Income'}</Label>
-                </div>
-              </RadioGroup>
+            <div className="grid gap-3">
+              <Label>{isFrench ? 'Type de transaction' : 'Transaction Type'}</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant={type === 'expense' ? 'default' : 'outline'}
+                  className={cn(
+                    "h-auto py-4 flex flex-col gap-2",
+                    type === 'expense' && "bg-red-500 hover:bg-red-600 text-white"
+                  )}
+                  onClick={() => setType('expense')}
+                >
+                  <TrendingDown className="h-6 w-6" />
+                  <span className="font-semibold">{isFrench ? 'Dépense' : 'Expense'}</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={type === 'income' ? 'default' : 'outline'}
+                  className={cn(
+                    "h-auto py-4 flex flex-col gap-2",
+                    type === 'income' && "bg-green-500 hover:bg-green-600 text-white"
+                  )}
+                  onClick={() => setType('income')}
+                >
+                  <TrendingUp className="h-6 w-6" />
+                  <span className="font-semibold">{isFrench ? 'Revenu' : 'Income'}</span>
+                </Button>
+              </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="text-sm font-medium">
+                Description
+              </Label>
               <Input
                 id="description"
-                placeholder={isFrench ? 'ex: Courses' : 'e.g. Groceries'}
+                placeholder={isFrench ? 'ex: Courses au supermarché' : 'e.g. Grocery shopping'}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
+                className="h-10"
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
-                <Label htmlFor="amount">{isFrench ? 'Montant' : 'Amount'}</Label>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="amount" className="text-sm font-medium">
+                  {isFrench ? 'Montant' : 'Amount'} ({currency})
+                </Label>
                 <Input
                   id="amount"
                   type="number"
+                  step="0.01"
                   placeholder="0.00"
                   value={amount}
                   onChange={e => setAmount(e.target.value)}
+                  className="h-10"
                 />
               </div>
-              <div>
-                <Label htmlFor="currency">{isFrench ? 'Devise' : 'Currency'}</Label>
-                <Select
-                  value={currency}
-                  onValueChange={value => setCurrency(value as Currency)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="XOF">XOF</SelectItem>
-                    <SelectItem value="XAF">XAF</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-2">
+                <Label htmlFor="date" className="text-sm font-medium">
+                  Date
+                </Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={date}
+                  onChange={e => setDate(e.target.value)}
+                  className="h-10"
+                />
               </div>
             </div>
+
             <div className="grid gap-2">
-              <Label htmlFor="category">{isFrench ? 'Catégorie' : 'Category'}</Label>
+              <Label htmlFor="category" className="text-sm font-medium">
+                {isFrench ? 'Catégorie' : 'Category'}
+              </Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder={isFrench ? 'Sélectionner une catégorie' : 'Select a category'} />
                 </SelectTrigger>
                 <SelectContent>
@@ -297,24 +477,121 @@ export default function AddTransactionPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {type === 'income' && (
+              <div className="grid gap-2">
+                <Label className="text-sm font-medium">
+                  {isFrench ? 'Allouer ce revenu à vos objectifs' : 'Allocate this income to your goals'}
+                </Label>
+                {!activeGoals.length ? (
+                  <div className="rounded-md border border-dashed bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                    {isFrench
+                      ? 'Créez un objectif pour pouvoir lui affecter une partie de vos revenus. Rendez-vous sur la page Objectifs.'
+                      : 'Create a goal to start assigning part of your income to it. Head over to the Goals page.'}
+                  </div>
+                ) : (
+                  <div className="space-y-4 rounded-md border bg-muted/40 p-4">
+                    {activeGoals.map(goal => {
+                      const allocationValue = goalAllocations[goal.id] || '';
+                      const goalCurrency = goal.currency || currency;
+                      const progress = goal.targetAmountInCents > 0
+                        ? Math.min(((goal.currentAmountInCents || 0) / goal.targetAmountInCents) * 100, 100)
+                        : 0;
+                      return (
+                        <div key={goal.id} className="space-y-2 border-b pb-4 last:border-b-0 last:pb-0">
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div className="space-y-1">
+                              <p className="font-medium">{goal.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {isFrench ? 'Compte :' : 'Account:'}{' '}
+                                {goal.storageAccount ? goal.storageAccount : isFrench ? 'Non renseigné' : 'Not specified'}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatMoney(goal.currentAmountInCents || 0, goalCurrency)} / {formatMoney(goal.targetAmountInCents || 0, goalCurrency)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {isFrench ? 'Progression' : 'Progress'}: {progress.toFixed(0)}%
+                              </p>
+                            </div>
+                            <div className="w-full max-w-[180px]">
+                              <Label htmlFor={`allocation-${goal.id}`} className="text-xs text-muted-foreground">
+                                {isFrench ? 'Montant à allouer' : 'Amount to allocate'}
+                              </Label>
+                              <Input
+                                id={`allocation-${goal.id}`}
+                                value={allocationValue}
+                                placeholder="0.00"
+                                inputMode="decimal"
+                                onChange={e => handleAllocationChange(goal.id, e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="flex flex-col gap-1 text-sm">
+                      <span>
+                        {isFrench ? 'Total alloué :' : 'Total allocated:'}{' '}
+                        {formatMoney(totalAllocatedInCents)}
+                      </span>
+                      <span className={isOverAllocated ? 'text-destructive font-medium' : 'text-muted-foreground'}>
+                        {isFrench ? 'Reste à allouer :' : 'Remaining to allocate:'}{' '}
+                        {formatMoney(Math.max(remainingAllocationInCents, 0))}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {allocationError && (
+                  <p className="text-sm text-destructive">{allocationError}</p>
+                )}
+              </div>
+            )}
+            {/* Pièce jointe (optionnelle) */}
             <div className="grid gap-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
+              <Label className="text-sm font-medium">
+                {isFrench ? 'Pièce jointe (optionnel)' : 'Attachment (optional)'}
+              </Label>
+              <FileAttachment
+                value={attachment}
+                onChange={setAttachment}
+                isFrench={isFrench}
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                maxSize={5}
               />
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-            <Button type="button" variant="outline" onClick={handleGenerateData}>
-                {isFrench ? 'Générer Données de Test' : 'Generate Test Data'}
-            </Button>
-          <Button type="submit" onClick={handleSubmit}>
-            {isFrench ? 'Enregistrer Transaction' : 'Save Transaction'}
+        <CardFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleGenerateData}
+            className="w-full sm:w-auto"
+            disabled={isSubmitting}
+          >
+            {isFrench ? 'Générer Données de Test' : 'Generate Test Data'}
           </Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              onClick={() => router.push('/transactions')}
+              className="flex-1 sm:flex-initial"
+            >
+              {isFrench ? 'Annuler' : 'Cancel'}
+            </Button>
+            <Button 
+              type="submit" 
+              onClick={handleSubmit}
+              className={cn(
+                "flex-1 sm:flex-initial",
+                type === 'expense' ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
+              )}
+              disabled={isSubmitting}
+            >
+              {isFrench ? 'Enregistrer' : 'Save'}
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </AppLayout>
