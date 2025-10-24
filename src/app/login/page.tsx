@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -42,6 +43,9 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-4">
             <Logo />
+          </div>
+          <div className="flex justify-end">
+            <LanguageSwitcher compact />
           </div>
           <CardTitle className="text-2xl font-headline">Login</CardTitle>
           <CardDescription>

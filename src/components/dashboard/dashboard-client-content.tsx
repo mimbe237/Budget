@@ -30,6 +30,7 @@ import { BudgetsOverview } from '@/components/dashboard/budgets-overview';
 import GoalsOverview from '@/components/dashboard/goals-overview-new';
 import { BudgetOverviewMonthly } from '@/components/dashboard/budget-overview-monthly';
 import { BudgetAlertMonitor, BudgetHealthIndicator } from '@/components/budgets/budget-alert-monitor';
+import { GuidedTourLauncher } from '@/components/onboarding/GuidedTourLauncher';
 
 export function DashboardClientContent({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
@@ -109,14 +110,18 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
       {/* Moniteur d'alertes budgétaires (invisible, agit en arrière-plan) */}
       <BudgetAlertMonitor />
 
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+      <div className="flex items-center justify-between mb-2">
+        <div />
+        <GuidedTourLauncher />
+      </div>
+      <div data-tour="summary-cards" className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
         <SummaryCard title="Total Income" amountInCents={totalIncome} icon={<DollarSign />} />
         <SummaryCard title="Total Expenses" amountInCents={totalExpenses} icon={<CreditCard />} />
         <SummaryCard title="Balance" amountInCents={balance} icon={<Scale />} />
       </div>
       <div className="grid gap-4 md:gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-4">
-          <Card>
+          <Card data-tour="spending-overview">
             <CardHeader>
               <CardTitle className="font-headline">Spending Overview</CardTitle>
             </CardHeader>
@@ -128,11 +133,15 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
             <div className="space-y-4">{children}</div>
           ) : null}
           <RecentTransactions transactions={recentTransactions} categoryIcons={categoryIcons} />
-          <GoalsOverview />
+          <div data-tour="goals-overview">
+            <GoalsOverview />
+          </div>
         </div>
         <div className="grid auto-rows-max items-start gap-4 md:gap-8">
           {/* NOUVEAU : Vue budgétaire mensuelle avec pourcentages */}
-          <BudgetOverviewMonthly />
+          <div data-tour="budget-overview">
+            <BudgetOverviewMonthly />
+          </div>
           <BudgetsOverview budgets={budgets} transactions={transactions} categoryIcons={categoryIcons} />
         </div>
       </div>

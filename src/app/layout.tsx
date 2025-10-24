@@ -8,6 +8,9 @@ import { AutoSeedCategories } from '@/components/AutoSeedCategories';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ReactQueryProvider } from '@/components/react-query-provider';
 import { FirebaseStatus } from '@/components/firebase-status';
+import { OnboardingGate } from '@/components/onboarding/OnboardingGate';
+import { HtmlLangSync } from '@/components/locale/html-lang';
+import { I18nProviderWrapper } from '@/components/i18n-provider-wrapper';
 
 export const metadata: Metadata = {
   title: 'BudgetWise',
@@ -38,9 +41,15 @@ export default function RootLayout({
         >
           <ReactQueryProvider>
             <FirebaseClientProvider>
-              <AutoSeedCategories />
-              <FirebaseStatus />
-              {children}
+              <I18nProviderWrapper>
+                <AutoSeedCategories />
+                <FirebaseStatus />
+                <OnboardingGate>
+                  {children}
+                </OnboardingGate>
+                {/* Sync <html lang> with user locale */}
+                <HtmlLangSync />
+              </I18nProviderWrapper>
             </FirebaseClientProvider>
             {/* Statut en ligne/hors ligne et update SW */}
             <OnlineStatusIndicator />

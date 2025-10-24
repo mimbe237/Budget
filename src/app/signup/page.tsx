@@ -16,6 +16,7 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { SocialAuthButtons } from '@/components/auth/social-auth-buttons';
 import { useRouter } from 'next/navigation';
 import { User, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function SignupPage() {
     password: '',
     country: 'FR', // Default to France
     gender: '',
-    language: 'fr', // Default to French
+    language: (typeof window !== 'undefined' ? localStorage.getItem('preferredLocale') : null) || 'fr', // Pre-fill from LanguageSwitcher
     phoneCountryCode: 'FR',
     phoneNumber: ''
   });
@@ -191,19 +192,35 @@ export default function SignupPage() {
       );
 
       // Save additional user data to Firestore
+      // Map language to locale format (e.g., 'fr' -> 'fr-CM', 'en' -> 'en-US')
+      const localeMap: Record<string, string> = {
+        'fr': 'fr-CM',
+        'en': 'en-US',
+        'fr-CM': 'fr-CM',
+        'en-US': 'en-US'
+      };
+      const userLocale = localeMap[formData.language] || formData.language;
+
       await setDoc(doc(firestore, 'users', userCredential.user.uid), {
+        id: userCredential.user.uid,
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         country: formData.country,
         gender: formData.gender,
         language: formData.language,
+        locale: userLocale,
         phoneCountryCode: formData.phoneCountryCode,
         phoneNumber: formData.phoneNumber,
-        createdAt: new Date()
+        displayCurrency: 'XAF', // Default currency for Cameroon
+        monthlyExpenseBudget: 0, // Will be set in onboarding
+        hasCompletedOnboarding: false,
+        hasCompletedTour: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
 
-      router.push('/');
+      router.push('/onboarding');
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -214,6 +231,9 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto">
+        <div className="flex justify-end mb-4">
+          <LanguageSwitcher compact />
+        </div>
         {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-between">

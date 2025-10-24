@@ -15,37 +15,59 @@ export function FirebaseStatus() {
   useEffect(() => {
     if (!firestore) return;
 
-    // Import dynamically to avoid SSR issues
-    import('firebase/firestore').then(({ onSnapshot, collection }) => {
-      // Listen to network status via a dummy query
-      const unsubscribe = onSnapshot(
-        collection(firestore, '_firebase_status'),
-        {
-          includeMetadataChanges: true,
-        },
-        (snapshot) => {
-          const wasOnline = isOnline;
-          const nowOnline = !snapshot.metadata.fromCache;
-          
-          if (wasOnline !== nowOnline) {
-            setIsOnline(nowOnline);
-            setShowStatus(true);
-            
-            // Hide status message after 5 seconds when back online
-            if (nowOnline) {
-              setTimeout(() => setShowStatus(false), 5000);
+    let isCancelled = false;
+    let unsubscribe: (() => void) | undefined;
+
+    (async () => {
+      try {
+        const { onSnapshot, collection } = await import('firebase/firestore');
+        if (isCancelled) return;
+
+        unsubscribe = onSnapshot(
+          collection(firestore, '_firebase_status'),
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            const wasOnline = isOnline;
+            const nowOnline = !snapshot.metadata.fromCache;
+
+            if (wasOnline !== nowOnline) {
+              setIsOnline(nowOnline);
+              setShowStatus(true);
+
+              if (nowOnline) {
+                setTimeout(() => setShowStatus(false), 5000);
+              }
+            }
+          },
+          (error) => {
+            // Permission errors can happen if the helper collection isn't readable.
+            // Fallback to navigator.onLine and avoid spamming the console.
+            if (process.env.NODE_ENV === 'development') {
+              console.debug('Firebase status listener disabled:', error);
+            }
+            setIsOnline(navigator.onLine);
+            setShowStatus(!navigator.onLine);
+            if (unsubscribe) {
+              unsubscribe();
+              unsubscribe = undefined;
             }
           }
-        },
-        (error) => {
-          console.warn('Firebase status listener error:', error);
-          setIsOnline(false);
-          setShowStatus(true);
+        );
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('Firebase status listener setup failed:', error);
         }
-      );
+        setIsOnline(navigator.onLine);
+        setShowStatus(!navigator.onLine);
+      }
+    })();
 
-      return () => unsubscribe();
-    });
+    return () => {
+      isCancelled = true;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [firestore, isOnline]);
 
   // Monitor browser online/offline events

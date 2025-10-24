@@ -45,12 +45,12 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // Optimisation : mémoriser les items de navigation
   const navItems = useMemo(() => [
-    { href: '/', label: isFrench ? 'Tableau de bord' : 'Dashboard', icon: LayoutGrid },
-    { href: '/transactions', label: isFrench ? 'Transactions' : 'Transactions', icon: List },
-    { href: '/categories', label: isFrench ? 'Catégories' : 'Categories', icon: Folder },
-    { href: '/goals', label: isFrench ? 'Objectifs' : 'Goals', icon: Target },
-    { href: '/reports', label: isFrench ? 'Rapports' : 'Reports', icon: FileBarChart },
-    { href: '/settings', label: isFrench ? 'Paramètres' : 'Settings', icon: Settings },
+    { href: '/', label: isFrench ? 'Tableau de bord' : 'Dashboard', icon: LayoutGrid, dataTour: undefined },
+    { href: '/transactions', label: isFrench ? 'Transactions' : 'Transactions', icon: List, dataTour: undefined },
+    { href: '/categories', label: isFrench ? 'Catégories' : 'Categories', icon: Folder, dataTour: undefined },
+    { href: '/goals', label: isFrench ? 'Objectifs' : 'Goals', icon: Target, dataTour: undefined },
+    { href: '/reports', label: isFrench ? 'Rapports' : 'Reports', icon: FileBarChart, dataTour: 'nav-reports' },
+    { href: '/settings', label: isFrench ? 'Paramètres' : 'Settings', icon: Settings, dataTour: undefined },
   ], [isFrench]);
 
   useEffect(() => {
@@ -95,6 +95,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <Link
                   key={item.label}
                   href={item.href}
+                  data-tour={item.dataTour}
                   aria-current={pathname === item.href ? 'page' : undefined}
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
@@ -136,6 +137,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Link
                     key={item.label}
                     href={item.href}
+                    data-tour={item.dataTour}
                     onClick={() => setIsMobileMenuOpen(false)}
                     aria-current={pathname === item.href ? 'page' : undefined}
                     className={cn(

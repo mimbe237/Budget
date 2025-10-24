@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getBudgetSeverity, getSeverityColor, getSeverityLabel } from '@/lib/budget-utils';
 import { TrendingUp, AlertCircle, CheckCircle2, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 
 /**
  * Composant principal affichant l'aperçu budgétaire mensuel
@@ -22,8 +23,8 @@ import { cn } from '@/lib/utils';
 export function BudgetOverviewMonthly() {
   const { userProfile } = useUser();
   const { budgetStatus, budgetPlan, isLoading } = useMonthlyBudgetStatus();
+  const { t } = useTranslation();
 
-  const isFrench = userProfile?.locale === 'fr-CM';
   const displayCurrency = userProfile?.displayCurrency || 'USD';
   const displayLocale = userProfile?.locale || 'en-US';
 
@@ -62,19 +63,15 @@ export function BudgetOverviewMonthly() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
-            {isFrench ? 'Budget mensuel' : 'Monthly budget'}
+            {t('budget.monthlyBudget')}
           </CardTitle>
           <CardDescription>
-            {isFrench
-              ? 'Aucun budget défini pour ce mois.'
-              : 'No budget defined for this month.'}
+            {t('budget.noBudget')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-            {isFrench
-              ? 'Configurez votre budget mensuel dans la page Budgets & Catégories.'
-              : 'Set up your monthly budget in the Budgets & Categories page.'}
+            {t('budget.setBudget')}
           </div>
         </CardContent>
       </Card>
@@ -91,6 +88,12 @@ export function BudgetOverviewMonthly() {
   } = budgetStatus;
 
   const globalSeverity = getBudgetSeverity(globalPercentage);
+  const severityLabels = {
+    healthy: t('budget.healthy'),
+    warning: t('budget.warning'),
+    critical: t('budget.critical'),
+    over: t('budget.overBudget'),
+  };
 
   return (
     <Card>
@@ -98,7 +101,7 @@ export function BudgetOverviewMonthly() {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            {isFrench ? 'Budget mensuel' : 'Monthly budget'}
+            {t('budget.monthlyBudget')}
           </div>
           <Badge
             variant="secondary"
@@ -113,7 +116,7 @@ export function BudgetOverviewMonthly() {
                     : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
             )}
           >
-            {getSeverityLabel(globalSeverity, isFrench)}
+            {severityLabels[globalSeverity]}
           </Badge>
         </CardTitle>
         <CardDescription>{currentMonthLabel}</CardDescription>
@@ -123,7 +126,7 @@ export function BudgetOverviewMonthly() {
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium">
-              {isFrench ? 'Consommation globale' : 'Overall consumption'}
+              {t('budget.consumption')}
             </span>
             <span className={cn('font-bold', getSeverityColor(globalSeverity))}>
               {globalPercentage.toFixed(1)}%
@@ -155,12 +158,8 @@ export function BudgetOverviewMonthly() {
               )}
             >
               {isGlobalOverBudget
-                ? isFrench
-                  ? `Dépassement de ${formatMoney(Math.abs(totalRemaining))}`
-                  : `Over by ${formatMoney(Math.abs(totalRemaining))}`
-                : isFrench
-                  ? `Reste ${formatMoney(totalRemaining)}`
-                  : `${formatMoney(totalRemaining)} left`}
+                ? `${formatMoney(Math.abs(totalRemaining))}`
+                : `${formatMoney(totalRemaining)}`}
             </span>
           </div>
         </div>
@@ -168,7 +167,7 @@ export function BudgetOverviewMonthly() {
         {/* Détail par catégorie */}
         <div className="space-y-4">
           <h4 className="text-sm font-medium">
-            {isFrench ? 'Détail par catégorie' : 'Category breakdown'}
+            {t('budget.categoryBreakdown')}
           </h4>
           <div className="space-y-3">
             {categoryStatuses.map(status => {
@@ -215,9 +214,7 @@ export function BudgetOverviewMonthly() {
                       )}
                     >
                       {status.isOverBudget
-                        ? isFrench
-                          ? `+${formatMoney(Math.abs(status.remaining))}`
-                          : `+${formatMoney(Math.abs(status.remaining))}`
+                        ? `+${formatMoney(Math.abs(status.remaining))}`
                         : formatMoney(status.remaining)}
                     </span>
                   </div>

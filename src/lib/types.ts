@@ -79,6 +79,10 @@ export type UserProfile = {
   displayCurrency?: 'XOF' | 'XAF' | 'EUR' | 'USD';
   locale?: 'fr-CM' | 'en-US';
   monthlyExpenseBudget?: number;
+  hasCompletedOnboarding?: boolean;
+  hasCompletedTour?: boolean;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export type Currency = 'XOF' | 'XAF' | 'EUR' | 'USD';
