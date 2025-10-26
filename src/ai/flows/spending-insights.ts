@@ -49,7 +49,17 @@ export async function getSpendingInsights(
         'Continuez à enregistrer vos transactions et configurez vos budgets pour obtenir des recommandations personnalisées.',
     };
   }
-  return spendingInsightsFlow(input);
+  try {
+    return await spendingInsightsFlow(input);
+  } catch (error) {
+    console.warn('[AI] Échec de la génération des insights IA.', error);
+    return {
+      insights:
+        'Impossible de récupérer les insights pour le moment. Vérifiez la configuration de l’API Gemini ou réessayez plus tard.',
+      recommendations:
+        'Assurez-vous que la clé d’API est valide et que le service est atteignable. Vous pouvez consulter les rapports pour des analyses manuelles en attendant.',
+    };
+  }
 }
 
 const prompt = ai.definePrompt({
