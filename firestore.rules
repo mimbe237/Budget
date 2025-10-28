@@ -116,6 +116,21 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
+
+      /**
+       * @description Tracks contribution history for a specific goal.
+       * @path /users/{userId}/budgetGoals/{budgetGoalId}/transactions/{transactionId}
+       * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path.
+       * @allow (read, write) - Admins have full access for administrative purposes.
+       * @principle Enforces goal-level ownership for contribution records with admin override.
+       */
+      match /transactions/{transactionId} {
+        allow get: if isOwner(userId) || isAdmin();
+        allow list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId) || isAdmin();
+        allow delete: if isOwner(userId) || isAdmin();
+      }
     }
 
     /**
