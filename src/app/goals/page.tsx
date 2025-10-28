@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense, useEffect } from "react";
 import { AppLayout } from "@/components/dashboard/dashboard-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import type { Goal, Currency } from "@/lib/types";
 import { useEnhancedToast } from "@/components/ui/enhanced-toast";
 import { useFirestoreInfiniteQuery } from "@/hooks/use-firestore-infinite-query";
 import { useQueryClient } from '@tanstack/react-query';
+import { useSearchParams, useRouter } from "next/navigation";
 // ...existing code...
 import { GoalCard } from "@/components/goals/GoalCard";
 import { GoalForm } from "@/components/goals/GoalForm";
@@ -32,6 +33,8 @@ export default function GoalsPage() {
   const { user, userProfile } = useUser();
   const firestore = useFirestore();
   const { success, error, info, loading } = useEnhancedToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const isFrench = userProfile?.locale === "fr-CM";
   const displayCurrency = (userProfile?.displayCurrency || "USD") as Currency;
@@ -49,6 +52,22 @@ export default function GoalsPage() {
   const [showHistoryGoal, setShowHistoryGoal] = useState<Goal | null>(null);
   const [showAIGoal, setShowAIGoal] = useState<Goal | null>(null);
   const [contributionGoal, setContributionGoal] = useState<Goal | null>(null);
+  const searchParamsString = searchParams?.toString();
+  const newGoalShortcut = searchParams?.get("new");
+
+  useEffect(() => {
+    if (newGoalShortcut === "goal") {
+      setCurrentGoal(null);
+      setIsFormOpen(true);
+
+      if (searchParamsString !== undefined) {
+        const params = new URLSearchParams(searchParamsString);
+        params.delete("new");
+        const queryString = params.toString();
+        router.replace(queryString ? `/goals?${queryString}` : "/goals", { scroll: false });
+      }
+    }
+  }, [newGoalShortcut, searchParamsString, router]);
 
   const {
     data,
@@ -103,6 +122,10 @@ export default function GoalsPage() {
   const handleSaveGoal = async (goalData: Partial<Goal>) => {
     if (!user || !firestore) return;
     setIsSaving(true);
+
+    const cleanedGoalData = Object.fromEntries(
+      Object.entries(goalData).filter(([, value]) => value !== undefined)
+    ) as Partial<Goal>;
     
     const loadingToast = loading(
       isFrench ? "Enregistrement..." : "Saving...",
@@ -111,7 +134,7 @@ export default function GoalsPage() {
     
     try {
       const fullGoalData = { 
-        ...goalData, 
+        ...cleanedGoalData, 
         userId: user.uid,
         // Ajouter createdAt si nouveau (obligatoire selon Goal type)
         ...(currentGoal ? {} : { 

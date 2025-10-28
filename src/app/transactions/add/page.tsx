@@ -23,13 +23,21 @@ import { FileAttachment } from '@/components/ui/file-attachment';
 import { useUser, useFirestore, addDocumentNonBlocking, useMemoFirebase, useCollection } from '@/firebase';
 import { addGoalTransaction } from '@/firebase/firestore/use-goal-transactions';
 import { collection, doc, query, where, updateDoc, increment } from 'firebase/firestore';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Currency, CategoryDocument, Goal } from '@/lib/types';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { subMonths, format, addYears } from 'date-fns';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+export default function AddTransactionPageWrapper() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Chargement…</div>}>
+      <AddTransactionPage />
+    </Suspense>
+  );
+}
 
 // Categories are now loaded dynamically from Firestore
 
@@ -118,11 +126,12 @@ const generateTestData = (userId: string) => {
 };
 
 
-export default function AddTransactionPage() {
+function AddTransactionPage() {
   const { user, userProfile } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -136,6 +145,7 @@ export default function AddTransactionPage() {
   const isFrench = userProfile?.locale === 'fr-CM';
   const currency = (userProfile?.displayCurrency || 'USD') as Currency;
   const displayLocale = userProfile?.locale || (isFrench ? 'fr-CM' : 'en-US');
+  const requestedType = searchParams?.get('type');
 
   const formatMoney = (valueInCents: number, targetCurrency: Currency = currency) => {
     return new Intl.NumberFormat(displayLocale, {
@@ -150,6 +160,12 @@ export default function AddTransactionPage() {
     const parsed = parseFloat(normalized);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   };
+
+  useEffect(() => {
+    if (requestedType === 'income' || requestedType === 'expense') {
+      setType(prev => (prev === requestedType ? prev : requestedType));
+    }
+  }, [requestedType]);
 
   const handleAllocationChange = (goalId: string, rawValue: string) => {
     const sanitizedInput = rawValue.replace(',', '.');
@@ -373,227 +389,25 @@ export default function AddTransactionPage() {
   };
 
   return (
-    <AppLayout>
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="font-headline">{isFrench ? 'Ajouter une Transaction' : 'Add a Transaction'}</CardTitle>
-          <CardDescription>
-            {isFrench ? "Enregistrez un nouveau revenu ou une nouvelle dépense. Cliquez sur Enregistrer lorsque vous avez terminé." : "Log a new income or expense. Click save when you're done."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6">
-            <div className="grid gap-3">
-              <Label>{isFrench ? 'Type de transaction' : 'Transaction Type'}</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant={type === 'expense' ? 'default' : 'outline'}
-                  className={cn(
-                    "h-auto py-4 flex flex-col gap-2",
-                    type === 'expense' && "bg-red-500 hover:bg-red-600 text-white"
-                  )}
-                  onClick={() => setType('expense')}
-                >
-                  <TrendingDown className="h-6 w-6" />
-                  <span className="font-semibold">{isFrench ? 'Dépense' : 'Expense'}</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant={type === 'income' ? 'default' : 'outline'}
-                  className={cn(
-                    "h-auto py-4 flex flex-col gap-2",
-                    type === 'income' && "bg-green-500 hover:bg-green-600 text-white"
-                  )}
-                  onClick={() => setType('income')}
-                >
-                  <TrendingUp className="h-6 w-6" />
-                  <span className="font-semibold">{isFrench ? 'Revenu' : 'Income'}</span>
-                </Button>
-              </div>
+    <Suspense fallback={null}>
+      <AppLayout>
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="font-headline">{isFrench ? 'Ajouter une Transaction' : 'Add a Transaction'}</CardTitle>
+            <CardDescription>
+              {isFrench ? "Enregistrez un nouveau revenu ou une nouvelle dépense. Cliquez sur Enregistrer lorsque vous avez terminé." : "Log a new income or expense. Click save when you're done."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6">
+              {/* ...existing code... */}
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description" className="text-sm font-medium">
-                Description
-              </Label>
-              <Input
-                id="description"
-                placeholder={isFrench ? 'ex: Courses au supermarché' : 'e.g. Grocery shopping'}
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                className="h-10"
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="amount" className="text-sm font-medium">
-                  {isFrench ? 'Montant' : 'Amount'} ({currency})
-                </Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={e => setAmount(e.target.value)}
-                  className="h-10"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="date" className="text-sm font-medium">
-                  Date
-                </Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
-                  className="h-10"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="category" className="text-sm font-medium">
-                {isFrench ? 'Catégorie' : 'Category'}
-              </Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder={isFrench ? 'Sélectionner une catégorie' : 'Select a category'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories && categories.length > 0 ? (
-                    categories.map(cat => (
-                      <SelectItem key={cat.id} value={cat.name}>
-                        {cat.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      {isFrench ? 'Aucune catégorie disponible' : 'No categories available'}
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {type === 'income' && (
-              <div className="grid gap-2">
-                <Label className="text-sm font-medium">
-                  {isFrench ? 'Allouer ce revenu à vos objectifs' : 'Allocate this income to your goals'}
-                </Label>
-                {!activeGoals.length ? (
-                  <div className="rounded-md border border-dashed bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-                    {isFrench
-                      ? 'Créez un objectif pour pouvoir lui affecter une partie de vos revenus. Rendez-vous sur la page Objectifs.'
-                      : 'Create a goal to start assigning part of your income to it. Head over to the Goals page.'}
-                  </div>
-                ) : (
-                  <div className="space-y-4 rounded-md border bg-muted/40 p-4">
-                    {activeGoals.map(goal => {
-                      const allocationValue = goalAllocations[goal.id] || '';
-                      const goalCurrency = goal.currency || currency;
-                      const progress = goal.targetAmountInCents > 0
-                        ? Math.min(((goal.currentAmountInCents || 0) / goal.targetAmountInCents) * 100, 100)
-                        : 0;
-                      return (
-                        <div key={goal.id} className="space-y-2 border-b pb-4 last:border-b-0 last:pb-0">
-                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                            <div className="space-y-1">
-                              <p className="font-medium">{goal.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {isFrench ? 'Compte :' : 'Account:'}{' '}
-                                {goal.storageAccount ? goal.storageAccount : isFrench ? 'Non renseigné' : 'Not specified'}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatMoney(goal.currentAmountInCents || 0, goalCurrency)} / {formatMoney(goal.targetAmountInCents || 0, goalCurrency)}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {isFrench ? 'Progression' : 'Progress'}: {progress.toFixed(0)}%
-                              </p>
-                            </div>
-                            <div className="w-full max-w-[180px]">
-                              <Label htmlFor={`allocation-${goal.id}`} className="text-xs text-muted-foreground">
-                                {isFrench ? 'Montant à allouer' : 'Amount to allocate'}
-                              </Label>
-                              <Input
-                                id={`allocation-${goal.id}`}
-                                value={allocationValue}
-                                placeholder="0.00"
-                                inputMode="decimal"
-                                onChange={e => handleAllocationChange(goal.id, e.target.value)}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div className="flex flex-col gap-1 text-sm">
-                      <span>
-                        {isFrench ? 'Total alloué :' : 'Total allocated:'}{' '}
-                        {formatMoney(totalAllocatedInCents)}
-                      </span>
-                      <span className={isOverAllocated ? 'text-destructive font-medium' : 'text-muted-foreground'}>
-                        {isFrench ? 'Reste à allouer :' : 'Remaining to allocate:'}{' '}
-                        {formatMoney(Math.max(remainingAllocationInCents, 0))}
-                      </span>
-                    </div>
-                  </div>
-                )}
-                {allocationError && (
-                  <p className="text-sm text-destructive">{allocationError}</p>
-                )}
-              </div>
-            )}
-            {/* Pièce jointe (optionnelle) */}
-            <div className="grid gap-2">
-              <Label className="text-sm font-medium">
-                {isFrench ? 'Pièce jointe (optionnel)' : 'Attachment (optional)'}
-              </Label>
-              <FileAttachment
-                value={attachment}
-                onChange={setAttachment}
-                isFrench={isFrench}
-                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                maxSize={5}
-              />
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={handleGenerateData}
-            className="w-full sm:w-auto"
-            disabled={isSubmitting}
-          >
-            {isFrench ? 'Générer Données de Test' : 'Generate Test Data'}
-          </Button>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button 
-              type="button" 
-              variant="ghost" 
-              onClick={() => router.push('/transactions')}
-              className="flex-1 sm:flex-initial"
-            >
-              {isFrench ? 'Annuler' : 'Cancel'}
-            </Button>
-            <Button 
-              type="submit" 
-              onClick={handleSubmit}
-              className={cn(
-                "flex-1 sm:flex-initial",
-                type === 'expense' ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
-              )}
-              disabled={isSubmitting}
-            >
-              {isFrench ? 'Enregistrer' : 'Save'}
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
-    </AppLayout>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+            {/* ...existing code... */}
+          </CardFooter>
+        </Card>
+      </AppLayout>
+    </Suspense>
   );
 }

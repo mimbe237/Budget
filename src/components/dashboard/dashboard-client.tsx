@@ -30,6 +30,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 // ...existing code...
 import { ThemeToggle } from '@/components/theme-toggle';
+import { QuickAddShortcuts } from './quick-add-shortcuts';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -162,6 +163,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <main id="main-content" className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6" tabIndex={-1}>
           {children}
         </main>
+        <QuickAddShortcuts />
       </div>
     </div>
   );
