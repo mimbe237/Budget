@@ -30,6 +30,14 @@ function formatMoney(amountInCents: number, currency: Currency, locale: string) 
 }
 
 export default function GoalsPage() {
+  return (
+    <Suspense fallback={<GoalsSkeleton />}>
+      <GoalsPageContent />
+    </Suspense>
+  );
+}
+
+function GoalsPageContent() {
   const { user, userProfile } = useUser();
   const firestore = useFirestore();
   const { success, error, info, loading } = useEnhancedToast();

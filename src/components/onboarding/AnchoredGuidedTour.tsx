@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import Joyride, { Step, CallBackProps, STATUS, ACTIONS, EVENTS } from 'react-joyride';
+import Joyride, { ACTIONS, EVENTS, STATUS, type CallBackProps, type Step } from '@/lib/joyride';
 import { useTranslation } from '@/lib/i18n';
 
 interface AnchoredGuidedTourProps {

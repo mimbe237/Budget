@@ -52,21 +52,22 @@ export async function getSpendingInsights(
   try {
     return await spendingInsightsFlow(input);
   } catch (error) {
-    console.warn('[AI] Échec de la génération des insights IA.', error);
+    console.error('[AI] Failed to fetch spending insights:', error);
     return {
       insights:
-        'Impossible de récupérer les insights pour le moment. Vérifiez la configuration de l’API Gemini ou réessayez plus tard.',
+        'Impossible de générer des insights pour le moment. Nous affichons une synthèse générique afin de ne pas bloquer votre tableau de bord.',
       recommendations:
-        'Assurez-vous que la clé d’API est valide et que le service est atteignable. Vous pouvez consulter les rapports pour des analyses manuelles en attendant.',
+        'Vérifiez votre connexion internet et la clé d’API Gemini, puis réessayez plus tard pour obtenir des recommandations personnalisées.',
     };
   }
 }
 
-const prompt = ai.definePrompt({
-  name: 'spendingInsightsPrompt',
-  input: {schema: SpendingInsightsInputSchema},
-  output: {schema: SpendingInsightsOutputSchema},
-  prompt: `You are a professional personal finance advisor specializing in budget analysis and spending optimization. Analyze the user's complete financial data to provide personalized, actionable insights and recommendations.
+const prompt = aiEnabled && ai
+  ? ai.definePrompt({
+      name: 'spendingInsightsPrompt',
+      input: {schema: SpendingInsightsInputSchema},
+      output: {schema: SpendingInsightsOutputSchema},
+      prompt: `You are a professional personal finance advisor specializing in budget analysis and spending optimization. Analyze the user's complete financial data to provide personalized, actionable insights and recommendations.
 
 **FINANCIAL DATA:**
 {{{spendingHistory}}}
@@ -93,16 +94,25 @@ const prompt = ai.definePrompt({
 - If the data is in French, respond in French; if in English, respond in English
 
 Provide clear and actionable insights and recommendations to help the user improve their budgeting and financial health.`,
-});
+    })
+  : null;
 
-const spendingInsightsFlow = ai.defineFlow(
-  {
-    name: 'spendingInsightsFlow',
-    inputSchema: SpendingInsightsInputSchema,
-    outputSchema: SpendingInsightsOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
-);
+const spendingInsightsFlow = aiEnabled && ai
+  ? ai.defineFlow(
+      {
+        name: 'spendingInsightsFlow',
+        inputSchema: SpendingInsightsInputSchema,
+        outputSchema: SpendingInsightsOutputSchema,
+      },
+      async input => {
+        if (!prompt) {
+          throw new Error('AI prompt unavailable.');
+        }
+        const {output} = await prompt(input);
+        if (!output) {
+          throw new Error('Empty response received from AI prompt');
+        }
+        return output;
+      }
+    )
+  : null;
