@@ -1,7 +1,7 @@
 'use server';
 
 import { getAdminAuth, getAdminFirestore } from '@/firebase/admin';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { DecodedIdToken } from 'firebase-admin/auth';
 
@@ -17,13 +17,17 @@ export interface AdminUser extends DecodedIdToken {
 export async function getAdminUser(): Promise<AdminUser | null> {
   try {
     const headersInstance = await headers();
-    const authHeader = headersInstance.get('Authorization');
-    
-    if (!authHeader) {
+    let token = headersInstance.get('Authorization')?.split(' ')[1] ?? null;
+
+    if (!token) {
+      const cookieStore = await cookies();
+      token = cookieStore.get('firebaseIdToken')?.value ?? null;
+    }
+
+    if (!token) {
       return null;
     }
 
-    const token = authHeader.split(' ')[1];
     const adminAuth = getAdminAuth();
     const decodedToken = await adminAuth.verifyIdToken(token);
 

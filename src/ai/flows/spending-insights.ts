@@ -9,7 +9,8 @@
  * - SpendingInsightsOutput - The return type for the getSpendingInsights function.
  */
 
-import { ai, aiEnabled } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
+const aiEnabled = false;
 import {z} from 'genkit';
 
 const SpendingInsightsInputSchema = z.object({
@@ -52,7 +53,9 @@ export async function getSpendingInsights(
   try {
     return await spendingInsightsFlow(input);
   } catch (error) {
-    console.error('[AI] Failed to fetch spending insights:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[AI] Failed to fetch spending insights. Falling back to default copy.', error);
+    }
     return {
       insights:
         'Impossible de générer des insights pour le moment. Nous affichons une synthèse générique afin de ne pas bloquer votre tableau de bord.',

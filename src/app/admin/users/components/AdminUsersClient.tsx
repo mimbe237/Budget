@@ -48,12 +48,10 @@ export function AdminUsersClient() {
   const loadKpis = async () => {
     try {
       setIsLoadingKpis(true);
-      const res = await fetch('/api/admin/users/[userId]/overview', { method: 'GET' });
-      // Placeholder: if there's a dedicated KPIs endpoint, replace this.
+      const res = await fetch('/api/admin/users/overview', { method: 'GET' });
       if (!res.ok) throw new Error('Failed to load KPIs');
       const data = await res.json();
-      const kpisData = data.kpis as AdminKPIs;
-      setKpis(kpisData);
+      setKpis(data.kpis as AdminKPIs);
     } catch (error) {
       console.error('Erreur chargement KPIs:', error);
       toast({
@@ -81,11 +79,14 @@ export function AdminUsersClient() {
       params.set('sortDir', sort.direction);
       params.set('limit', String(pageSize));
       params.set('offset', String((currentPage - 1) * pageSize));
-      const res = await fetch(`/api/admin/users/export/csv?${params.toString()}`);
+
+      const res = await fetch(`/api/admin/users?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to load users');
+
       const json = await res.json();
-      const usersData = (json.users || []) as AdminUserData[];
-      const totalCount = Number(json.totalCount || usersData.length);
+      const usersData = Array.isArray(json.users) ? (json.users as AdminUserData[]) : [];
+      const totalCount = Number.isFinite(json.totalCount) ? Number(json.totalCount) : usersData.length;
+
       setUsers(usersData);
       setTotalUsers(totalCount);
     } catch (error) {
@@ -95,6 +96,8 @@ export function AdminUsersClient() {
         description: 'Impossible de charger les utilisateurs.',
         variant: 'destructive',
       });
+      setUsers([]);
+      setTotalUsers(0);
     } finally {
       setIsLoadingUsers(false);
     }

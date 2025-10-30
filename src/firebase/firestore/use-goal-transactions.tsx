@@ -34,18 +34,33 @@ export async function addGoalTransaction(
   metadata?: { sourceTransactionId?: string; sourceType?: GoalTransaction['sourceType'] }
 ) {
   const ref = collection(firestore, `users/${userId}/budgetGoals/${goalId}/transactions`);
-  await addDoc(ref, {
+  const payload: Record<string, unknown> = {
     goalId,
     userId,
     amountInCents,
     note: note || '',
     createdAt: new Date().toISOString(),
-    attachmentUrl: attachment?.url,
-    attachmentName: attachment?.name,
-    attachmentType: attachment?.type,
-    sourceTransactionId: metadata?.sourceTransactionId,
-    sourceType: metadata?.sourceType,
-  });
+  };
+
+  const attachmentUrl = typeof attachment?.url === 'string' ? attachment.url.trim() : '';
+  if (attachmentUrl) {
+    payload.attachmentUrl = attachmentUrl;
+    if (typeof attachment?.name === 'string' && attachment.name.trim()) {
+      payload.attachmentName = attachment.name.trim();
+    }
+    if (typeof attachment?.type === 'string' && attachment.type.trim()) {
+      payload.attachmentType = attachment.type.trim();
+    }
+  }
+
+  if (metadata?.sourceTransactionId) {
+    payload.sourceTransactionId = metadata.sourceTransactionId;
+  }
+  if (metadata?.sourceType) {
+    payload.sourceType = metadata.sourceType;
+  }
+
+  await addDoc(ref, payload);
 }
 
 export async function updateGoalTransaction(firestore: any, userId: string, goalId: string, transactionId: string, data: Partial<GoalTransaction>) {

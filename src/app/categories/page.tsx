@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -47,6 +48,9 @@ import {
   Edit2,
   Trash2,
   Sparkles,
+  PenLine,
+  Check,
+  X,
 } from 'lucide-react';
 import {
   useCollection,
@@ -58,7 +62,7 @@ import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, orderBy, query, where } from 'firebase/firestore';
+import { collection, doc, orderBy, query, where, setDoc } from 'firebase/firestore';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import type { CategoryDocument, Transaction, MonthlyBudgetPlan, CategoryBudgetAllocation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -81,6 +85,18 @@ const DEFAULT_EXPENSE_WEIGHTS: Record<string, number> = {
 
 const CUSTOM_CATEGORY_WEIGHT = 5;
 
+const roundToNearest50 = (value: number) => {
+  if (!Number.isFinite(value)) return 0;
+  if (value <= 0) return 0;
+  const rounded = Math.round(value / 50) * 50;
+  return rounded === 0 ? 50 : rounded;
+};
+
+const clampPercentage = (value: number) => {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(100, Math.max(0, value));
+};
+
 function formatMoney(amount: number, currency: string = 'USD', locale: string = 'en-US') {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -89,6 +105,15 @@ function formatMoney(amount: number, currency: string = 'USD', locale: string = 
 }
 
 type SpendingStatus = 'healthy' | 'warning' | 'over';
+
+function slugify(input: string) {
+  return input
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}+/gu, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
 
 function getRowClass(status: SpendingStatus) {
   switch (status) {
@@ -128,14 +153,16 @@ export default function CategoriesPage() {
   const displayCurrency = userProfile?.displayCurrency || 'USD';
   const displayLocale = userProfile?.locale || 'en-US';
 
-  const [budgetValues, setBudgetValues] = useState<Record<string, number>>({});
-  const [hasChanges, setHasChanges] = useState(false);
-  const [globalBudgetInput, setGlobalBudgetInput] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<CategoryDocument | null>(null);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryType, setNewCategoryType] = useState<'income' | 'expense'>('expense');
-  const [newCategoryBudget, setNewCategoryBudget] = useState('');
+const [budgetValues, setBudgetValues] = useState<Record<string, number>>({});
+const [hasChanges, setHasChanges] = useState(false);
+const [globalBudgetInput, setGlobalBudgetInput] = useState('');
+const [isEditingGlobalBudget, setIsEditingGlobalBudget] = useState(false);
+const [draftGlobalBudget, setDraftGlobalBudget] = useState('');
+const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+const [editingCategory, setEditingCategory] = useState<CategoryDocument | null>(null);
+const [newCategoryName, setNewCategoryName] = useState('');
+const [newCategoryType, setNewCategoryType] = useState<'income' | 'expense'>('expense');
+const [newCategoryBudget, setNewCategoryBudget] = useState('');
 
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -160,6 +187,12 @@ export default function CategoriesPage() {
       setGlobalBudgetInput(userProfile.monthlyExpenseBudget.toString());
     }
   }, [userProfile?.monthlyExpenseBudget]);
+
+  useEffect(() => {
+    if (!isEditingGlobalBudget) {
+      setDraftGlobalBudget(globalBudgetInput);
+    }
+  }, [globalBudgetInput, isEditingGlobalBudget]);
 
   const monthRange = useMemo(() => {
     const now = new Date();
@@ -238,6 +271,8 @@ export default function CategoriesPage() {
         status = 'warning';
       }
 
+      const percentage = globalBudget > 0 ? (budget / globalBudget) * 100 : 0;
+
       return {
         category,
         budget,
@@ -245,9 +280,10 @@ export default function CategoriesPage() {
         variance,
         utilization: Number.isFinite(utilization) ? utilization : 1.5,
         status,
+        percentage: Number.isFinite(percentage) ? percentage : 0,
       };
     });
-  }, [expenseCategories, budgetValues, spendingByCategory]);
+  }, [expenseCategories, budgetValues, spendingByCategory, globalBudget]);
 
   const totalAllocated = useMemo(() => {
     return expenseCategories.reduce((acc, category) => {
@@ -274,8 +310,70 @@ export default function CategoriesPage() {
     if (!hasChanges) setHasChanges(true);
   };
 
-  const handleGlobalBudgetChange = (value: string) => {
-    setGlobalBudgetInput(value);
+  const handleDraftGlobalBudgetChange = (value: string) => {
+    setDraftGlobalBudget(value);
+  };
+
+  const handleStartEditingGlobalBudget = () => {
+    setDraftGlobalBudget(globalBudgetInput || '');
+    setIsEditingGlobalBudget(true);
+  };
+
+  const handleCancelGlobalBudgetEdit = () => {
+    setDraftGlobalBudget(globalBudgetInput || '');
+    setIsEditingGlobalBudget(false);
+  };
+
+  const handleConfirmGlobalBudgetEdit = () => {
+    const normalizedValue = draftGlobalBudget.replace(',', '.').trim();
+    const parsed = Number.parseFloat(normalizedValue);
+    const sanitized = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+    const rounded = sanitized === 0 ? 0 : roundToNearest50(sanitized);
+    const nextValue = rounded.toString();
+    setGlobalBudgetInput(nextValue);
+    setDraftGlobalBudget(nextValue);
+    setIsEditingGlobalBudget(false);
+    if (!hasChanges) {
+      setHasChanges(true);
+    }
+  };
+
+  const normalizeCategoryBudget = (
+    categoryId: string,
+    fallback: number,
+    maxAmount?: number
+  ) => {
+    setBudgetValues(prev => {
+      const current = prev[categoryId] ?? fallback ?? 0;
+      if (!Number.isFinite(current)) {
+        return { ...prev, [categoryId]: 0 };
+      }
+      const rounded =
+        current <= 0 ? 0 : roundToNearest50(current);
+      const limit =
+        typeof maxAmount === 'number' && Number.isFinite(maxAmount) && maxAmount > 0
+          ? maxAmount
+          : undefined;
+      const capped = typeof limit === 'number' ? Math.min(rounded, limit) : rounded;
+      if (capped === current) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [categoryId]: capped,
+      };
+    });
+  };
+
+  const handlePercentageChange = (categoryId: string, rawPercentage: number) => {
+    if (globalBudget <= 0) return;
+    const safePercentage = clampPercentage(rawPercentage);
+    const allocation = (globalBudget * safePercentage) / 100;
+    const rounded = Math.min(roundToNearest50(allocation), globalBudget);
+    setBudgetValues(prev => ({
+      ...prev,
+      [categoryId]: rounded,
+    }));
     if (!hasChanges) setHasChanges(true);
   };
 
@@ -348,11 +446,13 @@ export default function CategoriesPage() {
     }
 
     const categoriesCollection = collection(firestore, `users/${user.uid}/categories`);
+    const rawBudget = parseFloat(newCategoryBudget) || 0;
+    const normalizedBudget = rawBudget <= 0 ? 0 : roundToNearest50(rawBudget);
     const newCategory: Omit<CategoryDocument, 'id'> = {
       userId: user.uid,
       name: newCategoryName.trim(),
       type: newCategoryType,
-      budgetedAmount: parseFloat(newCategoryBudget) || 0,
+      budgetedAmount: normalizedBudget,
       isCustom: true,
     };
 
@@ -383,10 +483,11 @@ export default function CategoriesPage() {
 
     const categoryRef = doc(firestore, `users/${user.uid}/categories`, editingCategory.id);
     const updatedBudget = parseFloat(newCategoryBudget) || 0;
+    const normalizedBudget = updatedBudget <= 0 ? 0 : roundToNearest50(updatedBudget);
     updateDocumentNonBlocking(categoryRef, {
       name: newCategoryName.trim(),
       type: newCategoryType,
-      budgetedAmount: updatedBudget,
+      budgetedAmount: normalizedBudget,
     });
 
     toast({
@@ -398,7 +499,7 @@ export default function CategoriesPage() {
 
     setBudgetValues(prev => ({
       ...prev,
-      [editingCategory.id]: updatedBudget,
+      [editingCategory.id]: normalizedBudget,
     }));
     setEditingCategory(null);
     setNewCategoryName('');
@@ -429,24 +530,39 @@ export default function CategoriesPage() {
 
   const handleSeedDefaults = async () => {
     if (!user || !firestore) return;
-    if (categories && categories.length > 0) {
-      toast({
-        title: isFrench ? 'Catégories déjà présentes' : 'Categories already exist',
-        description: isFrench
-          ? 'Les catégories par défaut ne sont ajoutées que si la liste est vide.'
-          : 'Default categories are only added when the list is empty.',
-      });
-      return;
-    }
     try {
       const defaults = createDefaultCategories(user.uid);
+      const existingKeys = new Set(
+        (categories ?? []).map(cat => `${(cat.type || '').toLowerCase()}::${(cat.name || '').toLowerCase()}`)
+      );
+      const missing = defaults.filter(cat => {
+        const key = `${cat.type.toLowerCase()}::${cat.name.toLowerCase()}`;
+        return !existingKeys.has(key);
+      });
+
+      if (missing.length === 0) {
+        toast({
+          title: isFrench ? 'Catégories déjà présentes' : 'Categories already exist',
+          description: isFrench
+            ? 'Toutes les catégories par défaut sont déjà disponibles.'
+            : 'All default categories are already available.',
+        });
+        return;
+      }
+
       const categoriesCollection = collection(firestore, `users/${user.uid}/categories`);
-      await Promise.all(defaults.map(cat => addDocumentNonBlocking(categoriesCollection, cat)));
+      await Promise.all(
+        missing.map(async cat => {
+          const id = `${cat.type}-${slugify(cat.name)}`;
+          const categoryRef = doc(categoriesCollection, id);
+          await setDoc(categoryRef, cat, { merge: true });
+        })
+      );
       toast({
         title: isFrench ? 'Catégories créées' : 'Categories created',
         description: isFrench
-          ? 'Les catégories par défaut ont été ajoutées.'
-          : 'Default categories have been added.',
+          ? `${missing.length} catégorie${missing.length > 1 ? 's' : ''} ajoutée${missing.length > 1 ? 's' : ''}.`
+          : `${missing.length} default categor${missing.length > 1 ? 'ies have' : 'y has'} been added.`,
       });
     } catch (error) {
       toast({
@@ -491,7 +607,11 @@ export default function CategoriesPage() {
       expenseCategories.forEach((category, index) => {
         const weight = weights[index];
         const allocation = (globalBudget * weight) / totalWeight;
-        next[category.id] = parseFloat(allocation.toFixed(2));
+        const rounded = Math.min(
+          roundToNearest50(allocation),
+          globalBudget
+        );
+        next[category.id] = rounded;
       });
       return next;
     });
@@ -527,6 +647,7 @@ export default function CategoriesPage() {
       ? 'Suivez vos sources de revenus planifiées.'
       : 'Track your planned income sources.',
     tableCategory: isFrench ? 'Catégorie' : 'Category',
+    tablePercentage: isFrench ? 'Répartition' : 'Allocation (%)',
     tableBudget: isFrench ? 'Budget' : 'Budgeted',
     tableSpent: isFrench ? 'Dépensé' : 'Spent',
     tableVariance: isFrench ? 'Solde' : 'Variance',
@@ -552,6 +673,9 @@ export default function CategoriesPage() {
       ? 'Aucune catégorie de revenus.'
       : 'No income categories yet.',
     custom: isFrench ? 'Personnalisée' : 'Custom',
+    percentageUnavailable: isFrench
+      ? 'Définissez un budget global.'
+      : 'Set a global budget first.',
   };
 
   return (
@@ -567,13 +691,64 @@ export default function CategoriesPage() {
               <CardDescription>{translations.globalBudgetHelper}</CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              <Input
-                type="number"
-                value={globalBudgetInput}
-                placeholder="0.00"
-                onChange={e => handleGlobalBudgetChange(e.target.value)}
-                className="text-2xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto"
-              />
+              {isEditingGlobalBudget ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      value={draftGlobalBudget}
+                      onChange={e => handleDraftGlobalBudgetChange(e.target.value)}
+                      placeholder="0.00"
+                      autoFocus
+                      className="h-12 flex-1 rounded-xl border-border/60 bg-background text-2xl font-semibold shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
+                    />
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-11 w-11 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                      onClick={handleConfirmGlobalBudgetEdit}
+                      aria-label={isFrench ? 'Valider le budget' : 'Confirm budget'}
+                    >
+                      <Check className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-11 w-11 rounded-full border border-border/40 text-muted-foreground hover:bg-muted"
+                      onClick={handleCancelGlobalBudgetEdit}
+                      aria-label={isFrench ? 'Annuler la modification' : 'Cancel editing'}
+                    >
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {isFrench
+                      ? 'Les montants sont ajustés automatiquement au plus proche multiple de 50.'
+                      : 'Amounts are automatically rounded to the nearest multiple of 50.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-3xl font-semibold tracking-tight">
+                      {formatMoney(globalBudget, displayCurrency, displayLocale)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {translations.globalBudgetHelper}
+                    </p>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleStartEditingGlobalBudget}
+                    aria-label={isFrench ? 'Modifier le budget global' : 'Edit global budget'}
+                    className="h-10 w-10 rounded-full border border-border/50 bg-background shadow-sm hover:bg-primary/10"
+                  >
+                    <PenLine className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -762,6 +937,7 @@ export default function CategoriesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{translations.tableCategory}</TableHead>
+                    <TableHead className="w-48 text-right">{translations.tablePercentage}</TableHead>
                     <TableHead className="text-right">{translations.tableBudget}</TableHead>
                     <TableHead className="text-right">{translations.tableSpent}</TableHead>
                     <TableHead className="text-right">{translations.tableVariance}</TableHead>
@@ -804,6 +980,51 @@ export default function CategoriesPage() {
                           </div>
                         </div>
                       </TableCell>
+                      <TableCell className="w-48 align-middle">
+                        <div className="flex flex-col gap-2">
+                          <Slider
+                            value={[
+                              Number.isFinite(row.percentage)
+                                ? Math.round(clampPercentage(row.percentage))
+                                : 0,
+                            ]}
+                            onValueChange={values =>
+                              handlePercentageChange(row.category.id, values[0] ?? 0)
+                            }
+                            min={0}
+                            max={100}
+                            step={1}
+                            disabled={globalBudget <= 0}
+                            className={cn(
+                              'h-6 cursor-pointer',
+                              globalBudget <= 0 && 'opacity-60'
+                            )}
+                            aria-label={
+                              isFrench
+                                ? `Pourcentage de ${row.category.name}`
+                                : `${row.category.name} percentage`
+                            }
+                          />
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span className="font-medium text-foreground">
+                              {Number.isFinite(row.percentage)
+                                ? `${Math.round(clampPercentage(row.percentage))}%`
+                                : '0%'}
+                            </span>
+                            {globalBudget > 0 ? (
+                              <span>
+                                {formatMoney(
+                                  row.budget,
+                                  displayCurrency,
+                                  displayLocale
+                                )}
+                              </span>
+                            ) : (
+                              <span>{translations.percentageUnavailable}</span>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <Input
                           type="number"
@@ -813,6 +1034,13 @@ export default function CategoriesPage() {
                               : row.category.budgetedAmount ?? 0
                           }
                           onChange={e => handleBudgetChange(row.category.id, e.target.value)}
+                          onBlur={() =>
+                            normalizeCategoryBudget(
+                              row.category.id,
+                              row.category.budgetedAmount ?? 0,
+                              globalBudget
+                            )
+                          }
                           className="h-9 w-28 text-right"
                         />
                       </TableCell>
@@ -914,6 +1142,12 @@ export default function CategoriesPage() {
                               : category.budgetedAmount ?? 0
                           }
                           onChange={e => handleBudgetChange(category.id, e.target.value)}
+                          onBlur={() =>
+                            normalizeCategoryBudget(
+                              category.id,
+                              category.budgetedAmount ?? 0
+                            )
+                          }
                           className="h-9 w-28 text-right"
                         />
                       </TableCell>

@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PlusCircle } from "lucide-react";
 import { useFirestore, useUser, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, updateDoc } from "firebase/firestore";
 import type { Goal, Currency } from "@/lib/types";
 import { useEnhancedToast } from "@/components/ui/enhanced-toast";
 import { useFirestoreInfiniteQuery } from "@/hooks/use-firestore-infinite-query";
@@ -236,7 +236,7 @@ function GoalsPageContent() {
     try {
       const goalRef = doc(firestore, `users/${user.uid}/budgetGoals`, goal.id);
       const newAmount = (goal.currentAmountInCents || 0) + amountInCents;
-      await updateDocumentNonBlocking(goalRef, { 
+      await updateDoc(goalRef, { 
         currentAmountInCents: newAmount,
         updatedAt: new Date().toISOString()
       });
@@ -257,6 +257,9 @@ function GoalsPageContent() {
       setIsContributionDialogOpen(false);
       setContributionGoal(null);
     } catch (err) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[Goals] Contribution failed', err);
+      }
       error(
         isFrench ? "Erreur" : "Error",
         isFrench ? "Impossible d'ajouter la contribution" : "Failed to add contribution"
