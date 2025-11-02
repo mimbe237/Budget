@@ -7,8 +7,22 @@ import { DecodedIdToken } from 'firebase-admin/auth';
 
 export interface AdminUser extends DecodedIdToken {
   role?: string;
+  status?: 'active' | 'suspended';
   isAdmin: boolean;
 }
+
+const adminEmailSet = (() => {
+  const raw =
+    process.env.ADMIN_EMAILS ??
+    process.env.NEXT_PUBLIC_ADMIN_EMAILS ??
+    '';
+  return new Set(
+    raw
+      .split(',')
+      .map(email => email.trim().toLowerCase())
+      .filter(Boolean)
+  );
+})();
 
 /**
  * Vérifie si l'utilisateur connecté est un admin
@@ -31,34 +45,45 @@ export async function getAdminUser(): Promise<AdminUser | null> {
     const adminAuth = getAdminAuth();
     const decodedToken = await adminAuth.verifyIdToken(token);
 
-    // Vérifier Custom Claims d'abord
-    if (decodedToken.role === 'admin' || decodedToken.admin === true) {
-      return {
-        ...decodedToken,
-        role: 'admin',
-        isAdmin: true
-      };
+    const db = getAdminFirestore();
+
+    let profileRole: string | undefined;
+    let profileStatus: 'active' | 'suspended' = 'active';
+    let profileIsAdmin = false;
+
+    try {
+      const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        if (typeof userData?.role === 'string') {
+          profileRole = userData.role;
+        }
+        if (userData?.isAdmin === true || userData?.role === 'admin') {
+          profileIsAdmin = true;
+        }
+        if (userData?.status === 'suspended') {
+          profileStatus = 'suspended';
+        }
+      }
+    } catch (firestoreError) {
+      console.warn('Impossible de récupérer le profil admin', firestoreError);
     }
 
-    // Vérifier dans Firestore si pas de Custom Claims
-    const db = getAdminFirestore();
-    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-    
-    if (userDoc.exists) {
-      const userData = userDoc.data();
-      const isAdmin = userData?.role === 'admin';
-      
-      return {
-        ...decodedToken,
-        role: userData?.role || 'user',
-        isAdmin
-      };
-    }
+    const hasAdminClaim = decodedToken.role === 'admin' || decodedToken.admin === true;
+    const fallbackEmailAdmin = decodedToken.email
+      ? adminEmailSet.has(decodedToken.email.toLowerCase())
+      : false;
+
+    const derivedRole = profileRole
+      ?? (hasAdminClaim || fallbackEmailAdmin ? 'admin' : 'user');
+
+    const isAdmin = profileStatus !== 'suspended' && (hasAdminClaim || fallbackEmailAdmin || profileIsAdmin);
 
     return {
       ...decodedToken,
-      role: 'user',
-      isAdmin: false
+      role: derivedRole,
+      status: profileStatus,
+      isAdmin,
     };
 
   } catch (error) {

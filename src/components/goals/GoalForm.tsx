@@ -1,9 +1,24 @@
 'use client';
 import { useState, useEffect } from 'react';
+import type { ComponentType } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import {
+  Target as TargetIcon,
+  Plane,
+  Car,
+  Home,
+  PiggyBank,
+  Gift,
+  Heart,
+  Book,
+  Dumbbell,
+  Briefcase,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +29,58 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { COMMON_GOAL_SUGGESTIONS } from '@/lib/goal-suggestions';
-import type { Goal, Currency } from '@/lib/types';
+import type { Goal, Currency, GoalType } from '@/lib/types';
+
+const GOAL_TYPE_OPTIONS: { value: GoalType; labelFr: string; labelEn: string }[] = [
+  { value: 'epargne', labelFr: 'Épargne', labelEn: 'Savings' },
+  { value: 'achat', labelFr: 'Dépense à réduire', labelEn: 'Spending reduction' },
+  { value: 'dette', labelFr: 'Dette à solder', labelEn: 'Debt payoff' },
+  { value: 'plafond', labelFr: 'Plafond de dépenses', labelEn: 'Spending cap' },
+];
+
+const GOAL_ICON_OPTIONS = [
+  { value: 'target', label: 'Target' },
+  { value: 'plane', label: 'Plane' },
+  { value: 'car', label: 'Car' },
+  { value: 'home', label: 'Home' },
+  { value: 'piggy-bank', label: 'Piggy bank' },
+  { value: 'gift', label: 'Gift' },
+  { value: 'heart', label: 'Heart' },
+  { value: 'book', label: 'Book' },
+  { value: 'dumbbell', label: 'Fitness' },
+  { value: 'briefcase', label: 'Business' },
+];
+
+const ICON_PREVIEW_MAP: Record<string, ComponentType<{ className?: string }>> = {
+  target: TargetIcon,
+  plane: Plane,
+  car: Car,
+  home: Home,
+  'piggy-bank': PiggyBank,
+  gift: Gift,
+  heart: Heart,
+  book: Book,
+  dumbbell: Dumbbell,
+  briefcase: Briefcase,
+};
+
+const GOAL_COLOR_OPTIONS = [
+  '#2563eb',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#ec4899',
+  '#14b8a6',
+  '#f97316',
+  '#0ea5e9',
+  '#64748b',
+];
+
+interface OptionItem {
+  value: string;
+  label: string;
+}
 
 interface GoalFormProps {
   isOpen: boolean;
@@ -23,15 +89,31 @@ interface GoalFormProps {
   currentGoal: Goal | null;
   displayCurrency: Currency;
   isFrench: boolean;
+  categoryOptions: OptionItem[];
+  debtOptions: OptionItem[];
 }
 
-export function GoalForm({ isOpen, onClose, onSave, currentGoal, displayCurrency, isFrench }: GoalFormProps) {
+export function GoalForm({
+  isOpen,
+  onClose,
+  onSave,
+  currentGoal,
+  displayCurrency,
+  isFrench,
+  categoryOptions,
+  debtOptions,
+}: GoalFormProps) {
   const [goalName, setGoalName] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [currentAmount, setCurrentAmount] = useState('0');
   const [targetDate, setTargetDate] = useState('');
   const [description, setDescription] = useState('');
   const [storageAccount, setStorageAccount] = useState('');
+  const [goalType, setGoalType] = useState<GoalType>('epargne');
+  const [goalIcon, setGoalIcon] = useState<string>('target');
+  const [goalColor, setGoalColor] = useState<string>(GOAL_COLOR_OPTIONS[0]);
+  const [linkedCategory, setLinkedCategory] = useState<string>('none');
+  const [linkedDebt, setLinkedDebt] = useState<string>('none');
   const [suggestionIndex, setSuggestionIndex] = useState<number | null>(null);
   const [isAISuggesting, setIsAISuggesting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -47,6 +129,11 @@ export function GoalForm({ isOpen, onClose, onSave, currentGoal, displayCurrency
       setTargetDate(new Date(currentGoal.targetDate).toISOString().split('T')[0]);
       setDescription(currentGoal.description || '');
       setStorageAccount(currentGoal.storageAccount || '');
+      setGoalType(currentGoal.type || 'epargne');
+      setGoalIcon(currentGoal.icon || 'target');
+      setGoalColor(currentGoal.color || GOAL_COLOR_OPTIONS[0]);
+      setLinkedCategory(currentGoal.linkedCategoryId || 'none');
+      setLinkedDebt(currentGoal.linkedDebtId || 'none');
       setSuggestionIndex(null);
     } else {
       // restore draft if available
@@ -78,6 +165,11 @@ export function GoalForm({ isOpen, onClose, onSave, currentGoal, displayCurrency
     setTargetDate('');
     setDescription('');
     setStorageAccount('');
+    setGoalType('epargne');
+    setGoalIcon('target');
+    setGoalColor(GOAL_COLOR_OPTIONS[0]);
+    setLinkedCategory('none');
+    setLinkedDebt('none');
     setSuggestionIndex(null);
     setErrors({});
     setIsDirty(false);
@@ -92,7 +184,10 @@ export function GoalForm({ isOpen, onClose, onSave, currentGoal, displayCurrency
     const d = new Date();
     d.setMonth(d.getMonth() + s.defaultMonths);
     setTargetDate(d.toISOString().split('T')[0]);
+    setGoalType('epargne');
+    if (s.icon) setGoalIcon(s.icon);
     setSuggestionIndex(idx);
+    setIsDirty(true);
   };
 
   const handleAISuggestion = async () => {
@@ -108,6 +203,7 @@ export function GoalForm({ isOpen, onClose, onSave, currentGoal, displayCurrency
         setTargetAmount(String(data.amount));
         setCurrentAmount('0');
         setTargetDate(data.date);
+        setGoalType('epargne');
         setSuggestionIndex(null);
       }
     } catch (e) {
@@ -131,6 +227,8 @@ export function GoalForm({ isOpen, onClose, onSave, currentGoal, displayCurrency
 
     const targetAmountInCents = Math.round(parseFloat(targetAmount) * 100);
     const currentAmountInCents = Math.round(parseFloat(currentAmount) * 100);
+    const selectedCategory = categoryOptions.find((option) => option.value === linkedCategory);
+    const selectedDebt = debtOptions.find((option) => option.value === linkedDebt);
 
     onSave({
       name: goalName.trim(),
@@ -141,6 +239,15 @@ export function GoalForm({ isOpen, onClose, onSave, currentGoal, displayCurrency
       description: description.trim() || undefined,
       storageAccount: storageAccount.trim() || undefined,
       createdAt: currentGoal?.createdAt || new Date().toISOString(),
+      type: goalType,
+      icon: goalIcon,
+      color: goalColor,
+      linkedCategoryId: linkedCategory === 'none' ? null : linkedCategory,
+      linkedCategoryName:
+        linkedCategory === 'none' ? null : selectedCategory?.label ?? null,
+      linkedDebtId: linkedDebt === 'none' ? null : linkedDebt,
+      linkedDebtTitle:
+        linkedDebt === 'none' ? null : selectedDebt?.label ?? null,
     });
 
     // clear draft
@@ -196,12 +303,21 @@ export function GoalForm({ isOpen, onClose, onSave, currentGoal, displayCurrency
     editDesc: isFrench ? 'Apportez des modifications à votre objectif.' : 'Make changes to your goal.',
     addDesc: isFrench ? 'Créez un nouvel objectif financier.' : 'Create a new financial goal.',
     nameLabel: isFrench ? 'Nom' : 'Name',
+    typeLabel: isFrench ? 'Type' : 'Type',
     targetLabel: isFrench ? 'Cible' : 'Target',
     savedLabel: isFrench ? 'Économisé' : 'Saved',
     targetDateLabel: isFrench ? 'Date Cible' : 'Target Date',
     descriptionLabel: isFrench ? 'Description' : 'Description',
     accountLabel: isFrench ? 'Compte de dépôt' : 'Holding account',
     accountPlaceholder: isFrench ? 'ex: Banque X - Épargne' : 'e.g. Bank X – Savings',
+    iconLabel: isFrench ? 'Icône' : 'Icon',
+    colorLabel: isFrench ? 'Couleur' : 'Color',
+    categoryLinkLabel: isFrench ? 'Associer à une catégorie' : 'Link to category',
+    debtLinkLabel: isFrench ? 'Associer à une dette' : 'Link to debt',
+    noneOption: isFrench ? 'Aucun' : 'None',
+    spendingTypeHelp: isFrench
+      ? 'Type d’objectif : épargne, réduction de dépense ou remboursement.'
+      : 'Goal type: savings, spending reduction, or payoff.',
     cancel: isFrench ? 'Annuler' : 'Cancel',
     save: isFrench ? 'Enregistrer' : 'Save',
   };
@@ -309,6 +425,138 @@ export function GoalForm({ isOpen, onClose, onSave, currentGoal, displayCurrency
                 <span className="text-muted-foreground" aria-hidden> *</span>
               </div>
               {errors.targetDate && (<div id="err-date" role="alert" className="text-sm text-destructive mt-1">{errors.targetDate}</div>)}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="goal-type" className="text-right">{translations.typeLabel}</Label>
+            <div className="col-span-3 space-y-2">
+              <Select
+                value={goalType}
+                onValueChange={(value) => {
+                  setGoalType(value as GoalType);
+                  setIsDirty(true);
+                }}
+              >
+                <SelectTrigger id="goal-type">
+                  <SelectValue placeholder={translations.typeLabel} />
+                </SelectTrigger>
+                <SelectContent>
+                  {GOAL_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {isFrench ? option.labelFr : option.labelEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">{translations.spendingTypeHelp}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label className="text-right pt-1">{translations.iconLabel}</Label>
+            <div className="col-span-3">
+              <div className="grid grid-cols-5 gap-2">
+                {GOAL_ICON_OPTIONS.map((option) => {
+                  const Icon = ICON_PREVIEW_MAP[option.value];
+                  const isSelected = goalIcon === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setGoalIcon(option.value);
+                        setIsDirty(true);
+                      }}
+                      className={cn(
+                        'flex items-center justify-center rounded-md border bg-background p-2 transition-colors focus:outline-none focus-visible:ring',
+                        isSelected ? 'border-primary text-primary shadow-sm' : 'border-muted text-muted-foreground'
+                      )}
+                      aria-pressed={isSelected}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label className="text-right pt-1">{translations.colorLabel}</Label>
+            <div className="col-span-3">
+              <div className="flex flex-wrap gap-2">
+                {GOAL_COLOR_OPTIONS.map((color) => {
+                  const isSelected = goalColor === color;
+                  return (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => {
+                        setGoalColor(color);
+                        setIsDirty(true);
+                      }}
+                      className={cn(
+                        'h-8 w-8 rounded-full border-2 transition-all focus:outline-none focus-visible:ring',
+                        isSelected ? 'border-primary scale-105' : 'border-transparent'
+                      )}
+                      style={{ backgroundColor: color }}
+                      aria-label={isFrench ? `Choisir la couleur ${color}` : `Choose color ${color}`}
+                      aria-pressed={isSelected}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="linked-category" className="text-right">{translations.categoryLinkLabel}</Label>
+            <div className="col-span-3">
+              <Select
+                value={linkedCategory}
+                onValueChange={(value) => {
+                  setLinkedCategory(value);
+                  setIsDirty(true);
+                }}
+              >
+                <SelectTrigger id="linked-category">
+                  <SelectValue placeholder={translations.categoryLinkLabel} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{translations.noneOption}</SelectItem>
+                  {categoryOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="linked-debt" className="text-right">{translations.debtLinkLabel}</Label>
+            <div className="col-span-3">
+              <Select
+                value={linkedDebt}
+                onValueChange={(value) => {
+                  setLinkedDebt(value);
+                  setIsDirty(true);
+                }}
+              >
+                <SelectTrigger id="linked-debt">
+                  <SelectValue placeholder={translations.debtLinkLabel} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{translations.noneOption}</SelectItem>
+                  {debtOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

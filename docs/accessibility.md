@@ -1,4 +1,4 @@
-# Guide d'Accessibilité (A11y) - BudgetWise
+# Guide d'Accessibilité (A11y) - Budget Pro
 
 ## Standards WCAG 2.1 Niveau AA
 

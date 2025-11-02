@@ -1,5 +1,5 @@
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/google-genai';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 if (!apiKey) {
@@ -9,11 +9,12 @@ if (!apiKey) {
 
 export const aiEnabled = Boolean(apiKey);
 
-export const ai = genkit({
-  plugins: [
-    googleAI({
-      apiKey,
-    }),
-  ],
-  model: 'googleai/gemini-2.5-flash',
-});
+// N'instancie Genkit que si une clé est fournie, pour éviter toute erreur d'initialisation.
+export const ai: any = apiKey
+  ? genkit({
+      plugins: [
+        googleAI({ apiKey }),
+      ],
+      model: 'googleai/gemini-2.5-flash',
+    })
+  : null;

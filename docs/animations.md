@@ -1,4 +1,4 @@
-# Guide des Animations - BudgetWise
+# Guide des Animations - Budget Pro
 
 ## Vue d'ensemble
 

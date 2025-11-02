@@ -69,6 +69,8 @@ import { useToast } from '@/hooks/use-toast';
 import { createDefaultCategories } from '@/lib/default-categories';
 import { cn } from '@/lib/utils';
 import { formatBudgetPeriod } from '@/lib/budget-utils';
+import { CategoryDistributionChart } from '@/components/categories/category-distribution-chart';
+import { CategoryIcon, AVAILABLE_CATEGORY_ICONS } from '@/components/categories/category-icon';
 
 const DEFAULT_EXPENSE_WEIGHTS: Record<string, number> = {
   Housing: 30,
@@ -84,6 +86,16 @@ const DEFAULT_EXPENSE_WEIGHTS: Record<string, number> = {
 };
 
 const CUSTOM_CATEGORY_WEIGHT = 5;
+const CATEGORY_COLOR_OPTIONS = [
+  '#2563eb',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#14b8a6',
+  '#f97316',
+  '#0ea5e9',
+];
 
 const roundToNearest50 = (value: number) => {
   if (!Number.isFinite(value)) return 0;
@@ -163,6 +175,10 @@ const [editingCategory, setEditingCategory] = useState<CategoryDocument | null>(
 const [newCategoryName, setNewCategoryName] = useState('');
 const [newCategoryType, setNewCategoryType] = useState<'income' | 'expense'>('expense');
 const [newCategoryBudget, setNewCategoryBudget] = useState('');
+const [newCategoryIcon, setNewCategoryIcon] = useState<string>('shopping');
+const [newCategoryColor, setNewCategoryColor] = useState<string>(CATEGORY_COLOR_OPTIONS[0]);
+const [newCategoryParent, setNewCategoryParent] = useState<string>('none');
+const [suggestionSelections, setSuggestionSelections] = useState<Record<string, string>>({});
 
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -188,11 +204,17 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
     }
   }, [userProfile?.monthlyExpenseBudget]);
 
+useEffect(() => {
+  if (!isEditingGlobalBudget) {
+    setDraftGlobalBudget(globalBudgetInput);
+  }
+}, [globalBudgetInput, isEditingGlobalBudget]);
+
   useEffect(() => {
-    if (!isEditingGlobalBudget) {
-      setDraftGlobalBudget(globalBudgetInput);
+    if (newCategoryType === 'income') {
+      setNewCategoryParent('none');
     }
-  }, [globalBudgetInput, isEditingGlobalBudget]);
+  }, [newCategoryType]);
 
   const monthRange = useMemo(() => {
     const now = new Date();
@@ -236,6 +258,11 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
     () => categories?.filter(cat => cat.type === 'income') ?? [],
     [categories]
   );
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, CategoryDocument>();
+    (categories ?? []).forEach(cat => map.set(cat.id, cat));
+    return map;
+  }, [categories]);
 
   const spendingByCategory = useMemo(() => {
     const byId = new Map<string, number>();
@@ -254,7 +281,7 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
   }, [expenses]);
 
   const expenseRows = useMemo(() => {
-    return expenseCategories.map(category => {
+    return expenseCategories.map((category, index) => {
       const budget = budgetValues[category.id] ?? category.budgetedAmount ?? 0;
       const spent =
         spendingByCategory.byId.get(category.id) ??
@@ -272,6 +299,11 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
       }
 
       const percentage = globalBudget > 0 ? (budget / globalBudget) * 100 : 0;
+      const parentCategory = category.parentCategoryId
+        ? categoryMap.get(category.parentCategoryId) ?? null
+        : null;
+      const accentColor =
+        category.color ?? CATEGORY_COLOR_OPTIONS[index % CATEGORY_COLOR_OPTIONS.length];
 
       return {
         category,
@@ -281,9 +313,11 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
         utilization: Number.isFinite(utilization) ? utilization : 1.5,
         status,
         percentage: Number.isFinite(percentage) ? percentage : 0,
+        parentCategory,
+        accentColor,
       };
     });
-  }, [expenseCategories, budgetValues, spendingByCategory, globalBudget]);
+  }, [expenseCategories, budgetValues, spendingByCategory, globalBudget, categoryMap]);
 
   const totalAllocated = useMemo(() => {
     return expenseCategories.reduce((acc, category) => {
@@ -296,10 +330,68 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
     return expenseRows.reduce((acc, row) => acc + row.spent, 0);
   }, [expenseRows]);
 
+  const distributionData = useMemo(
+    () =>
+      expenseRows
+        .filter(row => row.budget > 0)
+        .map(row => ({
+          id: row.category.id,
+          name: row.category.name,
+          value: row.budget,
+          color: row.accentColor,
+        })),
+    [expenseRows]
+  );
+  const distributionTotal = useMemo(
+    () => distributionData.reduce((acc, item) => acc + item.value, 0),
+    [distributionData]
+  );
+
   const remainingToAllocate = globalBudget - totalAllocated;
   const remainingBudget = globalBudget - totalSpent;
 
   const isLoadingData = isLoading || isExpensesLoading;
+
+  const uncategorizedTransactions = useMemo(
+    () =>
+      expenses.filter(tx => {
+        if (!tx) return false;
+        const categoryName = (tx.category || '').trim().toLowerCase();
+        return !categoryName || categoryName === 'uncategorized' || categoryName === 'undefined';
+      }),
+    [expenses]
+  );
+
+  const handleAssignSuggestion = async (transactionId: string, categoryId: string) => {
+    if (!firestore || !user) return;
+    const category = categoryMap.get(categoryId);
+    if (!category) return;
+    try {
+      const transactionRef = doc(firestore, `users/${user.uid}/expenses/${transactionId}`);
+      updateDocumentNonBlocking(transactionRef, {
+        categoryId,
+        category: category.name,
+        updatedAt: new Date().toISOString(),
+      });
+      toast({
+        title: isFrench ? 'Transaction catégorisée' : 'Transaction categorised',
+        description: isFrench
+          ? `La transaction est maintenant classée dans ${category.name}.`
+          : `Transaction has been assigned to ${category.name}.`,
+      });
+      setSuggestionSelections(prev => {
+        const next = { ...prev };
+        delete next[transactionId];
+        return next;
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: isFrench ? 'Erreur' : 'Error',
+        description: error?.message ?? (isFrench ? 'Impossible de catégoriser.' : 'Unable to categorise.'),
+      });
+    }
+  };
 
   const handleBudgetChange = (categoryId: string, value: string) => {
     const parsed = parseFloat(value);
@@ -448,11 +540,16 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
     const categoriesCollection = collection(firestore, `users/${user.uid}/categories`);
     const rawBudget = parseFloat(newCategoryBudget) || 0;
     const normalizedBudget = rawBudget <= 0 ? 0 : roundToNearest50(rawBudget);
+    const parentCategoryId =
+      newCategoryType === 'expense' && newCategoryParent !== 'none' ? newCategoryParent : null;
     const newCategory: Omit<CategoryDocument, 'id'> = {
       userId: user.uid,
       name: newCategoryName.trim(),
       type: newCategoryType,
       budgetedAmount: normalizedBudget,
+      icon: newCategoryIcon,
+      color: newCategoryColor,
+      parentCategoryId,
       isCustom: true,
     };
 
@@ -468,6 +565,9 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
     setNewCategoryName('');
     setNewCategoryType('expense');
     setNewCategoryBudget('');
+    setNewCategoryIcon('shopping');
+    setNewCategoryColor(CATEGORY_COLOR_OPTIONS[0]);
+    setNewCategoryParent('none');
     setIsAddDialogOpen(false);
   };
 
@@ -476,6 +576,9 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
     setNewCategoryName(category.name);
     setNewCategoryType(category.type);
     setNewCategoryBudget((category.budgetedAmount ?? 0).toString());
+    setNewCategoryIcon(category.icon ?? 'shopping');
+    setNewCategoryColor(category.color ?? CATEGORY_COLOR_OPTIONS[0]);
+    setNewCategoryParent(category.parentCategoryId ?? 'none');
   };
 
   const handleUpdateCategory = () => {
@@ -484,10 +587,15 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
     const categoryRef = doc(firestore, `users/${user.uid}/categories`, editingCategory.id);
     const updatedBudget = parseFloat(newCategoryBudget) || 0;
     const normalizedBudget = updatedBudget <= 0 ? 0 : roundToNearest50(updatedBudget);
+    const parentCategoryId =
+      newCategoryType === 'expense' && newCategoryParent !== 'none' ? newCategoryParent : null;
     updateDocumentNonBlocking(categoryRef, {
       name: newCategoryName.trim(),
       type: newCategoryType,
       budgetedAmount: normalizedBudget,
+      icon: newCategoryIcon,
+      color: newCategoryColor,
+      parentCategoryId,
     });
 
     toast({
@@ -504,6 +612,10 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
     setEditingCategory(null);
     setNewCategoryName('');
     setNewCategoryBudget('');
+    setNewCategoryType('expense');
+    setNewCategoryIcon('shopping');
+    setNewCategoryColor(CATEGORY_COLOR_OPTIONS[0]);
+    setNewCategoryParent('none');
     setHasChanges(true);
   };
 
@@ -519,6 +631,11 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
 
     const categoryRef = doc(firestore, `users/${user.uid}/categories`, categoryId);
     deleteDocumentNonBlocking(categoryRef);
+    setBudgetValues(prev => {
+      const next = { ...prev };
+      delete next[categoryId];
+      return next;
+    });
 
     toast({
       title: isFrench ? 'Catégorie supprimée' : 'Category deleted',
@@ -659,6 +776,10 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
     categoryName: isFrench ? 'Nom de la catégorie' : 'Category name',
     categoryType: isFrench ? 'Type de catégorie' : 'Category type',
     defaultBudget: isFrench ? 'Budget par défaut' : 'Default budget',
+    categoryIcon: isFrench ? 'Icône' : 'Icon',
+    categoryColor: isFrench ? 'Couleur' : 'Color',
+    categoryParent: isFrench ? 'Sous-catégorie de' : 'Subcategory of',
+    noneOption: isFrench ? 'Aucune' : 'None',
     expense: isFrench ? 'Dépense' : 'Expense',
     income: isFrench ? 'Revenu' : 'Income',
     cancel: isFrench ? 'Annuler' : 'Cancel',
@@ -673,9 +794,19 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
       ? 'Aucune catégorie de revenus.'
       : 'No income categories yet.',
     custom: isFrench ? 'Personnalisée' : 'Custom',
+    defaultLabel: isFrench ? 'Défaut' : 'Default',
     percentageUnavailable: isFrench
       ? 'Définissez un budget global.'
       : 'Set a global budget first.',
+    suggestionsTitle: isFrench ? 'Catégorisation assistée (IA)' : 'AI-assisted categorisation',
+    suggestionsDescription: isFrench
+      ? 'Transactions récentes à catégoriser automatiquement.'
+      : 'Recent transactions pending categorisation.',
+    suggestionsEmpty: isFrench
+      ? 'Toutes vos transactions sont catégorisées.'
+      : 'All transactions are already categorised.',
+    assignLabel: isFrench ? 'Assigner' : 'Assign',
+    suggestionPlaceholder: isFrench ? 'Choisir une catégorie' : 'Select category',
   };
 
   return (
@@ -824,6 +955,45 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
           </Card>
         </div>
 
+        <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+          <CategoryDistributionChart
+            data={distributionData}
+            total={distributionTotal}
+            isFrench={isFrench}
+            currency={displayCurrency}
+            locale={displayLocale}
+          />
+          <Card className="border border-slate-200/70 bg-slate-50/60">
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold text-slate-900">
+                {isFrench ? 'Conseils IA' : 'AI tips'}
+              </CardTitle>
+              <CardDescription>
+                {isFrench
+                  ? 'Utilisez les distributions automatiques et les catégories par défaut pour gagner du temps.'
+                  : 'Use automatic distributions and default categories to save time.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                {isFrench
+                  ? 'La répartition intelligente s’appuie sur les pondérations historiques pour calibrer les plafonds.'
+                  : 'Smart distribution uses historical weights to calibrate each cap.'}
+              </p>
+              <p>
+                {isFrench
+                  ? 'Vous pouvez personnaliser chaque catégorie avec une icône, une couleur et un lien parent.'
+                  : 'You can customise each category with an icon, colour and parent link.'}
+              </p>
+              <p>
+                {isFrench
+                  ? 'Les sous-catégories héritent de leurs parents dans les rapports détaillés.'
+                  : 'Subcategories inherit their parent in detailed reporting.'}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card>
           <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -851,7 +1021,20 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
                   {translations.seedDefaults}
                 </Button>
               )}
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <Dialog
+                open={isAddDialogOpen}
+                onOpenChange={open => {
+                  setIsAddDialogOpen(open);
+                  if (!open) {
+                    setNewCategoryName('');
+                    setNewCategoryType('expense');
+                    setNewCategoryBudget('');
+                    setNewCategoryIcon('shopping');
+                    setNewCategoryColor(CATEGORY_COLOR_OPTIONS[0]);
+                    setNewCategoryParent('none');
+                  }
+                }}
+              >
                 <DialogTrigger asChild>
                   <Button size="sm" variant="outline" className="h-8 gap-1">
                     <Plus className="h-3.5 w-3.5" />
@@ -888,10 +1071,66 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="expense">{translations.expense}</SelectItem>
-                          <SelectItem value="income">{translations.income}</SelectItem>
+                        <SelectItem value="income">{translations.income}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                    <div className="grid gap-2">
+                      <Label>{translations.categoryIcon}</Label>
+                      <Select value={newCategoryIcon} onValueChange={setNewCategoryIcon}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {AVAILABLE_CATEGORY_ICONS.map(icon => (
+                            <SelectItem key={icon.value} value={icon.value} className="flex items-center gap-2">
+                              <div className="flex items-center gap-2">
+                                <CategoryIcon icon={icon.value} className="h-4 w-4" />
+                                <span className="capitalize">{icon.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="grid gap-2">
+                      <Label>{translations.categoryColor}</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {CATEGORY_COLOR_OPTIONS.map(color => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => setNewCategoryColor(color)}
+                            className={cn(
+                              'h-7 w-7 rounded-full border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                              newCategoryColor === color
+                                ? 'border-slate-900 ring-primary'
+                                : 'border-transparent'
+                            )}
+                            style={{ backgroundColor: color }}
+                            aria-label={color}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {newCategoryType === 'expense' ? (
+                      <div className="grid gap-2">
+                        <Label>{translations.categoryParent}</Label>
+                        <Select value={newCategoryParent} onValueChange={setNewCategoryParent}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">{translations.noneOption}</SelectItem>
+                            {expenseCategories.map(cat => (
+                              <SelectItem key={`parent-${cat.id}`} value={cat.id}>
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : null}
                     <div className="grid gap-2">
                       <Label htmlFor="new-category-budget">{translations.defaultBudget}</Label>
                       <Input
@@ -952,31 +1191,54 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
                       className={cn('transition-colors', getRowClass(row.status))}
                     >
                       <TableCell className="align-middle">
-                        <div className="flex flex-col gap-1">
-                          <span className="font-medium">{row.category.name}</span>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Badge
-                              variant="secondary"
-                              className={cn(
-                                'px-2 py-0.5',
-                                row.category.isCustom ? 'bg-primary/10 text-primary' : 'bg-muted'
-                              )}
-                            >
-                              {row.category.isCustom ? translations.custom : 'Default'}
-                            </Badge>
-                            <span>
-                              {formatMoney(
-                                row.spent,
-                                displayCurrency,
-                                displayLocale
-                              )}{' '}
-                              /{' '}
-                              {formatMoney(
-                                row.budget,
-                                displayCurrency,
-                                displayLocale
-                              )}
-                            </span>
+                        <div className="flex items-start gap-3">
+                          <div
+                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm"
+                            style={{ color: row.accentColor, borderColor: `${row.accentColor}66` }}
+                          >
+                            <CategoryIcon icon={row.category.icon} className="h-5 w-5" />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-900">
+                                {row.category.name}
+                              </span>
+                              <span
+                                className="inline-flex h-3 w-3 rounded-full"
+                                style={{ backgroundColor: row.accentColor }}
+                              />
+                            </div>
+                            {row.parentCategory ? (
+                              <span className="text-xs text-muted-foreground">
+                                {isFrench
+                                  ? `Sous ${row.parentCategory.name}`
+                                  : `Under ${row.parentCategory.name}`}
+                              </span>
+                            ) : null}
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                              <Badge
+                                variant="secondary"
+                                className={cn(
+                                  'px-2 py-0.5',
+                                  row.category.isCustom ? 'bg-primary/10 text-primary' : 'bg-muted'
+                                )}
+                              >
+                              {row.category.isCustom ? translations.custom : translations.defaultLabel}
+                              </Badge>
+                              <span>
+                                {formatMoney(
+                                  row.spent,
+                                  displayCurrency,
+                                  displayLocale
+                                )}{' '}
+                                /{' '}
+                                {formatMoney(
+                                  row.budget,
+                                  displayCurrency,
+                                  displayLocale
+                                )}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </TableCell>
@@ -1130,9 +1392,27 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {incomeCategories.map(category => (
+                  {incomeCategories.map(category => {
+                    const accent = category.color ?? CATEGORY_COLOR_OPTIONS[0];
+                    return (
                     <TableRow key={category.id}>
-                      <TableCell className="font-medium">{category.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-start gap-3">
+                          <div
+                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm"
+                            style={{ color: accent, borderColor: `${accent}66` }}
+                            >
+                              <CategoryIcon icon={category.icon} className="h-4 w-4" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-slate-900">{category.name}</span>
+                              <span
+                                className="inline-flex h-2 w-2 rounded-full"
+                                style={{ backgroundColor: accent }}
+                              />
+                            </div>
+                          </div>
+                        </TableCell>
                       <TableCell className="text-right">
                         <Input
                           type="number"
@@ -1172,9 +1452,76 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  );
+                  })}
                 </TableBody>
               </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-violet-500" />
+              {translations.suggestionsTitle}
+            </CardTitle>
+            <CardDescription>{translations.suggestionsDescription}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {uncategorizedTransactions.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                {translations.suggestionsEmpty}
+              </div>
+            ) : (
+              uncategorizedTransactions.slice(0, 6).map(tx => (
+                <div
+                  key={tx.id}
+                  className="flex flex-col gap-3 rounded-xl border border-slate-200/70 bg-slate-50/60 p-4 md:flex-row md:items-center md:justify-between"
+                >
+                  <div className="space-y-1">
+                    <div className="font-medium text-slate-900">{tx.description || '—'}</div>
+                    <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-3">
+                      <span>{new Date(tx.date).toLocaleDateString(displayLocale)}</span>
+                      <span>{formatMoney((tx.amountInCents || 0) / 100, displayCurrency, displayLocale)}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Select
+                      value={suggestionSelections[tx.id] ?? 'none'}
+                      onValueChange={value =>
+                        setSuggestionSelections(prev => ({ ...prev, [tx.id]: value }))
+                      }
+                    >
+                      <SelectTrigger className="min-w-[180px]">
+                        <SelectValue placeholder={translations.suggestionPlaceholder} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">{translations.noneOption}</SelectItem>
+                        {expenseCategories.map(cat => (
+                          <SelectItem key={`suggest-${cat.id}`} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => {
+                        const selection = suggestionSelections[tx.id];
+                        if (!selection || selection === 'none') return;
+                        handleAssignSuggestion(tx.id, selection);
+                      }}
+                      disabled={
+                        !suggestionSelections[tx.id] ||
+                        suggestionSelections[tx.id] === 'none'
+                      }
+                      className="h-9"
+                    >
+                      {translations.assignLabel}
+                    </Button>
+                  </div>
+                </div>
+              ))
             )}
           </CardContent>
         </Card>
@@ -1187,6 +1534,10 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
             setEditingCategory(null);
             setNewCategoryName('');
             setNewCategoryBudget('');
+            setNewCategoryType('expense');
+            setNewCategoryIcon('shopping');
+            setNewCategoryColor(CATEGORY_COLOR_OPTIONS[0]);
+            setNewCategoryParent('none');
           }
         }}
       >
@@ -1219,10 +1570,66 @@ const [newCategoryBudget, setNewCategoryBudget] = useState('');
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="expense">{translations.expense}</SelectItem>
-                  <SelectItem value="income">{translations.income}</SelectItem>
+                <SelectItem value="income">{translations.income}</SelectItem>
+              </SelectContent>
+            </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>{translations.categoryIcon}</Label>
+              <Select value={newCategoryIcon} onValueChange={setNewCategoryIcon}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AVAILABLE_CATEGORY_ICONS.map(icon => (
+                    <SelectItem key={`edit-icon-${icon.value}`} value={icon.value} className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <CategoryIcon icon={icon.value} className="h-4 w-4" />
+                        <span className="capitalize">{icon.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+            <div className="grid gap-2">
+              <Label>{translations.categoryColor}</Label>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORY_COLOR_OPTIONS.map(color => (
+                  <button
+                    key={`edit-color-${color}`}
+                    type="button"
+                    onClick={() => setNewCategoryColor(color)}
+                    className={cn(
+                      'h-7 w-7 rounded-full border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                      newCategoryColor === color ? 'border-slate-900 ring-primary' : 'border-transparent'
+                    )}
+                    style={{ backgroundColor: color }}
+                    aria-label={color}
+                  />
+                ))}
+              </div>
+            </div>
+            {newCategoryType === 'expense' ? (
+              <div className="grid gap-2">
+                <Label>{translations.categoryParent}</Label>
+                <Select value={newCategoryParent} onValueChange={setNewCategoryParent}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{translations.noneOption}</SelectItem>
+                    {expenseCategories
+                      .filter(cat => !editingCategory || cat.id !== editingCategory.id)
+                      .map(cat => (
+                        <SelectItem key={`edit-parent-${cat.id}`} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
             <div className="grid gap-2">
               <Label htmlFor="edit-category-budget">{translations.defaultBudget}</Label>
               <Input

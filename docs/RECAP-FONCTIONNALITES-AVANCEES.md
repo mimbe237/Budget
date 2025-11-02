@@ -5,7 +5,7 @@
 **Toutes les 6 fonctionnalités avancées ont été implémentées avec succès !**
 
 Date d'implémentation : Octobre 2025
-Projet : BudgetWise - Application de gestion de budget personnel avec IA
+Projet : Budget Pro - Application de gestion de budget personnel avec IA
 
 ---
 
@@ -662,7 +662,7 @@ Tous les guides sont dans `/docs/` :
 
 Merci pour cette opportunité de développer ces fonctionnalités avancées ! 🚀
 
-L'application BudgetWise est maintenant une **PWA complète** avec **IA intégrée**, **notifications push**, **authentification sociale** et **exports de données** professionnels.
+L'application Budget Pro est maintenant une **PWA complète** avec **IA intégrée**, **notifications push**, **authentification sociale** et **exports de données** professionnels.
 
 ---
 

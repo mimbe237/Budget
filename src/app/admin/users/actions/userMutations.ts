@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/adminAuth';
 import { getAdminFirestore } from '@/firebase/admin';
 import { AdminUserData } from '@/lib/adminTypes';
+import { buildPhoneCompositeKey } from '@/lib/phone';
 
 // Schemas de validation
 const UpdateUserSchema = z.object({
@@ -65,6 +66,7 @@ export async function updateUser(
         error: 'Utilisateur non trouvé'
       };
     }
+    const currentData = userDoc.data() || {};
 
     // Préparer les données à mettre à jour (filtrer les undefined)
     const updateData: Record<string, any> = {};
@@ -73,6 +75,31 @@ export async function updateUser(
         updateData[key] = value;
       }
     });
+
+    if ('phoneNumber' in updateData || 'phoneCountryCode' in updateData) {
+      const nextCountryRaw =
+        updateData.phoneCountryCode !== undefined
+          ? updateData.phoneCountryCode
+          : currentData?.phoneCountryCode;
+      const nextPhoneRaw =
+        updateData.phoneNumber !== undefined
+          ? updateData.phoneNumber
+          : currentData?.phoneNumber;
+
+      const nextCountry =
+        typeof nextCountryRaw === 'string' && nextCountryRaw.trim().length > 0
+          ? nextCountryRaw
+          : null;
+      const nextPhone =
+        typeof nextPhoneRaw === 'string' && nextPhoneRaw.trim().length > 0
+          ? nextPhoneRaw
+          : null;
+
+      updateData.phoneCompositeKey = buildPhoneCompositeKey(
+        nextCountry,
+        nextPhone
+      );
+    }
 
     // Ajouter timestamp de modification
     updateData.updatedAt = new Date();

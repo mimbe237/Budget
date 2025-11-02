@@ -60,7 +60,7 @@ Avant que l'authentification sociale ne fonctionne, vous devez activer et config
 1. Allez sur [Facebook Developers](https://developers.facebook.com/)
 2. **Mes Apps** → **Créer une app**
 3. Type: **Consommateur**
-4. Nom de l'app: `BudgetWise` (ou votre nom)
+4. Nom de l'app: `Budget Pro` (ou votre nom)
 5. Créez l'app
 6. **Ajouter un produit** → **Facebook Login** → **Configurer**
 
@@ -110,18 +110,18 @@ Avant que l'authentification sociale ne fonctionne, vous devez activer et config
 2. **Certificates, Identifiers & Profiles**
 3. **Identifiers** → **+** (Créer un nouvel identifiant)
 4. Type: **Services IDs**
-5. Description: `BudgetWise Web`
-6. Identifier: `com.budgetwise.web` (ou votre bundle ID)
+5. Description: `Budget Pro Web`
+6. Identifier: `com.budgetpro.web` (ou votre bundle ID)
 7. **Activer Sign In with Apple**
 8. **Configure** → Ajouter votre domaine web et Return URLs
 
 #### Partie 2: Récupérer les Identifiants
 
 1. Dans votre Service ID:
-   - Copiez le **Services ID** (ex: `com.budgetwise.web`)
+  - Copiez le **Services ID** (ex: `com.budgetpro.web`)
 2. Créez une **Key** pour Sign In with Apple:
    - **Keys** → **+**
-   - Nom: `BudgetWise Sign In Key`
+  - Nom: `Budget Pro Sign In Key`
    - **Activer Sign In with Apple**
    - **Configure** → Sélectionnez votre Primary App ID
    - **Téléchargez la clé** (.p8 file) - ⚠️ Une seule fois !
@@ -135,7 +135,7 @@ Avant que l'authentification sociale ne fonctionne, vous devez activer et config
 2. Cliquez sur **Apple**
 3. **Activer** le fournisseur
 4. Entrez:
-   - **Services ID**: `com.budgetwise.web`
+  - **Services ID**: `com.budgetpro.web`
    - **Team ID**: [Votre Team ID]
    - **Key ID**: [Votre Key ID]
    - **Private Key**: Ouvrez le fichier .p8 et collez le contenu

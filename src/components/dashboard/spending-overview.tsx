@@ -78,33 +78,36 @@ export function SpendingOverview({ transactions }: SpendingOverviewProps) {
 
 
   return (
-    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-      <PieChart>
+    <ChartContainer config={chartConfig} className="min-h-[220px] w-full bg-gradient-to-br from-white/60 via-blue-50/80 to-indigo-100/60 backdrop-blur-xl shadow-xl border-0 rounded-2xl p-4 animate-fadein">
+      <PieChart width={340} height={220}>
         <ChartTooltip
           cursor={false}
-          content={<ChartTooltipContent hideLabel formatter={(value, name, props) => (`$${(value as number).toFixed(2)}`)} />}
+          content={<ChartTooltipContent hideLabel formatter={(value, name, props) => (`${(value as number).toLocaleString()} F`)} />}
         />
         <Pie
           data={spendingData}
           dataKey="value"
           nameKey="name"
-          innerRadius={60}
-          strokeWidth={5}
+          innerRadius={70}
+          strokeWidth={6}
           activeIndex={activeIndex}
           activeShape={(props: any) => (
             <Sector
               {...props}
-              outerRadius={props.outerRadius ? props.outerRadius + 5 : 0}
+              outerRadius={props.outerRadius ? props.outerRadius + 8 : 0}
+              fill="#60A5FA"
             />
           )}
           onMouseOver={(_, index) => setActiveIndex(index)}
-        >
-        </Pie>
+        />
         <ChartLegend
           content={<ChartLegendContent nameKey="name" />}
-          className="-translate-y-[2rem] flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+          className="-translate-y-[2rem] flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center text-sm font-semibold text-blue-700"
         />
       </PieChart>
+      <div className="mt-4 text-center text-lg font-bold text-gray-800 drop-shadow-sm">
+        Total dépenses : <span className="text-blue-600">{totalSpending.toLocaleString()} F</span>
+      </div>
     </ChartContainer>
   );
 }

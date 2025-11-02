@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser, setDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,16 @@ const SUPPORTED_CURRENCIES = [
 export default function OnboardingPage() {
   const router = useRouter();
   const firestore = useFirestore();
-  const { user, userProfile } = useUser();
+  const { user, userProfile, isUserLoading } = useUser();
+  const adminEmailSet = useMemo(() => {
+    const raw = process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? '';
+    return new Set(
+      raw
+        .split(',')
+        .map(email => email.trim().toLowerCase())
+        .filter(Boolean)
+    );
+  }, []);
 
   const [step, setStep] = useState(1);
   const [locale, setLocale] = useState<string>(userProfile?.locale || 'fr-CM');
@@ -41,10 +50,29 @@ export default function OnboardingPage() {
   }, [monthlyBudgetStr]);
 
   useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  useEffect(() => {
     if (!user) return;
-    // Si tout est déjà défini, ne pas afficher l'onboarding
-    if (userProfile?.locale && userProfile?.displayCurrency && typeof userProfile?.monthlyExpenseBudget === 'number') {
-      router.replace('/');
+
+    const isAdminProfile = userProfile?.role === 'admin' || userProfile?.isAdmin === true;
+    const isAdminEmail = user.email ? adminEmailSet.has(user.email.toLowerCase()) : false;
+    const isAdmin = isAdminProfile || isAdminEmail;
+    const alreadyConfigured =
+      !!userProfile?.locale &&
+      !!userProfile?.displayCurrency &&
+      typeof userProfile?.monthlyExpenseBudget === 'number';
+
+    if (isAdmin || userProfile?.status === 'suspended') {
+      router.replace('/dashboard');
+      return;
+    }
+
+    if (alreadyConfigured) {
+      router.replace('/dashboard');
     }
   }, [user, userProfile, router]);
 
@@ -66,7 +94,7 @@ export default function OnboardingPage() {
       hasCompletedOnboarding: true,
       updatedAt: new Date().toISOString(),
     }, { merge: true });
-    router.replace('/');
+    router.replace('/dashboard');
   };
 
   return (
@@ -155,7 +183,7 @@ export default function OnboardingPage() {
                   Voulez-vous une visite guidée rapide des principales fonctionnalités ? Vous pourrez la relancer plus tard depuis le tableau de bord.
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="secondary" onClick={() => router.replace('/')}>Plus tard</Button>
+                  <Button variant="secondary" onClick={() => router.replace('/dashboard')}>Plus tard</Button>
                   <Button onClick={handleSave}>
                     <Sparkles className="mr-2 h-4 w-4" /> Terminer et continuer
                   </Button>

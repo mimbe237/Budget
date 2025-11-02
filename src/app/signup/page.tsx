@@ -17,6 +17,7 @@ import { SocialAuthButtons } from '@/components/auth/social-auth-buttons';
 import { useRouter } from 'next/navigation';
 import { User, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { buildPhoneCompositeKey } from '@/lib/phone';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -184,6 +185,46 @@ export default function SignupPage() {
 
     try {
       const { auth, firestore } = initializeFirebase();
+      const phoneCompositeKey = buildPhoneCompositeKey(
+        formData.phoneCountryCode,
+        formData.phoneNumber
+      );
+
+      // Vérifier l'unicité email / téléphone avant création
+      if (typeof fetch !== 'undefined') {
+        const response = await fetch('/api/auth/check-identity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            phoneCountryCode: formData.phoneCountryCode,
+            phoneNumber: formData.phoneNumber,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('identity-check-failed');
+        }
+
+        const payload = await response.json();
+        if (payload.emailExists) {
+          setError(
+            formData.language.startsWith('fr')
+              ? 'Cet email est déjà associé à un compte existant.'
+              : 'This email is already linked to an existing account.'
+          );
+          return;
+        }
+        if (payload.phoneExists) {
+          setError(
+            formData.language.startsWith('fr')
+              ? 'Ce numéro de téléphone est déjà utilisé par un autre compte.'
+              : 'This phone number is already used by another account.'
+          );
+          return;
+        }
+      }
+
       // Create user account
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -212,6 +253,7 @@ export default function SignupPage() {
         locale: userLocale,
         phoneCountryCode: formData.phoneCountryCode,
         phoneNumber: formData.phoneNumber,
+        phoneCompositeKey,
         displayCurrency: 'XAF', // Default currency for Cameroon
         monthlyExpenseBudget: 0, // Will be set in onboarding
         hasCompletedOnboarding: false,
@@ -222,7 +264,21 @@ export default function SignupPage() {
 
       router.push('/onboarding');
     } catch (error: any) {
-      setError(error.message);
+      if (error?.message === 'identity-check-failed') {
+        setError(
+          formData.language.startsWith('fr')
+            ? 'Impossible de vérifier les informations. Veuillez réessayer.'
+            : 'We could not verify your information. Please try again.'
+        );
+      } else if (error?.code === 'auth/email-already-in-use') {
+        setError(
+          formData.language.startsWith('fr')
+            ? 'Cet email est déjà associé à un compte existant.'
+            : 'This email is already linked to an existing account.'
+        );
+      } else {
+        setError(error?.message || 'Une erreur est survenue.');
+      }
     } finally {
       setIsLoading(false);
     }

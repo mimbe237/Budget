@@ -1,6 +1,6 @@
 {
-  "name": "Budget App",
-  "short_name": "Budget",
+  "name": "Budget Pro",
+  "short_name": "Budget Pro",
   "description": "Application de gestion de budget personnel avec IA",
   "start_url": "/",
   "display": "standalone",

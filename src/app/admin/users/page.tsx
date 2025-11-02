@@ -3,6 +3,9 @@ import { requireAdmin } from '@/lib/adminAuth';
 import { AdminUsersClient } from './components/AdminUsersClient';
 import { Metadata } from 'next';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: 'Administration - Utilisateurs | Budget App',
   description: 'Gestion des utilisateurs de la plateforme',

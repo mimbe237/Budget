@@ -1,6 +1,72 @@
 {
   "indexes": [
     {
+      "collectionId": "clicks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "affiliateId", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    },
+    {
+      "collectionId": "clicks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "linkId", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    },
+    {
+      "collectionId": "referrals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "affiliateId", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    },
+    {
+      "collectionId": "referrals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "userId", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    },
+    {
+      "collectionId": "commissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "affiliateId", "order": "ASCENDING"},
+        {"fieldPath": "status", "order": "ASCENDING"},
+        {"fieldPath": "monthKey", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionId": "payouts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "affiliateId", "order": "ASCENDING"},
+        {"fieldPath": "status", "order": "ASCENDING"},
+        {"fieldPath": "periodTo", "order": "DESCENDING"}
+      ]
+    },
+    {
+      "collectionId": "affiliateLinks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "affiliateId", "order": "ASCENDING"},
+        {"fieldPath": "active", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionId": "affiliates",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "status", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    },
+    {
       "collectionGroup": "budgetGoals",
       "queryScope": "COLLECTION",
       "fields": [
@@ -22,6 +88,54 @@
       "fields": [
         { "fieldPath": "type", "order": "ASCENDING" },
         { "fieldPath": "date", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionId": "debts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionId": "debtSchedules",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "debtId", "order": "ASCENDING" },
+        { "fieldPath": "periodIndex", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionId": "debtSchedules",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "debtId", "order": "ASCENDING" },
+        { "fieldPath": "dueDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionId": "debtSchedules",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "debtId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionId": "debtPayments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "debtId", "order": "ASCENDING" },
+        { "fieldPath": "paidAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionId": "debtRateHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "debtId", "order": "ASCENDING" },
+        { "fieldPath": "effectiveDate", "order": "DESCENDING" }
       ]
     }
   ],

@@ -2,6 +2,7 @@
 
 // import { getAuthenticatedUser, getFirebaseAdminApp } from '@/firebase/admin'; // Désactivé pour démo
 import type { FinancialReportData, Transaction, Budget, Goal, UserProfile } from '@/lib/types';
+import type { DebtReportSummary } from '@/types/debt';
 import { 
     startOfMonth, 
     endOfMonth, 
@@ -18,7 +19,7 @@ import {
  * for a given user and date range.
  */
 export async function getFinancialReportData(
-    { from, to }: { from?: string; to?: string }
+    { from, to, includeDebt = true }: { from?: string; to?: string; includeDebt?: boolean }
 ): Promise<FinancialReportData> {
 
     // 1. Authentication and Initialization - TEMPORAIREMENT DÉSACTIVÉ POUR DEMO
@@ -66,6 +67,14 @@ export async function getFinancialReportData(
         Promise.resolve(getMockGoals()),
         Promise.resolve(getMockUserProfile())
     ]);
+    const debtSummary = includeDebt
+        ? await fetchDebtsSummary({
+            userId: user.uid,
+            from: currentPeriod.from,
+            to: currentPeriod.to,
+            userProfile
+        })
+        : null;
 
     // 4. Data Processing and KPI Calculation
     const totalIncome = currentTransactions
@@ -88,6 +97,10 @@ export async function getFinancialReportData(
     const spendingByCategory = processSpendingByCategory(currentTransactions);
     const incomeByCategory = processIncomeByCategory(currentTransactions);
     const cashflow = processCashflow(currentTransactions, currentPeriod.from, currentPeriod.to);
+    const financialSeries = buildFinancialSeries(
+        cashflow,
+        debtSummary?.timeSeriesDebtService ?? []
+    );
 
     // 6. Table Data Generation
     const budgetVsActual = processBudgetVsActual(currentTransactions, budgets);
@@ -98,9 +111,11 @@ export async function getFinancialReportData(
         totalExpenses,
         netBalance: totalIncome - totalExpenses,
         expenseDelta: expenseDelta,
+        debtSummary,
         cashflow,
-    spendingByCategory,
-    incomeByCategory,
+        financialSeries,
+        spendingByCategory,
+        incomeByCategory,
         budgetVsActual,
         goals,
         recentTransactions: currentTransactions.slice(0, 10),
@@ -168,30 +183,40 @@ function processIncomeByCategory(transactions: Transaction[]): { name: string; v
         .sort((a, b) => b.value - a.value);
 }
 
-function processCashflow(transactions: Transaction[], from: Date, to: Date): { date: string; income: number; expenses: number }[] {
-    const dailyTotals: Record<string, { income: number; expenses: number }> = {};
+function processCashflow(transactions: Transaction[], from: Date, to: Date): {
+    date: string;
+    income: number;
+    expenses: number;
+    incomeInCents: number;
+    expensesInCents: number;
+    netInCents: number;
+}[] {
+    const dailyTotals: Record<string, { incomeInCents: number; expensesInCents: number }> = {};
     const interval = eachDayOfInterval({ start: from, end: to });
 
     interval.forEach(day => {
         const dateKey = format(day, 'yyyy-MM-dd');
-        dailyTotals[dateKey] = { income: 0, expenses: 0 };
+        dailyTotals[dateKey] = { incomeInCents: 0, expensesInCents: 0 };
     });
 
     transactions.forEach(t => {
         const dateKey = format(parseISO(t.date), 'yyyy-MM-dd');
         if (dailyTotals[dateKey]) {
             if (t.type === 'income') {
-                dailyTotals[dateKey].income += t.amountInCents;
+                dailyTotals[dateKey].incomeInCents += t.amountInCents;
             } else {
-                dailyTotals[dateKey].expenses += t.amountInCents;
+                dailyTotals[dateKey].expensesInCents += t.amountInCents;
             }
         }
     });
 
-    return Object.entries(dailyTotals).map(([date, { income, expenses }]) => ({
+    return Object.entries(dailyTotals).map(([date, { incomeInCents, expensesInCents }]) => ({
         date,
-        income: income / 100,
-        expenses: expenses / 100,
+        income: incomeInCents / 100,
+        expenses: expensesInCents / 100,
+        incomeInCents,
+        expensesInCents,
+        netInCents: incomeInCents - expensesInCents,
     })).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
@@ -213,6 +238,144 @@ function processBudgetVsActual(transactions: Transaction[], budgets: Budget[]): 
             variance: budgetedInCents - actual,
         };
     }).sort((a, b) => (a.actual / a.budgeted) - (b.actual / b.budgeted));
+}
+
+type RawDebtSummary = {
+    serviceDebtTotal: number;
+    principalPaidTotal: number;
+    interestPaidTotal: number;
+    remainingPrincipalEnd: number;
+    lateCount: number;
+    next3Installments: { dueDate: string; amount: number; status: string }[];
+    timeSeriesDebtService: { date: string; principalPaid: number; interestPaid: number; totalPaid: number }[];
+};
+
+async function fetchDebtsSummary({
+    userId,
+    from,
+    to,
+    userProfile,
+}: {
+    userId: string;
+    from: Date;
+    to: Date;
+    userProfile: UserProfile | null;
+}): Promise<DebtReportSummary | null> {
+    try {
+        if (process.env.NEXT_PUBLIC_ENABLE_DEBT_REPORT === 'true') {
+            console.warn('[reports] Debt report Cloud Function integration is not yet wired for server environments.');
+        }
+    } catch (error) {
+        console.warn('[reports] Debt report function unavailable, falling back to mock.', error);
+    }
+
+    const mock = getMockDebtSummary();
+    return normalizeDebtSummary(mock, userProfile, from, to);
+}
+
+function normalizeDebtSummary(raw: RawDebtSummary, userProfile: UserProfile | null, from: Date, to: Date): DebtReportSummary {
+    const toCents = (value: number) => Math.round((value || 0) * 100);
+    const normalizedTimeSeries = raw.timeSeriesDebtService.map(item => ({
+        date: item.date,
+        principalPaid: toCents(item.principalPaid),
+        interestPaid: toCents(item.interestPaid),
+        totalPaid: toCents(item.totalPaid),
+    }));
+
+    const monthlyCommitment = computeMonthlyDebtCommitment(raw.timeSeriesDebtService, from, to);
+    const dti = computeDTI(monthlyCommitment, userProfile?.monthlyNetIncome ?? null);
+
+    return {
+        serviceDebtTotal: toCents(raw.serviceDebtTotal),
+        principalPaidTotal: toCents(raw.principalPaidTotal),
+        interestPaidTotal: toCents(raw.interestPaidTotal),
+        remainingPrincipalEnd: toCents(raw.remainingPrincipalEnd),
+        lateCount: raw.lateCount,
+        next3Installments: raw.next3Installments.map(item => ({
+            dueDate: item.dueDate,
+            amount: toCents(item.amount),
+            status: item.status,
+        })),
+        timeSeriesDebtService: normalizedTimeSeries,
+        dti,
+    };
+}
+
+function computeMonthlyDebtCommitment(series: RawDebtSummary['timeSeriesDebtService'], from: Date, to: Date): number {
+    if (!series?.length) {
+        return 0;
+    }
+    const totalPaid = series.reduce((sum, item) => sum + (item.totalPaid || 0), 0);
+    const days = Math.max(1, differenceInDays(to, from) + 1);
+    const approximatedMonths = Math.max(1, days / 30);
+    return totalPaid / approximatedMonths;
+}
+
+function computeDTI(monthlyDebtCommitment: number, userMonthlyNetIncome?: number | null): number | null {
+    if (!userMonthlyNetIncome || userMonthlyNetIncome <= 0) {
+        return null;
+    }
+    if (monthlyDebtCommitment <= 0) {
+        return 0;
+    }
+    const ratio = monthlyDebtCommitment / userMonthlyNetIncome;
+    return Math.round(ratio * 1000) / 1000;
+}
+
+function buildFinancialSeries(
+    cashflow: ReturnType<typeof processCashflow>,
+    debtSeries: DebtReportSummary['timeSeriesDebtService']
+): FinancialReportData['financialSeries'] {
+    const accumulator = new Map<string, {
+        income: number;
+        expenses: number;
+        debtService: number;
+        principalPaid: number;
+        interestPaid: number;
+    }>();
+
+    cashflow.forEach(item => {
+        accumulator.set(item.date, {
+            income: item.incomeInCents,
+            expenses: item.expensesInCents,
+            debtService: 0,
+            principalPaid: 0,
+            interestPaid: 0,
+        });
+    });
+
+    debtSeries.forEach(entry => {
+        const existing = accumulator.get(entry.date) ?? {
+            income: 0,
+            expenses: 0,
+            debtService: 0,
+            principalPaid: 0,
+            interestPaid: 0,
+        };
+        existing.debtService += entry.totalPaid;
+        existing.principalPaid += entry.principalPaid;
+        existing.interestPaid += entry.interestPaid;
+        accumulator.set(entry.date, existing);
+    });
+
+    const sortedDates = Array.from(accumulator.keys()).sort(
+        (a, b) => new Date(a).getTime() - new Date(b).getTime()
+    );
+
+    let cumulative = 0;
+    return sortedDates.map(date => {
+        const entry = accumulator.get(date)!;
+        cumulative += entry.income - entry.expenses - entry.debtService;
+        return {
+            date,
+            income: entry.income,
+            expenses: entry.expenses,
+            debtService: entry.debtService,
+            cumulativeBalance: cumulative,
+            principalPaid: entry.principalPaid,
+            interestPaid: entry.interestPaid,
+        };
+    });
 }
 
 // --- Mock Data for Demo ---
@@ -388,6 +551,26 @@ function getMockUserProfile(): UserProfile {
         firstName: 'Jean',
         lastName: 'Dupont',
         displayCurrency: 'XAF',
-        locale: 'fr-CM'
+        locale: 'fr-CM',
+        monthlyNetIncome: 4500, // ~4 500 en devise locale
+    };
+}
+
+function getMockDebtSummary(): RawDebtSummary {
+    return {
+        serviceDebtTotal: 320.45,
+        principalPaidTotal: 250.0,
+        interestPaidTotal: 70.45,
+        remainingPrincipalEnd: 8450.9,
+        lateCount: 1,
+        next3Installments: [
+            { dueDate: '2025-11-10', amount: 210.22, status: 'A_ECHoir' },
+            { dueDate: '2025-12-10', amount: 210.22, status: 'A_ECHoir' },
+            { dueDate: '2026-01-10', amount: 210.22, status: 'A_ECHoir' },
+        ],
+        timeSeriesDebtService: [
+            { date: '2025-10-01', principalPaid: 200, interestPaid: 50, totalPaid: 250 },
+            { date: '2025-10-15', principalPaid: 50, interestPaid: 20, totalPaid: 70 },
+        ],
     };
 }

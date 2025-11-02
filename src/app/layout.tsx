@@ -11,9 +11,10 @@ import { FirebaseStatus } from '@/components/firebase-status';
 import { OnboardingGate } from '@/components/onboarding/OnboardingGate';
 import { HtmlLangSync } from '@/components/locale/html-lang';
 import { I18nProviderWrapper } from '@/components/i18n-provider-wrapper';
+import { AffiliateTracker } from '@/components/affiliates/AffiliateTracker';
 
 export const metadata: Metadata = {
-  title: 'BudgetWise',
+  title: 'Budget Pro',
   description: 'Track your expenses, set goals, and gain financial clarity.',
 };
 
@@ -44,6 +45,8 @@ export default function RootLayout({
               <I18nProviderWrapper>
                 <AutoSeedCategories />
                 <FirebaseStatus />
+                {/* Tracking affilié global (détecte ?aff=CODE et envoie l'événement) */}
+                <AffiliateTracker />
                 <OnboardingGate>
                   {children}
                 </OnboardingGate>

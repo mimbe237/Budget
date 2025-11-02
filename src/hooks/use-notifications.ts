@@ -85,7 +85,7 @@ export function useNotifications() {
 
       // Afficher une notification locale
       if (payload.notification) {
-        new Notification(payload.notification.title || 'BudgetWise', {
+        new Notification(payload.notification.title || 'Budget Pro', {
           body: payload.notification.body,
           icon: payload.notification.icon || '/icon-192.png',
           badge: '/icon-192.png',

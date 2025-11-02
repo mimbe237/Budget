@@ -35,13 +35,15 @@ export function SummaryCard({ title, amountInCents, icon }: SummaryCardProps) {
     const formattedAmount = formatMoney(amountInCents, displayCurrency, displayLocale);
 
   return (
-    <Card>
+    <Card className="bg-gradient-to-br from-white/60 via-blue-50/80 to-indigo-100/60 backdrop-blur-xl shadow-xl border-0 rounded-2xl transition-transform duration-200 hover:scale-[1.03]">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className="text-muted-foreground">{icon}</div>
+        <CardTitle className="text-base font-semibold text-gray-800 drop-shadow-sm">{title}</CardTitle>
+        <div className="text-blue-500 text-xl">{icon}</div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{formattedAmount}</div>
+        <div className="text-3xl font-extrabold text-gray-900 tracking-tight drop-shadow-sm animate-fadein">
+          {formattedAmount}
+        </div>
       </CardContent>
     </Card>
   );

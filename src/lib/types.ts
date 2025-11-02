@@ -1,3 +1,5 @@
+import type { DebtReportSummary } from '@/types/debt';
+
 export type GoalType = 'epargne' | 'achat' | 'dette' | 'plafond';
 
 // Historique des apports sur un objectif
@@ -42,6 +44,8 @@ export type CategoryDocument = {
   type: 'income' | 'expense';
   budgetedAmount: number;
   icon?: string; // Optional icon name
+  color?: string | null;
+  parentCategoryId?: string | null;
   isCustom: boolean; // Distinguish custom vs predefined
 };
 
@@ -56,6 +60,7 @@ export type Goal = {
   id: string;
   userId: string;
   name: string;
+  type?: GoalType;
   targetAmountInCents: number;
   currentAmountInCents: number;
   storageAccount?: string;
@@ -64,11 +69,16 @@ export type Goal = {
   description?: string;
   icon?: string;
   color?: string;
+  linkedCategoryId?: string | null;
+  linkedCategoryName?: string | null;
+  linkedDebtId?: string | null;
+  linkedDebtTitle?: string | null;
   archived?: boolean;
   archiveStatus?: 'completed' | 'abandoned';
   archivedAt?: string;
   createdAt: string;
   updatedAt?: string;
+  projectionConfidence?: number | null;
 };
 
 export type UserProfile = {
@@ -78,11 +88,17 @@ export type UserProfile = {
   lastName: string;
   displayCurrency?: 'XOF' | 'XAF' | 'EUR' | 'USD';
   locale?: 'fr-CM' | 'en-US';
+  monthlyNetIncome?: number;
   monthlyExpenseBudget?: number;
   hasCompletedOnboarding?: boolean;
   hasCompletedTour?: boolean;
+  status?: 'active' | 'suspended';
   createdAt?: string | Date;
   updatedAt?: string | Date;
+  // Admin flags
+  isAdmin?: boolean;
+  admin?: boolean;
+  role?: 'admin' | 'user';
 }
 
 export type Currency = 'XOF' | 'XAF' | 'EUR' | 'USD';
@@ -150,8 +166,25 @@ export type FinancialReportData = {
     totalExpenses: number;
     netBalance: number;
     expenseDelta: number | null; // % change from previous period
+    debtSummary: DebtReportSummary | null;
     // Chart Data
-    cashflow: { date: string; income: number; expenses: number }[];
+    cashflow: {
+        date: string;
+        income: number;
+        expenses: number;
+        incomeInCents: number;
+        expensesInCents: number;
+        netInCents: number;
+    }[];
+    financialSeries: {
+        date: string;
+        income: number;
+        expenses: number;
+        debtService: number;
+        cumulativeBalance: number;
+        principalPaid: number;
+        interestPaid: number;
+    }[];
     spendingByCategory: { name: string; value: number }[];
   // Income breakdown by category (for Revenus table)
   incomeByCategory?: { name: string; value: number }[];

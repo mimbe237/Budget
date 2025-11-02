@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-BudgetWise est une **Progressive Web App (PWA)** complète avec:
+Budget Pro est une **Progressive Web App (PWA)** complète avec:
 - ✅ **Mode hors ligne** (cache intelligent des données)
 - ✅ **Installation** (ajout à l'écran d'accueil)
 - ✅ **Mises à jour automatiques**
@@ -199,7 +199,7 @@ convert logo.svg -resize 512x512 public/icon-512.png
 **Installation manuelle:**
 
 ```
-Chrome: Menu (⋮) → Install BudgetWise
+Chrome: Menu (⋮) → Installer Budget Pro
 Edge: Menu (⋯) → Apps → Install this site as an app
 Safari iOS: Share → Add to Home Screen
 ```

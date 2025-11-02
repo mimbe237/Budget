@@ -1,4 +1,4 @@
-# 📋 Guide de Déploiement - BudgetWise
+# 📋 Guide de Déploiement - Budget Pro
 
 ## ⚠️ Problème Actuel
 Le déploiement via Firebase CLI échoue en raison de problèmes de connectivité réseau avec les APIs Google Cloud.
@@ -203,4 +203,4 @@ firebase use studio-3821270625-cd276
 
 **Date de mise à jour :** 20 octobre 2025  
 **Version :** 1.0.0  
-**Projet :** BudgetWise - Budget Management Application
+**Projet :** Budget Pro - Budget Management Application

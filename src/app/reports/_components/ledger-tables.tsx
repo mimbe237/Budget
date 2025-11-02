@@ -16,6 +16,8 @@ interface LedgerTableProps {
   locale: string;
   accent?: 'orange' | 'blue';
   alignRight?: boolean;
+  footNoteInCents?: number;
+  footNoteLabel?: string;
 }
 
 function formatMoney(amountInCents: number, currency: string, locale: string): string {
@@ -29,7 +31,7 @@ function formatMoney(amountInCents: number, currency: string, locale: string): s
   }).format(amountInCents / 100);
 }
 
-function LedgerTable({ title, rows, totals, currency, locale, accent = 'orange' }: LedgerTableProps) {
+function LedgerTable({ title, rows, totals, currency, locale, accent = 'orange', footNoteInCents, footNoteLabel }: LedgerTableProps) {
   return (
     <ReportSection title={title} accent={accent}>
       <div className="overflow-x-auto">
@@ -62,6 +64,18 @@ function LedgerTable({ title, rows, totals, currency, locale, accent = 'orange' 
               </tr>
             ))}
           </tbody>
+          {typeof footNoteInCents === 'number' && (
+            <tfoot>
+              <tr className="border-t">
+                <td colSpan={3} className="py-2 pr-2 text-xs uppercase tracking-wide text-gray-500">
+                  {footNoteLabel || 'Service dette (période)'}
+                </td>
+                <td className="py-2 pl-2 text-right font-semibold text-gray-700">
+                  {formatMoney(footNoteInCents, currency, locale)}
+                </td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </ReportSection>
@@ -73,9 +87,10 @@ interface LedgerTablesProps {
   incomes: LedgerRow[];
   currency: string;
   locale: string;
+  debtServiceInCents?: number;
 }
 
-export function LedgerTables({ expenses, incomes, currency, locale }: LedgerTablesProps) {
+export function LedgerTables({ expenses, incomes, currency, locale, debtServiceInCents }: LedgerTablesProps) {
   const expenseTotals = expenses.reduce((acc, r) => ({
     plannedInCents: acc.plannedInCents + r.plannedInCents,
     actualInCents: acc.actualInCents + r.actualInCents,
@@ -97,6 +112,8 @@ export function LedgerTables({ expenses, incomes, currency, locale }: LedgerTabl
         currency={currency}
         locale={locale}
         accent="orange"
+        footNoteInCents={debtServiceInCents}
+        footNoteLabel="Service dette (période)"
       />
       <LedgerTable 
         title="Revenus"

@@ -139,7 +139,7 @@ export function ServiceWorkerRegistration() {
               Installer l'application
             </AlertTitle>
             <AlertDescription className="text-green-800 dark:text-green-200">
-              Ajoutez BudgetWise à votre écran d'accueil pour un accès rapide.
+              Ajoutez Budget Pro à votre écran d'accueil pour un accès rapide.
             </AlertDescription>
             <div className="flex gap-2 mt-3">
               <Button

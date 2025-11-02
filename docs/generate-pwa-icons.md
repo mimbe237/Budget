@@ -291,7 +291,7 @@ file icon-512.png  # Devrait contenir "512 x 512"
    - Pas d'erreur 404
 
 3. **Tester l'installation:**
-   - Chrome: Menu → Installer BudgetWise
+  - Chrome: Menu → Installer Budget Pro
    - Vérifier que l'icône correcte apparaît
 
 ## Spécifications Techniques
@@ -306,7 +306,7 @@ file icon-512.png  # Devrait contenir "512 x 512"
 
 ### Couleurs
 
-**Theme color (vert BudgetWise):**
+**Theme color (vert Budget Pro):**
 ```
 HEX: #10b981
 RGB: rgb(16, 185, 129)

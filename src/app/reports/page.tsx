@@ -15,6 +15,7 @@ export default async function ReportsPage({
   const params = searchParams || {};
   const from = typeof params.from === 'string' ? params.from : undefined;
   const to = typeof params.to === 'string' ? params.to : undefined;
+  const includeDebt = params.includeDebt === undefined ? true : params.includeDebt === '1';
 
   return (
     <AppLayout>
@@ -24,7 +25,7 @@ export default async function ReportsPage({
         
         {/* Server Component for displaying the report, with a loading fallback */}
         <Suspense fallback={<ReportSkeleton />}>
-          <FinancialReport from={from} to={to} />
+          <FinancialReport from={from} to={to} includeDebt={includeDebt} />
         </Suspense>
       </div>
     </AppLayout>

@@ -24,7 +24,7 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Message reçu en arrière-plan:', payload);
 
-  const notificationTitle = payload.notification?.title || 'BudgetWise';
+  const notificationTitle = payload.notification?.title || 'Budget Pro';
   const notificationOptions = {
     body: payload.notification?.body || 'Vous avez une nouvelle notification',
     icon: payload.notification?.icon || '/icon-192.png',

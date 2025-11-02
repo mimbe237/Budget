@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useUser } from '@/firebase';
+import { useTranslation } from '@/lib/i18n';
 
 export function HtmlLangSync() {
-  const { userProfile } = useUser();
+  const { locale } = useTranslation();
 
   useEffect(() => {
-    const lang = userProfile?.locale === 'fr-CM' ? 'fr' : userProfile?.locale === 'en-US' ? 'en' : 'en';
     if (typeof document !== 'undefined') {
-      document.documentElement.lang = lang;
+      document.documentElement.lang = locale;
     }
-  }, [userProfile?.locale]);
+  }, [locale]);
 
   return null;
 }

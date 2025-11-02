@@ -180,6 +180,25 @@ URL : `/admin/users`
 - **Analytics** : exporter pour analyse externe
 - **Maintenance** : nettoyer des comptes inactifs
 
+### Maintenance Téléphone
+Pour garantir l'unicité des contacts (email / téléphone) et remplir `phoneCompositeKey`
+sur les comptes existants :
+
+```bash
+# Inspection (aucune écriture)
+node scripts/backfill-phone-keys.js
+
+# Appliquer les mises à jour de phoneCompositeKey
+node scripts/backfill-phone-keys.js --apply
+
+# Appliquer + normaliser les numéros stockés (espaces cohérents)
+node scripts/backfill-phone-keys.js --apply --normalize
+```
+
+Le script réutilise la même configuration Firebase Admin (`GOOGLE_APPLICATION_CREDENTIALS`
+ou `serviceAccountKey.json`). Exécutez d'abord le dry-run et effectuez une sauvegarde avant
+de passer en mode `--apply`, surtout si vous activez `--normalize`.
+
 ## 🎨 Design et UX
 
 ### Composants ShadCN utilisés

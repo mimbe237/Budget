@@ -12,8 +12,8 @@ import { format } from 'date-fns';
 export function exportToExcel(data: FinancialReportData, formatMoney: (cents: number) => string, filename?: string): void {
   // Créer un nouveau workbook
   const wb = XLSX.utils.book_new();
+  const debt = data.debtSummary;
   
-  // === Feuille 1: Vue d'ensemble ===
   const overviewData = [
     ['RAPPORT FINANCIER'],
     [''],
@@ -26,6 +26,17 @@ export function exportToExcel(data: FinancialReportData, formatMoney: (cents: nu
     ['Solde net', formatMoney(data.netBalance)],
   ];
   
+  if (debt) {
+    overviewData.push(['Service de la dette (période)', formatMoney(debt.serviceDebtTotal)]);
+    overviewData.push(['Intérêts payés', formatMoney(debt.interestPaidTotal)]);
+    overviewData.push(['Encours fin de période', formatMoney(debt.remainingPrincipalEnd)]);
+    overviewData.push(['Échéances en retard', `${debt.lateCount}`]);
+    if (debt.dti !== null) {
+      overviewData.push(['DTI', `${(debt.dti * 100).toFixed(1)}%`]);
+    }
+  }
+  
+  // === Feuille 1: Vue d'ensemble ===
   const wsOverview = XLSX.utils.aoa_to_sheet(overviewData);
   
   // Style pour la feuille overview
@@ -80,17 +91,18 @@ export function exportToExcel(data: FinancialReportData, formatMoney: (cents: nu
   const cashflowData = [
     ['FLUX DE TRÉSORERIE'],
     [''],
-    ['Date', 'Revenus', 'Dépenses', 'Net'],
-    ...data.cashflow.map(item => [
+    ['Date', 'Revenus', 'Dépenses', 'Service dette', 'Solde cumulé'],
+    ...data.financialSeries.map(item => [
       item.date,
-      formatMoney(item.income * 100),
-      formatMoney(item.expenses * 100),
-      formatMoney((item.income - item.expenses) * 100)
+      formatMoney(item.income),
+      formatMoney(item.expenses),
+      formatMoney(item.debtService),
+      formatMoney(item.cumulativeBalance)
     ])
   ];
   
   const wsCashflow = XLSX.utils.aoa_to_sheet(cashflowData);
-  wsCashflow['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+  wsCashflow['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }];
   
   XLSX.utils.book_append_sheet(wb, wsCashflow, 'Flux de trésorerie');
   
@@ -137,6 +149,47 @@ export function exportToExcel(data: FinancialReportData, formatMoney: (cents: nu
     wsTransactions['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 10 }];
     
     XLSX.utils.book_append_sheet(wb, wsTransactions, 'Transactions');
+  }
+
+  // === Feuille 7: Résumé dette ===
+  if (debt) {
+    const debtSummaryData = [
+      ['RÉSUMÉ DETTE'],
+      [''],
+      ['Indicateur', 'Valeur'],
+      ['Service de la dette (période)', formatMoney(debt.serviceDebtTotal)],
+      ['Principal remboursé', formatMoney(debt.principalPaidTotal)],
+      ['Intérêts payés', formatMoney(debt.interestPaidTotal)],
+      ['Encours fin de période', formatMoney(debt.remainingPrincipalEnd)],
+      ['Échéances en retard', `${debt.lateCount}`],
+      ...(debt.dti !== null ? [['DTI', `${(debt.dti * 100).toFixed(1)}%`]] : []),
+      [''],
+      ['Prochaines échéances'],
+      ['Date', 'Montant', 'Statut'],
+      ...debt.next3Installments.map(item => [
+        format(new Date(item.dueDate), 'dd/MM/yyyy'),
+        formatMoney(item.amount),
+        item.status
+      ])
+    ];
+    const wsDebtSummary = XLSX.utils.aoa_to_sheet(debtSummaryData);
+    wsDebtSummary['!cols'] = [{ wch: 25 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsDebtSummary, 'Résumé dette');
+
+    const debtSeriesData = [
+      ['DETTE & PAIEMENTS'],
+      [''],
+      ['Date', 'Principal', 'Intérêts', 'Total'],
+      ...debt.timeSeriesDebtService.map(entry => [
+        format(new Date(entry.date), 'dd/MM/yyyy'),
+        formatMoney(entry.principalPaid),
+        formatMoney(entry.interestPaid),
+        formatMoney(entry.totalPaid)
+      ])
+    ];
+    const wsDebtSeries = XLSX.utils.aoa_to_sheet(debtSeriesData);
+    wsDebtSeries['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, wsDebtSeries, 'Dette & paiements');
   }
   
   // Générer le nom de fichier si non fourni

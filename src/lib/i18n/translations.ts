@@ -26,6 +26,30 @@ export const translations = {
       noTransactions: 'Aucune transaction pour le moment',
       discoverFeatures: 'Découvrir les fonctionnalités',
     },
+    // Authentication
+    auth: {
+      login: {
+        title: 'Connexion',
+        subtitle: 'Retrouvez vos finances en un clin d\'œil.',
+        emailLabel: 'Adresse email',
+        emailPlaceholder: 'vous@exemple.com',
+        passwordLabel: 'Mot de passe',
+        passwordPlaceholder: 'Votre mot de passe',
+        submit: 'Se connecter',
+        signupPrompt: 'Pas encore de compte ?',
+        signupCta: 'Créer un compte',
+        socialTitle: 'Ou continuez avec',
+      },
+      social: {
+        loginWith: 'Continuer avec {provider}',
+        signupWith: 'S\'inscrire avec {provider}',
+        provider: {
+          google: 'Google',
+          facebook: 'Facebook',
+          apple: 'Apple',
+        },
+      },
+    },
     // Budget
     budget: {
       title: 'Budgets & Catégories',
@@ -133,6 +157,30 @@ export const translations = {
       recentTransactions: 'Recent Transactions',
       noTransactions: 'No transactions yet',
       discoverFeatures: 'Discover Features',
+    },
+    // Authentication
+    auth: {
+      login: {
+        title: 'Log in',
+        subtitle: 'Pick up your finances right where you left off.',
+        emailLabel: 'Email address',
+        emailPlaceholder: 'you@example.com',
+        passwordLabel: 'Password',
+        passwordPlaceholder: 'Your password',
+        submit: 'Sign in',
+        signupPrompt: "Don't have an account?",
+        signupCta: 'Create one',
+        socialTitle: 'Or continue with',
+      },
+      social: {
+        loginWith: 'Continue with {provider}',
+        signupWith: 'Sign up with {provider}',
+        provider: {
+          google: 'Google',
+          facebook: 'Facebook',
+          apple: 'Apple',
+        },
+      },
     },
     // Budget
     budget: {

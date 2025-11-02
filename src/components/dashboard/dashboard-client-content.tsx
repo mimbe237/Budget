@@ -1,42 +1,64 @@
 'use client';
+
 import { useMemo } from 'react';
 import {
-  DollarSign,
-  CreditCard,
-  Scale,
+  Wallet,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  PiggyBank,
+  BarChart3,
   Landmark,
-  Utensils,
-  Car,
-  PartyPopper,
-  HeartPulse,
-  ShoppingBag,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  CheckCircle2,
   Lightbulb,
+  Sparkles,
+  Calendar,
 } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import type { Category, Transaction } from '@/lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
-import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, limit, orderBy } from 'firebase/firestore';
+import type { Category, Transaction, UserProfile } from '@/lib/types';
+import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, limit, orderBy, doc } from 'firebase/firestore';
 
-import { SummaryCard } from '@/components/dashboard/summary-card';
 import { SpendingOverview } from '@/components/dashboard/spending-overview';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { BudgetsOverview } from '@/components/dashboard/budgets-overview';
 import GoalsOverview from '@/components/dashboard/goals-overview-new';
 import { BudgetOverviewMonthly } from '@/components/dashboard/budget-overview-monthly';
-import { BudgetAlertMonitor, BudgetHealthIndicator } from '@/components/budgets/budget-alert-monitor';
+import { BudgetAlertMonitor } from '@/components/budgets/budget-alert-monitor';
 import { GuidedTourLauncher } from '@/components/onboarding/GuidedTourLauncher';
+import { ChartFinanceDebt } from '@/app/reports/_components/chart-finance-debt';
+import type { SerializableFinancialReportData } from '@/app/dashboard/page';
 
-export function DashboardClientContent({ children }: { children: React.ReactNode }) {
+type DashboardClientContentProps = {
+  reportData: SerializableFinancialReportData;
+  children?: React.ReactNode;
+};
+
+type AlertMessage = {
+  id: string;
+  tone: 'warning' | 'positive';
+  message: string;
+};
+
+const STATUS_COLORS: Record<string, 'default' | 'outline' | 'secondary' | 'destructive'> = {
+  EN_RETARD: 'destructive',
+  'EN_RETARD ': 'destructive',
+  EN_COURS: 'outline',
+  SOLDEE: 'secondary',
+  RESTRUCTUREE: 'secondary',
+  A_ECHoir: 'outline',
+  'A_ECHoir': 'outline',
+};
+
+export function DashboardClientContent({ reportData, children }: DashboardClientContentProps) {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  // Optimisation : limiter les transactions récentes à 100
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -45,7 +67,7 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
       limit(100)
     );
   }, [firestore, user]);
-  const { data: transactions } = useCollection<Transaction>(transactionsQuery);
+  const { data: firestoreTransactions } = useCollection<Transaction>(transactionsQuery);
 
   const budgetsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -53,96 +75,487 @@ export function DashboardClientContent({ children }: { children: React.ReactNode
   }, [firestore, user]);
   const { data: budgets } = useCollection<any>(budgetsQuery);
 
-  // Les objectifs sont désormais chargés depuis le composant GoalsOverview lui-même
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [firestore, user]);
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
-  // Optimisation : mémoriser les calculs coûteux
-  const { totalIncome, totalExpenses, balance } = useMemo(() => {
-    if (!transactions) return { totalIncome: 0, totalExpenses: 0, balance: 0 };
-    
-    let income = 0;
-    let expenses = 0;
-    
-    // Une seule itération au lieu de deux filter + reduce
-    for (const t of transactions) {
-      const amount = t.amountInCents || 0;
-      if (t.type === 'income') {
-        income += amount;
-      } else if (t.type === 'expense') {
-        expenses += amount;
-      }
+  const displayCurrency = userProfile?.displayCurrency || 'USD';
+  const displayLocale = userProfile?.locale || 'en-US';
+  const isFrench = userProfile?.locale === 'fr-CM';
+
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(displayLocale, {
+        style: 'currency',
+        currency: displayCurrency,
+      }),
+    [displayCurrency, displayLocale]
+  );
+
+  const formatCurrency = (amountInCents: number) => currencyFormatter.format((amountInCents || 0) / 100);
+
+  const categoryIcons: Record<Category, React.ReactNode> = useMemo(
+    () => ({
+      Housing: <Landmark className="h-4 w-4 text-muted-foreground" />,
+      Food: <ArrowDownCircle className="h-4 w-4 text-muted-foreground" />,
+      Transport: <TrendingDown className="h-4 w-4 text-muted-foreground" />,
+      Entertainment: <Sparkles className="h-4 w-4 text-muted-foreground" />,
+      Health: <Lightbulb className="h-4 w-4 text-muted-foreground" />,
+      Shopping: <TrendingDown className="h-4 w-4 text-muted-foreground" />,
+      Utilities: <Lightbulb className="h-4 w-4 text-muted-foreground" />,
+      Income: <TrendingUp className="h-4 w-4 text-muted-foreground" />,
+    }),
+    []
+  );
+
+  const financialSeries = reportData.financialSeries ?? [];
+  const latestFinancialPoint = financialSeries.length > 0 ? financialSeries[financialSeries.length - 1] : null;
+  const currentBalanceCents = latestFinancialPoint?.cumulativeBalance ?? reportData.netBalance ?? 0;
+  const netSavingsCents = reportData.totalIncome - reportData.totalExpenses - (reportData.debtSummary?.serviceDebtTotal ?? 0);
+  const outstandingDebtCents = reportData.debtSummary?.remainingPrincipalEnd ?? 0;
+  const serviceDebtTotal = reportData.debtSummary?.serviceDebtTotal ?? 0;
+  const interestPaidTotal = reportData.debtSummary?.interestPaidTotal ?? 0;
+  const upcomingInstallments = reportData.debtSummary?.next3Installments ?? [];
+  const lateInstallments = reportData.debtSummary?.lateCount ?? 0;
+  const dti = reportData.debtSummary?.dti ?? null;
+
+  const topExpenses = reportData.spendingByCategory.slice(0, 3);
+  const topIncomes = (reportData.incomeByCategory ?? []).slice(0, 3);
+
+  const quickGoals = reportData.goals.slice(0, 3);
+  const recentTransactions = reportData.recentTransactions.slice(0, 5);
+
+  const periodLabel = useMemo(() => {
+    try {
+      return new Intl.DateTimeFormat(displayLocale, { month: 'long', year: 'numeric' }).format(
+        new Date(reportData.period.from)
+      );
+    } catch {
+      return reportData.period.from;
     }
-    
-    return {
-      totalIncome: income,
-      totalExpenses: expenses,
-      balance: income - expenses
-    };
-  }, [transactions]);
+  }, [reportData.period.from, displayLocale]);
 
-  // Optimisation : mémoriser les icônes pour éviter de les recréer
-  const categoryIcons: Record<Category, React.ReactNode> = useMemo(() => ({
-    Housing: <Landmark className="h-4 w-4 text-muted-foreground" />,
-    Food: <Utensils className="h-4 w-4 text-muted-foreground" />,
-    Transport: <Car className="h-4 w-4 text-muted-foreground" />,
-    Entertainment: <PartyPopper className="h-4 w-4 text-muted-foreground" />,
-    Health: <HeartPulse className="h-4 w-4 text-muted-foreground" />,
-    Shopping: <ShoppingBag className="h-4 w-4 text-muted-foreground" />,
-    Utilities: <Lightbulb className="h-4 w-4 text-muted-foreground" />,
-    Income: <DollarSign className="h-4 w-4 text-muted-foreground" />,
-  }), []);
+  const interestShare = reportData.totalExpenses > 0 ? interestPaidTotal / reportData.totalExpenses : 0;
 
-  // Optimisation : mémoriser les 5 dernières transactions
-  const recentTransactions = useMemo(() => {
-    return transactions ? transactions.slice(0, 5) : [];
-  }, [transactions]);
+  const alerts: AlertMessage[] = [];
 
-  // Optimisation : retour anticipé avec fallback plus léger
-  if (!transactions || !budgets) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-muted-foreground">Chargement des données du tableau de bord...</div>
-      </div>
-    );
+  if (interestShare > 0.1) {
+    alerts.push({
+      id: 'interest-share',
+      tone: 'warning',
+      message: isFrench
+        ? `Vos intérêts représentent ${(interestShare * 100).toFixed(1)} % de vos dépenses sur ${periodLabel}. Envisagez une renégociation ou un remboursement anticipé.`
+        : `Interest charges represent ${(interestShare * 100).toFixed(1)}% of your spending in ${periodLabel}. Consider refinancing or prepaying.`,
+    });
   }
+
+  if (typeof dti === 'number' && dti > 0.35) {
+    alerts.push({
+      id: 'high-dti',
+      tone: 'warning',
+      message: isFrench
+        ? 'Votre ratio d’endettement (DTI) dépasse 35 %. Réduisez vos charges ou évitez de nouveaux crédits.'
+        : 'Your debt-to-income ratio is above 35%. Reduce expenses or delay new credit.',
+    });
+  }
+
+  if (reportData.expenseDelta && reportData.expenseDelta > 5) {
+    alerts.push({
+      id: 'expense-delta',
+      tone: 'warning',
+      message: isFrench
+        ? `Les dépenses sont en hausse de ${reportData.expenseDelta.toFixed(1)} % par rapport à la période précédente.`
+        : `Expenses increased by ${reportData.expenseDelta.toFixed(1)}% vs the previous period.`,
+    });
+  }
+
+  if (alerts.length === 0) {
+    alerts.push({
+      id: 'all-good',
+      tone: 'positive',
+      message: isFrench
+        ? 'Gestion saine : continuez d’alimenter vos objectifs et de surveiller vos budgets.'
+        : 'Finances healthy: keep funding your goals and monitoring budgets.',
+    });
+  }
+
+  const insightsSection = children ? (
+    <div className="h-full">{children}</div>
+  ) : (
+    <Card className="h-full border-dashed border-slate-200/70">
+      <CardContent className="flex h-full flex-col items-start justify-center gap-3 text-sm text-muted-foreground">
+        <p>{isFrench ? 'Activez les insights IA pour des recommandations personnalisées.' : 'Enable AI insights to unlock personalised recommendations.'}</p>
+        <p>{isFrench ? 'Ajoutez vos transactions, budgets et dettes pour un suivi intelligent.' : 'Feed the system with transactions, budgets and debts for a smarter overview.'}</p>
+      </CardContent>
+    </Card>
+  );
+
+  const kpiCards = [
+    {
+      id: 'current-balance',
+      title: isFrench ? 'Solde actuel' : 'Current balance',
+      value: formatCurrency(currentBalanceCents),
+      icon: <Wallet className="h-5 w-5 text-blue-500" />,
+      accent: 'from-blue-50/80 via-blue-100/70 to-slate-100/60',
+    },
+    {
+      id: 'total-income',
+      title: isFrench ? 'Revenus (période)' : 'Income (period)',
+      value: formatCurrency(reportData.totalIncome),
+      icon: <ArrowUpCircle className="h-5 w-5 text-emerald-500" />,
+      accent: 'from-emerald-50/80 via-emerald-100/70 to-slate-100/60',
+    },
+    {
+      id: 'total-expenses',
+      title: isFrench ? 'Dépenses (période)' : 'Expenses (period)',
+      value: formatCurrency(reportData.totalExpenses),
+      icon: <ArrowDownCircle className="h-5 w-5 text-rose-500" />,
+      accent: 'from-rose-50/80 via-rose-100/70 to-slate-100/60',
+    },
+    {
+      id: 'net-savings',
+      title: isFrench ? 'Épargne nette' : 'Net savings',
+      value: formatCurrency(netSavingsCents),
+      icon: <PiggyBank className="h-5 w-5 text-violet-500" />,
+      accent: 'from-violet-50/80 via-violet-100/70 to-slate-100/60',
+    },
+    {
+      id: 'net-balance',
+      title: isFrench ? 'Solde net du mois' : 'Monthly net balance',
+      value: formatCurrency(reportData.netBalance),
+      icon: <BarChart3 className="h-5 w-5 text-indigo-500" />,
+      accent: 'from-indigo-50/80 via-indigo-100/70 to-slate-100/60',
+    },
+    {
+      id: 'debt-outstanding',
+      title: isFrench ? 'Encours dette' : 'Outstanding debt',
+      value: formatCurrency(outstandingDebtCents),
+      icon: <Landmark className="h-5 w-5 text-amber-500" />,
+      accent: 'from-amber-50/80 via-amber-100/70 to-slate-100/60',
+      badge:
+        typeof dti === 'number'
+          ? {
+              text: `DTI ${(dti * 100).toFixed(1)}%`,
+              variant: dti > 0.35 ? 'destructive' : 'secondary',
+            }
+          : null,
+    },
+  ];
+
+  const debtExpressList = upcomingInstallments.slice(0, 3);
+
+  const spendingOverviewTransactions = firestoreTransactions ?? [];
+  const budgetsData = budgets ?? [];
 
   return (
     <>
-      {/* Moniteur d'alertes budgétaires (invisible, agit en arrière-plan) */}
       <BudgetAlertMonitor />
 
-      <div className="flex items-center justify-between mb-2">
-        <div />
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            {isFrench ? 'Vue d’ensemble financière' : 'Financial overview'}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {isFrench ? 'Période en cours : ' : 'Current period: '}
+            {periodLabel}
+          </p>
+        </div>
         <GuidedTourLauncher />
       </div>
-      <div data-tour="summary-cards" className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
-        <SummaryCard title="Total Income" amountInCents={totalIncome} icon={<DollarSign />} />
-        <SummaryCard title="Total Expenses" amountInCents={totalExpenses} icon={<CreditCard />} />
-        <SummaryCard title="Balance" amountInCents={balance} icon={<Scale />} />
+
+      <div data-tour="summary-cards" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {kpiCards.map(card => (
+          <Card
+            key={card.id}
+            className={`bg-gradient-to-br ${card.accent} backdrop-blur-xl shadow-lg border-0 rounded-2xl transition-transform duration-200 hover:scale-[1.02]`}
+          >
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+              <div>
+                <CardTitle className="text-base font-semibold text-slate-800">
+                  {card.title}
+                </CardTitle>
+              </div>
+              <div className="rounded-full bg-white/80 p-2 shadow">
+                {card.icon}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold text-slate-900 tracking-tight">{card.value}</div>
+              {'badge' in card && card.badge ? (
+                <Badge variant={card.badge.variant} className="text-xs">
+                  {card.badge.text}
+                </Badge>
+              ) : null}
+            </CardContent>
+          </Card>
+        ))}
       </div>
-      <div className="grid gap-4 md:gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+
+      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+        <ChartFinanceDebt
+          data={reportData.financialSeries}
+          currency={displayCurrency}
+          locale={displayLocale}
+          isFrench={!!isFrench}
+        />
+
+        <div className="space-y-4">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                {isFrench ? 'Alertes & Insights' : 'Alerts & insights'}
+              </CardTitle>
+              <CardDescription>
+                {isFrench
+                  ? 'Détection automatique des signaux financiers importants.'
+                  : 'Automatic detection of key financial signals.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {alerts.map(alert => (
+                <div
+                  key={alert.id}
+                  className="flex items-start gap-3 rounded-xl border border-slate-200/70 bg-slate-50/70 p-3"
+                >
+                  {alert.tone === 'warning' ? (
+                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-1" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-1" />
+                  )}
+                  <p className="text-sm text-slate-700">{alert.message}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {insightsSection}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-white/80 border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-slate-900">
+              <Landmark className="h-4 w-4 text-blue-500" />
+              {isFrench ? 'Dette express' : 'Debt express'}
+            </CardTitle>
+            <CardDescription>
+              {isFrench ? 'Suivi rapide de vos obligations.' : 'Quick glance at your liabilities.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  {isFrench ? 'Service de dette (période)' : 'Debt service (period)'}
+                </span>
+                <span className="font-semibold text-slate-900">{formatCurrency(serviceDebtTotal)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  {isFrench ? 'Intérêts payés' : 'Interest paid'}
+                </span>
+                <span className="font-semibold text-slate-900">{formatCurrency(interestPaidTotal)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  {isFrench ? 'Échéances en retard' : 'Late installments'}
+                </span>
+                <Badge variant={lateInstallments > 0 ? 'destructive' : 'secondary'}>
+                  {lateInstallments}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {isFrench ? 'Prochaines échéances' : 'Upcoming installments'}
+              </h4>
+              {debtExpressList.length > 0 ? (
+                <div className="space-y-2">
+                  {debtExpressList.map((item, index) => {
+                    let dueDate = item.dueDate;
+                    try {
+                      dueDate = new Intl.DateTimeFormat(displayLocale, {
+                        day: 'numeric',
+                        month: 'short',
+                      }).format(new Date(item.dueDate));
+                    } catch {
+                      // keep raw value
+                    }
+                    return (
+                      <div
+                        key={`${item.dueDate}-${index}`}
+                        className="flex items-center justify-between rounded-lg border border-slate-200/70 bg-white/80 px-3 py-2"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-slate-900">{dueDate}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatCurrency(item.amount)}
+                          </span>
+                        </div>
+                        <Badge variant={STATUS_COLORS[item.status] || 'outline'} className="text-xs">
+                          {item.status}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {isFrench ? 'Aucune échéance planifiée.' : 'No upcoming installments.'}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-rose-500" />
+              {isFrench ? 'Top dépenses / revenus' : 'Top spending / income'}
+            </CardTitle>
+            <CardDescription>
+              {isFrench ? 'Catégories les plus actives sur la période.' : 'Most active categories this period.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 text-sm">
+            <div>
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-500">
+                {isFrench ? 'Dépenses' : 'Spending'}
+              </h4>
+              {topExpenses.length > 0 ? (
+                <ul className="space-y-2">
+                  {topExpenses.map(category => (
+                    <li key={category.name} className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Badge variant="outline">{category.name}</Badge>
+                      </span>
+                      <span className="font-semibold text-slate-900">
+                        {formatCurrency(category.value)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {isFrench ? 'Pas encore de dépenses enregistrées.' : 'No spending recorded yet.'}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-500">
+                {isFrench ? 'Revenus' : 'Income'}
+              </h4>
+              {topIncomes.length > 0 ? (
+                <ul className="space-y-2">
+                  {topIncomes.map(category => (
+                    <li key={category.name} className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Badge variant="outline">{category.name}</Badge>
+                      </span>
+                      <span className="font-semibold text-slate-900">
+                        {formatCurrency(category.value)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {isFrench ? 'Aucun revenu catégorisé.' : 'No categorised income yet.'}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-violet-500" />
+              {isFrench ? 'Objectifs rapides' : 'Quick goals'}
+            </CardTitle>
+            <CardDescription>
+              {isFrench ? 'Progression des objectifs prioritaires.' : 'Progress on your priority goals.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {quickGoals.length > 0 ? (
+              quickGoals.map(goal => {
+                const target = goal.targetAmountInCents || 0;
+                const current = goal.currentAmountInCents || 0;
+                const progress = target > 0 ? Math.min(100, (current / target) * 100) : 0;
+                const remaining = Math.max(0, target - current);
+                return (
+                  <div key={goal.id} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-slate-900">{goal.name}</span>
+                      <span className="text-muted-foreground">{progress.toFixed(0)}%</span>
+                    </div>
+                    <Progress value={progress} />
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        {isFrench ? 'Restant' : 'Remaining'}: {formatCurrency(remaining)}
+                      </span>
+                      {goal.targetDate ? (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {goal.targetDate}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {isFrench ? 'Aucun objectif défini pour le moment.' : 'No goals defined yet.'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-4">
           <Card data-tour="spending-overview">
             <CardHeader>
-              <CardTitle className="font-headline">Spending Overview</CardTitle>
+              <CardTitle className="font-headline text-slate-900">
+                {isFrench ? 'Répartition des dépenses' : 'Spending overview'}
+              </CardTitle>
+              <CardDescription>
+                {isFrench
+                  ? 'Analyse des dépenses par catégorie sur les mouvements récents.'
+                  : 'How your recent spending is split across categories.'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="pl-2">
-              <SpendingOverview transactions={transactions} />
+              <SpendingOverview transactions={spendingOverviewTransactions} />
             </CardContent>
           </Card>
-          {children ? (
-            <div className="space-y-4">{children}</div>
-          ) : null}
-          <RecentTransactions transactions={recentTransactions} categoryIcons={categoryIcons} />
+
+          <RecentTransactions transactions={recentTransactions as Transaction[]} categoryIcons={categoryIcons} />
+
           <div data-tour="goals-overview">
             <GoalsOverview />
           </div>
         </div>
-        <div className="grid auto-rows-max items-start gap-4 md:gap-8">
-          {/* NOUVEAU : Vue budgétaire mensuelle avec pourcentages */}
+
+        <div className="grid auto-rows-max items-start gap-4 md:gap-6">
           <div data-tour="budget-overview">
             <BudgetOverviewMonthly />
           </div>
-          <BudgetsOverview budgets={budgets} transactions={transactions} categoryIcons={categoryIcons} />
+          <BudgetsOverview
+            budgets={budgetsData}
+            transactions={spendingOverviewTransactions}
+            categoryIcons={categoryIcons}
+          />
         </div>
       </div>
     </>

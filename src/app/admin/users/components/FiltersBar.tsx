@@ -120,13 +120,13 @@ export function FiltersBar({ filters, onFiltersChange, onReset, isLoading }: Fil
                 <SelectValue placeholder="Tous les pays" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous les pays</SelectItem>
-                {COUNTRIES.map((country) => (
-                  <SelectItem key={country} value={country}>
-                    {country}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+                  <SelectItem value="all">Tous les pays</SelectItem>
+                  {COUNTRIES.map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
             </Select>
           </div>
 
@@ -142,7 +142,7 @@ export function FiltersBar({ filters, onFiltersChange, onReset, isLoading }: Fil
                 <SelectValue placeholder="Tous" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous</SelectItem>
+                <SelectItem value="any">Tous</SelectItem>
                 <SelectItem value="male">Homme</SelectItem>
                 <SelectItem value="female">Femme</SelectItem>
               </SelectContent>
@@ -161,7 +161,7 @@ export function FiltersBar({ filters, onFiltersChange, onReset, isLoading }: Fil
                 <SelectValue placeholder="Toutes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Toutes</SelectItem>
+                <SelectItem value="any">Toutes</SelectItem>
                 {LANGUAGES.map((lang) => (
                   <SelectItem key={lang.code} value={lang.code}>
                     {lang.name}

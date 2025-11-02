@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 import { getAdminFirestore } from '@/firebase/admin';
 import { UserProfile, Transaction, Goal } from '@/lib/types';
+import type { Debt } from '@/types/debt';
 import { Query, CollectionReference, DocumentData } from 'firebase-admin/firestore';
 
 export interface AdminUserData {
@@ -33,6 +34,9 @@ export interface AdminKPIs {
   totalPlatformBalanceInCents: number;
   newUsersThisMonth: number;
   activeUsersThisMonth: number;
+  totalDebts: number;
+  activeDebts: number;
+  overdueDebts: number;
 }
 
 export interface AdminUserFilters {
@@ -193,15 +197,42 @@ export async function getAdminKPIs(): Promise<AdminKPIs> {
       usersByLanguage[language] = (usersByLanguage[language] || 0) + 1;
       
       // Nouveaux utilisateurs ce mois
-      if (user.createdAt && user.createdAt.toDate() >= thisMonth) {
-        newUsersThisMonth++;
+      if (user.createdAt) {
+        let createdDate: Date | null = null;
+        if (typeof user.createdAt === 'string') {
+          createdDate = new Date(user.createdAt);
+        } else if (user.createdAt instanceof Date) {
+          createdDate = user.createdAt;
+        } else if (user.createdAt?.toDate) {
+          createdDate = user.createdAt.toDate();
+        }
+        if (createdDate && createdDate >= thisMonth) {
+          newUsersThisMonth++;
+        }
       }
-      
+
       // Utilisateurs actifs ce mois (dernière connexion)
-      if (user.lastLoginAt && user.lastLoginAt.toDate() >= thisMonth) {
-        activeUsersThisMonth++;
+      if (user.lastLoginAt) {
+        let loginDate: Date | null = null;
+        if (typeof user.lastLoginAt === 'string') {
+          loginDate = new Date(user.lastLoginAt);
+        } else if (user.lastLoginAt instanceof Date) {
+          loginDate = user.lastLoginAt;
+        } else if (user.lastLoginAt?.toDate) {
+          loginDate = user.lastLoginAt.toDate();
+        }
+        if (loginDate && loginDate >= thisMonth) {
+          activeUsersThisMonth++;
+        }
       }
     }
+    
+    // Statistiques dettes
+    const debtsSnapshot = await db.collection('debts').get();
+    const debts = debtsSnapshot.docs.map(doc => doc.data() as Debt);
+    const totalDebts = debts.length;
+    const activeDebts = debts.filter(debt => debt.status !== 'SOLDEE').length;
+    const overdueDebts = debts.filter(debt => debt.status === 'EN_RETARD').length;
     
     // Calculer le total des transactions et solde plateforme
     let totalTransactions = 0;
@@ -239,7 +270,10 @@ export async function getAdminKPIs(): Promise<AdminKPIs> {
       totalTransactions,
       totalPlatformBalanceInCents,
       newUsersThisMonth,
-      activeUsersThisMonth
+      activeUsersThisMonth,
+      totalDebts,
+      activeDebts,
+      overdueDebts,
     };
     
   } catch (error) {

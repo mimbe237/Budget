@@ -76,6 +76,7 @@ async function createAdmin(email, password, firstName, lastName) {
       locale: 'fr-FR',
       phoneCountryCode: '',
       phoneNumber: '',
+      phoneCompositeKey: null,
       adminSince: admin.firestore.FieldValue.serverTimestamp(),
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()

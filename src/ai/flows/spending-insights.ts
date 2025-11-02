@@ -9,8 +9,7 @@
  * - SpendingInsightsOutput - The return type for the getSpendingInsights function.
  */
 
-import { ai } from '@/ai/genkit';
-const aiEnabled = false;
+import { ai, aiEnabled } from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SpendingInsightsInputSchema = z.object({
@@ -107,7 +106,7 @@ const spendingInsightsFlow = aiEnabled && ai
         inputSchema: SpendingInsightsInputSchema,
         outputSchema: SpendingInsightsOutputSchema,
       },
-      async input => {
+  async (input: SpendingInsightsInput) => {
         if (!prompt) {
           throw new Error('AI prompt unavailable.');
         }

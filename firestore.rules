@@ -1,5 +1,5 @@
 /**
- * @fileoverview Firestore Security Rules for BudgetWise application.
+ * @fileoverview Firestore Security Rules for Budget Pro application.
  *
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model. Each user has complete control
@@ -29,10 +29,18 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function hasAdminProfile(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid)) &&
+             (get(/databases/$(database)/documents/users/$(uid)).data.isAdmin == true ||
+              get(/databases/$(database)/documents/users/$(uid)).data.admin == true ||
+              get(/databases/$(database)/documents/users/$(uid)).data.role == 'admin');
+    }
+
     function isAdmin() {
-      return isAuthenticated() && 
-             (request.auth.token.admin == true || 
-              request.auth.token.role == 'admin');
+      return isAuthenticated() &&
+             (request.auth.token.admin == true ||
+              request.auth.token.role == 'admin' ||
+              hasAdminProfile(request.auth.uid));
     }
 
     function isChangingProtectedProfileFields() {
@@ -48,36 +56,27 @@ service cloud.firestore {
       return isOwner(userId) && resource != null;
     }
 
-    /**
-     * @description Controls access to user profile documents.
-     * @path /users/{userId}
-     * @allow (create) - If the user's auth UID matches the `userId` in the path.
-     * @allow (get, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
-     * @allow (list) - Only admins can list all users.
-     * @allow (read, write) - Admins have full access for administrative purposes.
-     * @deny (create) - If the user's auth UID does not match the `userId` in the path.
-     * @deny (get, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
-     * @principle Enforces document ownership based on the `userId` path parameter, with admin override.
-     */
+    function debtExists(debtId) {
+      return exists(/databases/$(database)/documents/debts/$(debtId));
+    }
+
+    function isDebtOwner(debtId) {
+      return isAuthenticated() &&
+             debtExists(debtId) &&
+             get(/databases/$(database)/documents/debts/$(debtId)).data.userId == request.auth.uid;
+    }
+
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin(); // Seuls les admins peuvent lister tous les utilisateurs
+      allow list: if isAdmin();
       allow create: if isOwner(userId) &&
                     request.resource.data.id == userId &&
                     (!('role' in request.resource.data) || request.resource.data.role == 'user') &&
                     (!('admin' in request.resource.data) || request.resource.data.admin == false);
       allow update: if isAdmin() || (isOwner(userId) && !isChangingProtectedProfileFields());
-      allow delete: if isAdmin(); // Seuls les admins peuvent supprimer des utilisateurs
+      allow delete: if isAdmin();
     }
 
-    /**
-     * @description Controls access to expense documents within a user's subcollection.
-     * @path /users/{userId}/expenses/{expenseId}
-     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
-     * @allow (read, write) - Admins have full access for administrative analytics and user management.
-     * @deny (create, get, list, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
-     * @principle Enforces document ownership based on the `userId` path parameter for expenses, with admin override.
-     */
     match /users/{userId}/expenses/{expenseId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
@@ -86,14 +85,6 @@ service cloud.firestore {
       allow delete: if isOwner(userId) || isAdmin();
     }
 
-    /**
-     * @description Controls access to category documents within a user's subcollection.
-     * @path /users/{userId}/categories/{categoryId}
-     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
-     * @allow (read, write) - Admins have full access for administrative purposes.
-     * @deny (create, get, list, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
-     * @principle Enforces document ownership based on the `userId` path parameter for categories, with admin override.
-     */
     match /users/{userId}/categories/{categoryId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
@@ -102,14 +93,6 @@ service cloud.firestore {
       allow delete: if isOwner(userId) || isAdmin();
     }
 
-    /**
-     * @description Controls access to budget goal documents within a user's subcollection.
-     * @path /users/{userId}/budgetGoals/{budgetGoalId}
-     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path and the document exists.
-     * @allow (read, write) - Admins have full access for administrative purposes.
-     * @deny (create, get, list, update, delete) - If the user's auth UID does not match the `userId` in the path or the document doesn't exist.
-     * @principle Enforces document ownership based on the `userId` path parameter for budget goals, with admin override.
-     */
     match /users/{userId}/budgetGoals/{budgetGoalId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
@@ -117,13 +100,6 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
 
-      /**
-       * @description Tracks contribution history for a specific goal.
-       * @path /users/{userId}/budgetGoals/{budgetGoalId}/transactions/{transactionId}
-       * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path.
-       * @allow (read, write) - Admins have full access for administrative purposes.
-       * @principle Enforces goal-level ownership for contribution records with admin override.
-       */
       match /transactions/{transactionId} {
         allow get: if isOwner(userId) || isAdmin();
         allow list: if isOwner(userId) || isAdmin();
@@ -133,13 +109,6 @@ service cloud.firestore {
       }
     }
 
-    /**
-     * @description Controls access to goal documents within a user's subcollection.
-     * @path /users/{userId}/goals/{goalId}
-     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path.
-     * @allow (read, write) - Admins have full access for administrative purposes.
-     * @principle Enforces document ownership based on the `userId` path parameter for goals, with admin override.
-     */
     match /users/{userId}/goals/{goalId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
@@ -148,13 +117,6 @@ service cloud.firestore {
       allow delete: if isOwner(userId) || isAdmin();
     }
 
-    /**
-     * @description Controls access to goal transaction documents (contribution history) within a user's subcollection.
-     * @path /users/{userId}/goalTransactions/{transactionId}
-     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path.
-     * @allow (read, write) - Admins have full access for administrative purposes.
-     * @principle Enforces document ownership based on the `userId` path parameter for goal transactions, with admin override.
-     */
     match /users/{userId}/goalTransactions/{transactionId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
@@ -163,14 +125,22 @@ service cloud.firestore {
       allow delete: if isOwner(userId) || isAdmin();
     }
 
-    /**
-     * @description Controls access to monthly budget plan documents within a user's subcollection.
-     * @path /users/{userId}/monthlyBudgets/{period}
-     * @allow (create, get, list, update, delete) - If the user's auth UID matches the `userId` in the path.
-     * @allow (read, write) - Admins have full access for administrative purposes.
-     * @principle Enforces document ownership based on the `userId` path parameter for monthly budgets, with admin override.
-     * @note Period format is YYYY-MM (e.g., "2024-01")
-     */
+    match /users/{userId}/goalsHistory/{historyId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /users/{userId}/debtAlerts/{alertId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
     match /users/{userId}/monthlyBudgets/{period} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
@@ -179,16 +149,97 @@ service cloud.firestore {
       allow delete: if isOwner(userId) || isAdmin();
     }
 
-    /**
-     * @description Admin logs collection for auditing administrative actions
-     * @path /admin_logs/{logId}
-     * @allow (create, read) - Only admins can create and read admin logs
-     * @principle Admins can log their actions for audit purposes
-     */
+    match /debts/{debtId} {
+      // Autorise la liste uniquement pour un utilisateur authentifié ;
+      // les documents retournés restent filtrés par la règle get ci-dessous.
+      allow list: if isAuthenticated();
+      // Autorise lecture (get) uniquement pour le propriétaire de la dette
+      allow get: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Création uniquement si userId (payload) correspond au user connecté
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Mise à jour/suppression uniquement par le propriétaire, et sans usurpation de userId
+      allow update: if isDebtOwner(debtId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isDebtOwner(debtId);
+    }
+
+    match /debtSchedules/{scheduleId} {
+      allow read: if request.auth != null && isDebtOwner(resource.data.debtId);
+      allow create, update, delete: if false;
+    }
+
+    match /debtPayments/{paymentId} {
+      allow read: if request.auth != null && isDebtOwner(resource.data.debtId);
+      allow create, update, delete: if false;
+    }
+
+    match /debtRateHistory/{historyId} {
+      allow read: if request.auth != null && isDebtOwner(resource.data.debtId);
+      allow create, update, delete: if false;
+    }
+
     match /admin_logs/{logId} {
       allow create: if isAdmin();
       allow read: if isAdmin();
       allow list: if isAdmin();
+    }
+
+    match /adminConfig/homepage {
+      allow get: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /adminConfig/{docId} {
+      allow get, list, create, update, delete: if isAdmin();
+    }
+
+    match /adminAffiliations/{affiliationId} {
+      allow get, list, create, update, delete: if isAdmin();
+    }
+
+    match /adminSubscriptions/{subscriptionId} {
+      allow get, list, create, update, delete: if isAdmin();
+    }
+
+    // === AFFILIATION SYSTEM ===
+    match /affiliates/{affiliateId} {
+      allow get, update, delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      allow list: if isAdmin();
+    }
+
+    match /affiliateLinks/{linkId} {
+      allow get, update, delete: if isAuthenticated() && (request.auth.uid == resource.data.affiliateId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.affiliateId;
+      allow list: if isAdmin();
+    }
+
+    match /clicks/{clickId} {
+      allow get, list: if isAuthenticated() && (request.auth.uid == resource.data.affiliateId || isAdmin());
+      allow create: if true; // tracking public, anti-fraude côté backend
+      allow update, delete: if false;
+    }
+
+    match /referrals/{referralId} {
+      allow get, update, delete: if isAuthenticated() && (request.auth.uid == resource.data.affiliateId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.affiliateId;
+      allow list: if isAdmin();
+    }
+
+    match /commissions/{commissionId} {
+      allow get, update, delete: if isAuthenticated() && (request.auth.uid == resource.data.affiliateId || isAdmin());
+      allow create: if isAdmin();
+      allow list: if isAdmin();
+    }
+
+    match /payouts/{payoutId} {
+      allow get, update, delete: if isAuthenticated() && (request.auth.uid == resource.data.affiliateId || isAdmin());
+      allow create: if isAdmin();
+      allow list: if isAdmin();
+    }
+
+    match /programRules/{tier} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
     }
   }
 }

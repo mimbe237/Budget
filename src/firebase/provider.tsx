@@ -1,9 +1,9 @@
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, doc, onSnapshot } from 'firebase/firestore';
-import { Auth, User, onIdTokenChanged, getIdToken } from 'firebase/auth';
+import { Auth, User, onIdTokenChanged, getIdToken, signOut } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import type { UserProfile } from '@/lib/types';
 
@@ -61,8 +61,21 @@ if (typeof window !== 'undefined' && !(window as any).__fetch_intercepted) {
 
     // The fetch interceptor
     window.fetch = async (input, init) => {
+        const requestUrl =
+          typeof input === 'string'
+            ? input
+            : input instanceof Request
+            ? input.url
+            : '';
+
         const headers = new Headers(init?.headers);
-        if (idToken) {
+        const shouldAttachAuth =
+          idToken &&
+          requestUrl &&
+          !requestUrl.includes('identitytoolkit.googleapis.com') &&
+          !requestUrl.includes('securetoken.googleapis.com');
+
+        if (shouldAttachAuth) {
             headers.set('Authorization', `Bearer ${idToken}`);
         }
         const newInit = { ...init, headers };
@@ -96,6 +109,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   const [userError, setUserError] = useState<Error | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUserProfileLoading, setIsUserProfileLoading] = useState(true);
+  const suspensionHandledRef = useRef(false);
 
 
   // Effect to subscribe to Firebase auth state changes
@@ -141,6 +155,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     if (!user || !firestore) {
       setUserProfile(null);
       setIsUserProfileLoading(false);
+      suspensionHandledRef.current = false;
       return;
     }
 
@@ -149,9 +164,25 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     
     const unsubscribe = onSnapshot(userProfileRef, (docSnap) => {
         if (docSnap.exists()) {
-            setUserProfile(docSnap.data() as UserProfile);
+            const data = docSnap.data() as UserProfile & { status?: string };
+            setUserProfile(data);
+
+            if (data.status === 'suspended') {
+              setUserError(prev => (prev?.message === 'account-suspended' ? prev : new Error('account-suspended')));
+              if (auth && auth.currentUser && !suspensionHandledRef.current) {
+                suspensionHandledRef.current = true;
+                signOut(auth).catch(() => {
+                  suspensionHandledRef.current = false;
+                });
+              }
+            } else {
+              suspensionHandledRef.current = false;
+              setUserError(prev => (prev?.message === 'account-suspended' ? null : prev));
+            }
         } else {
             setUserProfile(null);
+            suspensionHandledRef.current = false;
+            setUserError(prev => (prev?.message === 'account-suspended' ? null : prev));
         }
         setIsUserProfileLoading(false);
     }, (error) => {
@@ -161,7 +192,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     });
 
     return () => unsubscribe();
-  }, [user, firestore]);
+  }, [user, firestore, auth]);
 
 
   // Memoize the context value

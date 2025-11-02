@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,6 +77,7 @@ export function TransactionsView({
   const [to, setTo] = useState<string>('');
   const [category, setCategory] = useState('');
   const [type, setType] = useState<'income'|'expense'|''>('');
+  const [periodPreset, setPeriodPreset] = useState<'all'|'thisMonth'|'last30'|'last90'|'custom'>('all');
   const [catsIncome, setCatsIncome] = useState<string[]>([]);
   const [catsExpense, setCatsExpense] = useState<string[]>([]);
   const [catsAll, setCatsAll] = useState<string[]>(categoryOptions);
@@ -118,8 +119,52 @@ export function TransactionsView({
 
   useEffect(() => { load(); }, [search, from, to, category, type, page, pageSize, sortField, sortDir]);
 
+  const formatDate = useCallback((date: Date) => {
+    return date.toISOString().slice(0, 10);
+  }, []);
+
+  useEffect(() => {
+    if (periodPreset === 'custom') {
+      return;
+    }
+
+    let nextFrom = '';
+    let nextTo = '';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (periodPreset === 'thisMonth') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      nextFrom = formatDate(start);
+      nextTo = formatDate(end);
+    } else if (periodPreset === 'last30') {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 29);
+      nextFrom = formatDate(start);
+      nextTo = formatDate(today);
+    } else if (periodPreset === 'last90') {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 89);
+      nextFrom = formatDate(start);
+      nextTo = formatDate(today);
+    }
+
+    setFrom(nextFrom);
+    setTo(nextTo);
+    setPage(1);
+  }, [periodPreset, formatDate]);
+
   const resetFilters = () => {
-    setSearch(''); setFrom(''); setTo(''); setCategory(''); setType(''); setPage(1); setSortField('date'); setSortDir('desc');
+    setSearch('');
+    setFrom('');
+    setTo('');
+    setCategory('');
+    setType('');
+    setPeriodPreset('all');
+    setPage(1);
+    setSortField('date');
+    setSortDir('desc');
   };
 
   const openCreate = () => {
@@ -217,9 +262,44 @@ export function TransactionsView({
       <Card className="rounded-xl shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Input placeholder="Recherche description" value={search} onChange={(e)=>{setSearch(e.target.value); setPage(1);}} className="w-56" />
-            <Input type="date" value={from} onChange={(e)=>{setFrom(e.target.value); setPage(1);}} />
-            <Input type="date" value={to} onChange={(e)=>{setTo(e.target.value); setPage(1);}} />
+            <Input placeholder="Recherche (description, note...)" value={search} onChange={(e)=>{setSearch(e.target.value); setPage(1);}} className="w-60" />
+
+            <Select value={periodPreset} onValueChange={(v)=> setPeriodPreset(v as typeof periodPreset)}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="Période" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toute la période</SelectItem>
+                <SelectItem value="thisMonth">Ce mois-ci</SelectItem>
+                <SelectItem value="last30">30 derniers jours</SelectItem>
+                <SelectItem value="last90">90 derniers jours</SelectItem>
+                <SelectItem value="custom">Personnalisée</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {periodPreset === 'custom' && (
+              <>
+                <Input
+                  type="date"
+                  value={from}
+                  onChange={(e) => {
+                    setFrom(e.target.value);
+                    setPeriodPreset('custom');
+                    setPage(1);
+                  }}
+                />
+                <Input
+                  type="date"
+                  value={to}
+                  onChange={(e) => {
+                    setTo(e.target.value);
+                    setPeriodPreset('custom');
+                    setPage(1);
+                  }}
+                />
+              </>
+            )}
+
             <Select value={category} onValueChange={(v)=>{setCategory(v); setPage(1);}}>
               <SelectTrigger className="w-48"><SelectValue placeholder="Catégorie" /></SelectTrigger>
               <SelectContent>

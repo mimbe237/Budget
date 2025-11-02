@@ -5,16 +5,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
-import {
-  Plus,
-  X,
-  TrendingUp,
-  TrendingDown,
-  Target,
-} from 'lucide-react';
+import { Plus, X, TrendingUp, TrendingDown, Target, Landmark } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-type AccentToken = 'emerald' | 'rose' | 'indigo';
+type AccentToken = 'emerald' | 'rose' | 'indigo' | 'amber';
 
 type Shortcut = {
   href: string;
@@ -39,6 +33,11 @@ const accentStyles: Record<AccentToken, { icon: string; halo: string; card: stri
     icon: 'text-indigo-600',
     halo: 'from-indigo-400/30 via-indigo-400/10 to-transparent',
     card: 'hover:border-indigo-200/70 hover:shadow-indigo-100/40',
+  },
+  amber: {
+    icon: 'text-amber-600',
+    halo: 'from-amber-400/30 via-amber-400/10 to-transparent',
+    card: 'hover:border-amber-200/70 hover:shadow-amber-100/40',
   },
 };
 
@@ -83,6 +82,15 @@ export function QuickAddShortcuts() {
         ? 'Définissez un objectif d’épargne ou de projet à atteindre.'
         : 'Create a new savings or project goal to stay motivated.',
       accent: 'indigo',
+    },
+    {
+      href: '/debts/new',
+      icon: Landmark,
+      title: isFrench ? 'Dette' : 'Debt',
+      description: isFrench
+        ? 'Ajoutez un prêt ou un emprunt pour suivre vos remboursements.'
+        : 'Track a new loan or debt to stay ahead of repayments.',
+      accent: 'amber',
     },
   ];
 

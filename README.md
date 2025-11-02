@@ -36,7 +36,9 @@ Prérequis: Node.js 18+, npm.
 - Transactions avec pagination et recherche
 - Catégories (dépenses et revenus) stockées dans Firestore
 - Initialisation automatique des catégories par défaut à la première utilisation
-- Rapports avec filtres appliqués automatiquement
+- Rapports enrichis (KPIs dettes, graphique multi-séries, exports CSV/Excel étendus)
+- Gestion complète des dettes (emprunts & prêts) : création, échéanciers, paiements, simulations (voir `docs/DEBTS_MODULE.md`)
+- Analyse IA dédiée avec aperçu sur le tableau de bord et page complète `/ai-insights`
 
 ## Configuration Firebase
 

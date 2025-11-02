@@ -1,4 +1,4 @@
-# Guide du Dark Mode - BudgetWise
+# Guide du Dark Mode - Budget Pro
 
 ## Configuration
 

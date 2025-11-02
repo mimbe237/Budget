@@ -31,41 +31,73 @@ async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
   }
 }
 
+const FALLBACK_ERROR_INSIGHTS =
+  "Impossible de récupérer les insights pour le moment.";
+const FALLBACK_ERROR_RECOMMENDATIONS =
+  "Les recommandations personnalisées sont temporairement indisponibles. Vérifiez la configuration de l’API ou réessayez plus tard.";
+const FALLBACK_EMPTY_INSIGHTS = "Pas encore assez de données pour générer des insights.";
+const FALLBACK_EMPTY_RECOMMENDATIONS =
+  "Commencez par ajouter des transactions et définir vos budgets pour débloquer les recommandations personnalisées.";
 
-export async function AIInsightsWrapper() {
+export type AIInsightsState = {
+  status: 'ok' | 'empty' | 'error';
+  insights: string;
+  recommendations: string;
+  lastUpdatedLabel: string | null;
+  sample: {
+    transactionCount: number;
+    budgetCount: number;
+  };
+};
+
+export async function loadAIInsights(): Promise<AIInsightsState> {
   try {
     const user = await getAuthenticatedUser();
 
     if (!user) {
-      return (
-        <AIInsights
-          insights="Could not load insights."
-          recommendations="User not found."
-        />
-      );
+      return {
+        status: 'error',
+        insights: FALLBACK_ERROR_INSIGHTS,
+        recommendations: FALLBACK_ERROR_RECOMMENDATIONS,
+        lastUpdatedLabel: null,
+        sample: { transactionCount: 0, budgetCount: 0 },
+      };
     }
 
     const db = getAdminFirestore();
 
-    const transactionsSnap = await db
-      .collection(`users/${user.uid}/expenses`)
-      .get();
-    const budgetsSnap = await db
-      .collection(`users/${user.uid}/categories`)
-      .get();
+    let transactions: Transaction[] = [];
+    let budgets: Budget[] = [];
 
-    const transactions = transactionsSnap.docs.map(
-      doc => doc.data() as Transaction
-    );
-    const budgets = budgetsSnap.docs.map(doc => doc.data() as Budget);
+    try {
+      const [transactionsSnap, budgetsSnap] = await Promise.all([
+        db.collection(`users/${user.uid}/expenses`).get(),
+        db.collection(`users/${user.uid}/categories`).get(),
+      ]);
+
+      transactions = transactionsSnap.docs.map(doc => doc.data() as Transaction);
+      budgets = budgetsSnap.docs.map(doc => doc.data() as Budget);
+    } catch (firestoreError) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[AIInsights] Firestore unavailable, returning offline fallback.', firestoreError);
+      }
+      return {
+        status: 'error',
+        insights: FALLBACK_ERROR_INSIGHTS,
+        recommendations: FALLBACK_ERROR_RECOMMENDATIONS,
+        lastUpdatedLabel: null,
+        sample: { transactionCount: 0, budgetCount: 0 },
+      };
+    }
 
     if (transactions.length === 0) {
-      return (
-        <AIInsights
-          insights="Not enough data yet."
-          recommendations="Start adding transactions to get personalized insights."
-        />
-      );
+      return {
+        status: 'empty',
+        insights: FALLBACK_EMPTY_INSIGHTS,
+        recommendations: FALLBACK_EMPTY_RECOMMENDATIONS,
+        lastUpdatedLabel: null,
+        sample: { transactionCount: 0, budgetCount: budgets.length },
+      };
     }
 
     const spendingHistory = transactions
@@ -78,18 +110,17 @@ export async function AIInsightsWrapper() {
     const budgetGoals = budgets
       .map(b => {
         const amount = b.budgetedAmount || 0;
-        return `${b.name}: ${amount.toFixed(2)}`; // Assuming budgets don't have a currency field yet.
+        return `${b.name}: ${amount.toFixed(2)}`;
       })
       .join('\n');
 
-    let insights = 'Not enough data to generate insights.';
-    let recommendations =
-      'Add more transactions and budget data to unlock personalized recommendations.';
+    let insights = FALLBACK_ERROR_INSIGHTS;
+    let recommendations = FALLBACK_ERROR_RECOMMENDATIONS;
 
     try {
       const result = await getSpendingInsights({
         spendingHistory,
-        budgetGoals
+        budgetGoals,
       });
       insights = result.insights;
       recommendations = result.recommendations;
@@ -97,23 +128,54 @@ export async function AIInsightsWrapper() {
       if (process.env.NODE_ENV !== 'production') {
         console.warn('[AIInsights] Falling back to default insights after Genkit error.', error);
       }
-      insights = 'Impossible de récupérer les insights pour le moment. Vérifiez la configuration de l’API Gemini ou réessayez plus tard.';
-      recommendations =
-        'Assurez-vous que la clé d’API est valide et que le service est atteignable. Vous pouvez consulter les rapports pour des analyses manuelles en attendant.';
+      return {
+        status: 'error',
+        insights: FALLBACK_ERROR_INSIGHTS,
+        recommendations: FALLBACK_ERROR_RECOMMENDATIONS,
+        lastUpdatedLabel: null,
+        sample: { transactionCount: transactions.length, budgetCount: budgets.length },
+      };
     }
 
-    return (
-      <AIInsights insights={insights} recommendations={recommendations} />
-    );
+    const latestTransactionDate = transactions
+      .map(t => new Date(t.date ?? Date.now()).getTime())
+      .sort((a, b) => b - a)[0];
+
+    const formatter = new Intl.DateTimeFormat('fr-FR', {
+      dateStyle: 'medium',
+    });
+
+    return {
+      status: 'ok',
+      insights,
+      recommendations,
+      lastUpdatedLabel: latestTransactionDate ? formatter.format(new Date(latestTransactionDate)) : null,
+      sample: { transactionCount: transactions.length, budgetCount: budgets.length },
+    };
   } catch (error) {
     if (process.env.NODE_ENV !== 'production') {
-      console.error('[AIInsights] Failed to render AI insights widget. Falling back to safe defaults.', error);
+      console.error('[AIInsights] Failed to load AI insights data.', error);
     }
-    return (
-      <AIInsights
-        insights="Impossible de récupérer les insights pour le moment."
-        recommendations="Les recommandations personnalisées sont temporairement indisponibles. Vérifiez la configuration de l’API ou réessayez plus tard."
-      />
-    );
+    return {
+      status: 'error',
+      insights: FALLBACK_ERROR_INSIGHTS,
+      recommendations: FALLBACK_ERROR_RECOMMENDATIONS,
+      lastUpdatedLabel: null,
+      sample: { transactionCount: 0, budgetCount: 0 },
+    };
   }
+}
+
+export async function AIInsightsWrapper() {
+  const result = await loadAIInsights();
+  return (
+    <AIInsights
+      mode="preview"
+      status={result.status}
+      insights={result.insights}
+      recommendations={result.recommendations}
+      onViewMoreHref="/ai-insights"
+      lastUpdatedLabel={result.lastUpdatedLabel}
+    />
+  );
 }

@@ -1,4 +1,4 @@
-# **App Name**: BudgetWise
+# **App Name**: Budget Pro
 
 ## Core Features:
 
