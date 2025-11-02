@@ -32,8 +32,29 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-// Entry point that re-exports all functions from individual modules
-const debts = __importStar(require("./debts"));
-const notifications = __importStar(require("./notifications"));
-const affiliates = __importStar(require("./affiliates"));
-module.exports = Object.assign({}, debts, notifications, affiliates);
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.markPayoutPaid = exports.approveOrVoidOnEvents = exports.attributeConversion = exports.trackClick = exports.createAffiliateLink = exports.blockAffiliate = exports.approveAffiliate = exports.createAffiliate = exports.getDebtSummary = exports.uploadContractUrl = exports.restructureDebt = exports.applyPrepayment = exports.simulatePrepayment = exports.recordPayment = exports.buildSchedule = exports.createDebt = void 0;
+// Entry point that re-exports only HTTP functions (no scheduled functions)
+// Temporary file to deploy without App Engine/Cloud Scheduler dependencies
+const admin = __importStar(require("firebase-admin"));
+// Initialize Firebase Admin once at the top level
+admin.initializeApp();
+// Import individual HTTP functions only
+const debts_1 = require("./debts");
+Object.defineProperty(exports, "createDebt", { enumerable: true, get: function () { return debts_1.createDebt; } });
+Object.defineProperty(exports, "buildSchedule", { enumerable: true, get: function () { return debts_1.buildSchedule; } });
+Object.defineProperty(exports, "recordPayment", { enumerable: true, get: function () { return debts_1.recordPayment; } });
+Object.defineProperty(exports, "simulatePrepayment", { enumerable: true, get: function () { return debts_1.simulatePrepayment; } });
+Object.defineProperty(exports, "applyPrepayment", { enumerable: true, get: function () { return debts_1.applyPrepayment; } });
+Object.defineProperty(exports, "restructureDebt", { enumerable: true, get: function () { return debts_1.restructureDebt; } });
+Object.defineProperty(exports, "uploadContractUrl", { enumerable: true, get: function () { return debts_1.uploadContractUrl; } });
+Object.defineProperty(exports, "getDebtSummary", { enumerable: true, get: function () { return debts_1.getDebtSummary; } });
+const affiliates_1 = require("./affiliates");
+Object.defineProperty(exports, "createAffiliate", { enumerable: true, get: function () { return affiliates_1.createAffiliate; } });
+Object.defineProperty(exports, "approveAffiliate", { enumerable: true, get: function () { return affiliates_1.approveAffiliate; } });
+Object.defineProperty(exports, "blockAffiliate", { enumerable: true, get: function () { return affiliates_1.blockAffiliate; } });
+Object.defineProperty(exports, "createAffiliateLink", { enumerable: true, get: function () { return affiliates_1.createAffiliateLink; } });
+Object.defineProperty(exports, "trackClick", { enumerable: true, get: function () { return affiliates_1.trackClick; } });
+Object.defineProperty(exports, "attributeConversion", { enumerable: true, get: function () { return affiliates_1.attributeConversion; } });
+Object.defineProperty(exports, "approveOrVoidOnEvents", { enumerable: true, get: function () { return affiliates_1.approveOrVoidOnEvents; } });
+Object.defineProperty(exports, "markPayoutPaid", { enumerable: true, get: function () { return affiliates_1.markPayoutPaid; } });

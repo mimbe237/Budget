@@ -36,7 +36,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendWeeklyReport = exports.onLargeTransaction = exports.onGoalAchieved = exports.onBudgetExceeded = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
-admin.initializeApp();
 /**
  * Envoyer une notification quand un budget est dépassé
  */
