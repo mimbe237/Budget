@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
 import type { Category, Transaction, UserProfile } from '@/lib/types';
+import type { Debt } from '@/types/debt';
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, limit, orderBy, doc } from 'firebase/firestore';
 
@@ -32,6 +33,7 @@ import { BudgetOverviewMonthly } from '@/components/dashboard/budget-overview-mo
 import { BudgetAlertMonitor } from '@/components/budgets/budget-alert-monitor';
 import { GuidedTourLauncher } from '@/components/onboarding/GuidedTourLauncher';
 import { ChartFinanceDebt } from '@/app/reports/_components/chart-finance-debt';
+import { DebtSnapshot } from '@/components/dashboard/debt-snapshot';
 import type { SerializableFinancialReportData } from '@/app/dashboard/page';
 
 type DashboardClientContentProps = {
@@ -52,7 +54,6 @@ const STATUS_COLORS: Record<string, 'default' | 'outline' | 'secondary' | 'destr
   SOLDEE: 'secondary',
   RESTRUCTUREE: 'secondary',
   A_ECHoir: 'outline',
-  'A_ECHoir': 'outline',
 };
 
 export function DashboardClientContent({ reportData, children }: DashboardClientContentProps) {
@@ -74,6 +75,12 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
     return query(collection(firestore, `users/${user.uid}/categories`));
   }, [firestore, user]);
   const { data: budgets } = useCollection<any>(budgetsQuery);
+
+  const debtsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/debts`));
+  }, [firestore, user]);
+  const { data: debts } = useCollection<Debt>(debtsQuery);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -238,7 +245,7 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
         typeof dti === 'number'
           ? {
               text: `DTI ${(dti * 100).toFixed(1)}%`,
-              variant: dti > 0.35 ? 'destructive' : 'secondary',
+              variant: (dti > 0.35 ? 'destructive' : 'secondary') as 'destructive' | 'secondary',
             }
           : null,
     },
@@ -270,11 +277,11 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
         {kpiCards.map(card => (
           <Card
             key={card.id}
-            className={`bg-gradient-to-br ${card.accent} backdrop-blur-xl shadow-lg border-0 rounded-2xl transition-transform duration-200 hover:scale-[1.02]`}
+            className={`bg-gradient-to-br ${card.accent} backdrop-blur-xl shadow-lg border-0 rounded-2xl transition-transform duration-200 hover:scale-[1.02] print:break-inside-avoid`}
           >
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
               <div>
-                <CardTitle className="text-base font-semibold text-slate-800">
+                <CardTitle className="text-base font-semibold font-headline text-slate-800">
                   {card.title}
                 </CardTitle>
               </div>
@@ -295,17 +302,19 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-        <ChartFinanceDebt
-          data={reportData.financialSeries}
-          currency={displayCurrency}
-          locale={displayLocale}
-          isFrench={!!isFrench}
-        />
+        <div className="min-w-0">
+          <ChartFinanceDebt
+            data={reportData.financialSeries}
+            currency={displayCurrency}
+            locale={displayLocale}
+            isFrench={!!isFrench}
+          />
+        </div>
 
-        <div className="space-y-4">
-          <Card className="h-full">
+        <div className="space-y-4 min-w-0">
+          <Card className="h-fit print:break-inside-avoid">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 font-headline">
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
                 {isFrench ? 'Alertes & Insights' : 'Alerts & insights'}
               </CardTitle>
@@ -322,9 +331,9 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
                   className="flex items-start gap-3 rounded-xl border border-slate-200/70 bg-slate-50/70 p-3"
                 >
                   {alert.tone === 'warning' ? (
-                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-1" />
+                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-1 flex-shrink-0" />
                   ) : (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-1" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-1 flex-shrink-0" />
                   )}
                   <p className="text-sm text-slate-700">{alert.message}</p>
                 </div>
@@ -332,92 +341,25 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
             </CardContent>
           </Card>
 
-          {insightsSection}
+          <div className="h-fit">
+            {insightsSection}
+          </div>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-white/80 border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-900">
-              <Landmark className="h-4 w-4 text-blue-500" />
-              {isFrench ? 'Dette express' : 'Debt express'}
-            </CardTitle>
-            <CardDescription>
-              {isFrench ? 'Suivi rapide de vos obligations.' : 'Quick glance at your liabilities.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  {isFrench ? 'Service de dette (période)' : 'Debt service (period)'}
-                </span>
-                <span className="font-semibold text-slate-900">{formatCurrency(serviceDebtTotal)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  {isFrench ? 'Intérêts payés' : 'Interest paid'}
-                </span>
-                <span className="font-semibold text-slate-900">{formatCurrency(interestPaidTotal)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  {isFrench ? 'Échéances en retard' : 'Late installments'}
-                </span>
-                <Badge variant={lateInstallments > 0 ? 'destructive' : 'secondary'}>
-                  {lateInstallments}
-                </Badge>
-              </div>
-            </div>
+        <DebtSnapshot
+          debts={debts}
+          locale={displayLocale}
+          currency={displayCurrency}
+          interestPaid={interestPaidTotal}
+          serviceDebt={serviceDebtTotal}
+        />
 
-            <div className="space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {isFrench ? 'Prochaines échéances' : 'Upcoming installments'}
-              </h4>
-              {debtExpressList.length > 0 ? (
-                <div className="space-y-2">
-                  {debtExpressList.map((item, index) => {
-                    let dueDate = item.dueDate;
-                    try {
-                      dueDate = new Intl.DateTimeFormat(displayLocale, {
-                        day: 'numeric',
-                        month: 'short',
-                      }).format(new Date(item.dueDate));
-                    } catch {
-                      // keep raw value
-                    }
-                    return (
-                      <div
-                        key={`${item.dueDate}-${index}`}
-                        className="flex items-center justify-between rounded-lg border border-slate-200/70 bg-white/80 px-3 py-2"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-slate-900">{dueDate}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatCurrency(item.amount)}
-                          </span>
-                        </div>
-                        <Badge variant={STATUS_COLORS[item.status] || 'outline'} className="text-xs">
-                          {item.status}
-                        </Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  {isFrench ? 'Aucune échéance planifiée.' : 'No upcoming installments.'}
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
+        <Card className="min-w-0 print:break-inside-avoid">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-rose-500" />
+            <CardTitle className="flex items-center gap-2 font-headline">
+              <TrendingDown className="h-4 w-4 text-rose-500 flex-shrink-0" />
               {isFrench ? 'Top dépenses / revenus' : 'Top spending / income'}
             </CardTitle>
             <CardDescription>
@@ -432,11 +374,11 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
               {topExpenses.length > 0 ? (
                 <ul className="space-y-2">
                   {topExpenses.map(category => (
-                    <li key={category.name} className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <Badge variant="outline">{category.name}</Badge>
+                    <li key={category.name} className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <Badge variant="outline" className="whitespace-nowrap">{category.name}</Badge>
                       </span>
-                      <span className="font-semibold text-slate-900">
+                      <span className="font-semibold text-slate-900 whitespace-nowrap">
                         {formatCurrency(category.value)}
                       </span>
                     </li>
@@ -456,11 +398,11 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
               {topIncomes.length > 0 ? (
                 <ul className="space-y-2">
                   {topIncomes.map(category => (
-                    <li key={category.name} className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <Badge variant="outline">{category.name}</Badge>
+                    <li key={category.name} className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <Badge variant="outline" className="whitespace-nowrap">{category.name}</Badge>
                       </span>
-                      <span className="font-semibold text-slate-900">
+                      <span className="font-semibold text-slate-900 whitespace-nowrap">
                         {formatCurrency(category.value)}
                       </span>
                     </li>
@@ -475,9 +417,9 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-w-0 print:break-inside-avoid">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 font-headline">
               <Sparkles className="h-4 w-4 text-violet-500" />
               {isFrench ? 'Objectifs rapides' : 'Quick goals'}
             </CardTitle>
@@ -524,7 +466,7 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
 
       <div className="grid gap-4 md:gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-4">
-          <Card data-tour="spending-overview">
+          <Card data-tour="spending-overview" className="print:break-inside-avoid">
             <CardHeader>
               <CardTitle className="font-headline text-slate-900">
                 {isFrench ? 'Répartition des dépenses' : 'Spending overview'}

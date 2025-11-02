@@ -31,6 +31,7 @@ export type AffiliateLink = {
   url: string;
   createdAt: string;
   active: boolean;
+  affiliateCode: string;
   utm: {
     source: string;
     medium: string;
@@ -44,6 +45,23 @@ export type AffiliateLink = {
     conversionRate: number;
     lastClickAt?: string | null;
   };
+};
+
+export type AffiliateCommission = {
+  id: string;
+  referralId: string;
+  status: 'PENDING' | 'APPROVED' | 'PAID' | 'VOID';
+  schema: 'FIXED' | 'PERCENT' | 'RECURRING' | 'TIERED' | 'BONUS';
+  amount: number;
+  currency: string;
+  monthKey?: string;
+  recurringMonth?: number;
+  totalRecurringMonths?: number;
+  payoutId?: string;
+  reason?: string;
+  createdAt: string;
+  approvedAt?: string | null;
+  paidAt?: string | null;
 };
 
 export type AffiliateReferral = {
@@ -68,6 +86,52 @@ export type AffiliatePayout = {
   method: 'SEPA' | 'PayPal' | 'MobileMoney';
   reference?: string;
   paidAt?: string | null;
+};
+
+export type AffiliatePayoutsSummary = {
+  affiliateCode: string;
+  currency: string;
+  totals: {
+    due: number;
+    processing: number;
+    paid: number;
+    failed: number;
+    amountDue: number;
+    amountProcessing: number;
+    amountPaid: number;
+  };
+  nextPayout?: AffiliatePayout | null;
+  history: AffiliatePayout[];
+};
+
+export type AffiliateProfileSummary = {
+  affiliateCode: string;
+  status: AffiliateStatus;
+  tier: AffiliateTier;
+  email: string;
+  country: string;
+  currency: string;
+  joinedAt: string;
+  payoutMethod: 'SEPA' | 'PAYPAL' | 'MOBILE_MONEY';
+  payoutDetails: {
+    bankName?: string | null;
+    iban?: string | null;
+    swift?: string | null;
+    paypalEmail?: string | null;
+    mobileOperator?: string | null;
+    mobileNumber?: string | null;
+  };
+  preferences: {
+    notificationEmail: string;
+    newsletter: boolean;
+    promotionChannels: string[];
+  };
+  documents: {
+    type: 'contract' | 'invoice' | 'guidelines';
+    title: string;
+    url: string;
+    uploadedAt: string;
+  }[];
 };
 
 export type AffiliateAlert = {
@@ -122,4 +186,36 @@ export type AffiliateAnalytics = {
   referrals: AffiliateReferral[];
   payouts: AffiliatePayout[];
   alerts: AffiliateAlert[];
+};
+
+export type AffiliateLinksOverview = {
+  affiliateCode: string;
+  cookieDays: number;
+  defaultLanding: string;
+  totals: {
+    active: number;
+    clicks: number;
+    conversions: number;
+    revenue: number;
+  };
+  links: AffiliateLink[];
+};
+
+export type AffiliateCommissionSummary = {
+  affiliateCode: string;
+  currency: string;
+  totals: {
+    pending: number;
+    approved: number;
+    paid: number;
+    void: number;
+    amountPending: number;
+    amountApproved: number;
+    amountPaid: number;
+  };
+  recurrent: {
+    active: number;
+    monthAverage: number;
+  };
+  commissions: AffiliateCommission[];
 };

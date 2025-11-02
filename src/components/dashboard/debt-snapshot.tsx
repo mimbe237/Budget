@@ -19,9 +19,11 @@ type DebtSnapshotProps = {
   debts: Debt[] | null | undefined;
   locale: string;
   currency: string;
+  interestPaid?: number;
+  serviceDebt?: number;
 };
 
-export function DebtSnapshot({ debts, locale, currency }: DebtSnapshotProps) {
+export function DebtSnapshot({ debts, locale, currency, interestPaid = 0, serviceDebt = 0 }: DebtSnapshotProps) {
   const normalizedDebts = Array.isArray(debts) ? debts : [];
 
   const activeDebts = normalizedDebts.filter(debt => debt.status !== 'SOLDEE');
@@ -55,16 +57,18 @@ export function DebtSnapshot({ debts, locale, currency }: DebtSnapshotProps) {
   });
 
   return (
-    <Card className="h-full border-slate-200/70 shadow-sm">
-      <CardHeader className="space-y-1">
-        <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-800">
-          <Landmark className="h-4 w-4 text-slate-500" aria-hidden="true" />
-          Synthèse des dettes
+    <Card className="bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-white/80 border-0 shadow-lg min-w-0 print:break-inside-avoid">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-slate-900 font-headline">
+          <Landmark className="h-4 w-4 text-blue-500 flex-shrink-0" />
+          {locale.startsWith('fr') ? 'Dette express' : 'Debt snapshot'}
         </CardTitle>
-        <CardDescription>Vue rapide des encours et prochaines échéances.</CardDescription>
+        <CardDescription>
+          {locale.startsWith('fr') ? 'Suivi rapide de vos obligations.' : 'Quick glance at your liabilities.'}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-sm text-slate-600">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl bg-slate-100/70 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">Encours total</p>
             <p className="mt-1 text-xl font-semibold text-slate-900">
@@ -72,13 +76,20 @@ export function DebtSnapshot({ debts, locale, currency }: DebtSnapshotProps) {
             </p>
             <p className="text-xs text-slate-500 mt-1">{activeDebts.length} dette(s) active(s)</p>
           </div>
+          <div className="rounded-2xl bg-amber-50/80 p-4">
+            <p className="text-xs uppercase tracking-wide text-amber-700">Intérêts du mois</p>
+            <p className="mt-1 text-xl font-semibold text-amber-900">
+              {currencyFormatter.format(interestPaid)}
+            </p>
+            <p className="text-xs text-amber-600 mt-1">Service dette: {currencyFormatter.format(serviceDebt)}</p>
+          </div>
           <div className="rounded-2xl bg-slate-100/70 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Échéances en retard</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">En retard</p>
             <p className="mt-1 flex items-center gap-1 text-xl font-semibold text-amber-600">
               <AlertTriangle className="h-4 w-4" aria-hidden="true" />
               {overdue.length}
             </p>
-            <p className="text-xs text-slate-500 mt-1">Surveillez ces comptes pour éviter les pénalités.</p>
+            <p className="text-xs text-slate-500 mt-1">À surveiller</p>
           </div>
         </div>
 

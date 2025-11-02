@@ -89,6 +89,8 @@ function GoalsPageContent() {
   const [showHistoryGoal, setShowHistoryGoal] = useState<Goal | null>(null);
   const [showAIGoal, setShowAIGoal] = useState<Goal | null>(null);
   const [contributionGoal, setContributionGoal] = useState<Goal | null>(null);
+  const [forecastMap, setForecastMap] = useState<Record<string, number>>({});
+  const [isForecastLoading, setIsForecastLoading] = useState(false);
   const searchParamsString = searchParams?.toString();
   const newGoalShortcut = searchParams?.get("new");
 
