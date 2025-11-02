@@ -12,7 +12,7 @@ const db = admin.firestore();
  * Approve or void commission based on payment events
  * Called by internal webhooks when payment succeeds/fails/refunds
  */
-export const approveOrVoidOnEvents = functions.https.onCall(async (request) => {
+export const approveOrVoidOnEvents = functions.https.onCall({ invoker: 'public' }, async (request) => {
   const { auth, data } = request;
 
   if (!auth) {

@@ -236,7 +236,7 @@ exports.generatePayoutsCron = functions.scheduler.onSchedule('0 3 1 * *', async 
 /**
  * Mark a payout as paid
  */
-exports.markPayoutPaid = functions.https.onCall(async (request) => {
+exports.markPayoutPaid = functions.https.onCall({ invoker: 'public' }, async (request) => {
     const { auth, data } = request;
     if (!auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');

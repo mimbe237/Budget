@@ -44,7 +44,7 @@ const db = admin.firestore();
  * Approve or void commission based on payment events
  * Called by internal webhooks when payment succeeds/fails/refunds
  */
-exports.approveOrVoidOnEvents = functions.https.onCall(async (request) => {
+exports.approveOrVoidOnEvents = functions.https.onCall({ invoker: 'public' }, async (request) => {
     const { auth, data } = request;
     if (!auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');

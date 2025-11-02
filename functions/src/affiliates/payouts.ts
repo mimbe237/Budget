@@ -245,7 +245,7 @@ export const generatePayoutsCron = functions.scheduler.onSchedule('0 3 1 * *', a
 /**
  * Mark a payout as paid
  */
-export const markPayoutPaid = functions.https.onCall(async (request) => {
+export const markPayoutPaid = functions.https.onCall({ invoker: 'public' }, async (request) => {
   const { auth, data } = request;
 
   if (!auth) {

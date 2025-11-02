@@ -44,7 +44,7 @@ const db = admin.firestore();
 /**
  * Create a new affiliate
  */
-exports.createAffiliate = functions.https.onCall(async (request) => {
+exports.createAffiliate = functions.https.onCall({ invoker: 'public' }, async (request) => {
     const { auth, data } = request;
     if (!auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -91,7 +91,7 @@ exports.createAffiliate = functions.https.onCall(async (request) => {
 /**
  * Approve an affiliate (admin only)
  */
-exports.approveAffiliate = functions.https.onCall(async (request) => {
+exports.approveAffiliate = functions.https.onCall({ invoker: 'public' }, async (request) => {
     const { auth, data } = request;
     if (!auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -123,7 +123,7 @@ exports.approveAffiliate = functions.https.onCall(async (request) => {
 /**
  * Block an affiliate (admin only)
  */
-exports.blockAffiliate = functions.https.onCall(async (request) => {
+exports.blockAffiliate = functions.https.onCall({ invoker: 'public' }, async (request) => {
     const { auth, data } = request;
     if (!auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -156,7 +156,7 @@ exports.blockAffiliate = functions.https.onCall(async (request) => {
 /**
  * Create an affiliate link
  */
-exports.createAffiliateLink = functions.https.onCall(async (request) => {
+exports.createAffiliateLink = functions.https.onCall({ invoker: 'public' }, async (request) => {
     const { auth, data } = request;
     if (!auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');

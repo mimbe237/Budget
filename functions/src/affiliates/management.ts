@@ -12,7 +12,9 @@ const db = admin.firestore();
 /**
  * Create a new affiliate
  */
-export const createAffiliate = functions.https.onCall(async (request) => {
+export const createAffiliate = functions.https.onCall(
+  { invoker: 'public' },
+  async (request) => {
   const { auth, data } = request;
 
   if (!auth) {
@@ -69,7 +71,9 @@ export const createAffiliate = functions.https.onCall(async (request) => {
 /**
  * Approve an affiliate (admin only)
  */
-export const approveAffiliate = functions.https.onCall(async (request) => {
+export const approveAffiliate = functions.https.onCall(
+  { invoker: 'public' },
+  async (request) => {
   const { auth, data } = request;
 
   if (!auth) {
@@ -110,7 +114,7 @@ export const approveAffiliate = functions.https.onCall(async (request) => {
 /**
  * Block an affiliate (admin only)
  */
-export const blockAffiliate = functions.https.onCall(async (request) => {
+export const blockAffiliate = functions.https.onCall({ invoker: 'public' }, async (request) => {
   const { auth, data } = request;
 
   if (!auth) {
@@ -152,7 +156,7 @@ export const blockAffiliate = functions.https.onCall(async (request) => {
 /**
  * Create an affiliate link
  */
-export const createAffiliateLink = functions.https.onCall(async (request) => {
+export const createAffiliateLink = functions.https.onCall({ invoker: 'public' }, async (request) => {
   const { auth, data } = request;
 
   if (!auth) {

@@ -44,7 +44,7 @@ const db = admin.firestore();
 /**
  * Attribute conversion to affiliate
  */
-exports.attributeConversion = functions.https.onCall(async (request) => {
+exports.attributeConversion = functions.https.onCall({ invoker: 'public' }, async (request) => {
     const { auth, data } = request;
     if (!auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');

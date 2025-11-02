@@ -23,7 +23,7 @@ interface ConversionData {
 /**
  * Attribute conversion to affiliate
  */
-export const attributeConversion = functions.https.onCall(async (request) => {
+export const attributeConversion = functions.https.onCall({ invoker: 'public' }, async (request) => {
   const { auth, data } = request;
 
   if (!auth) {

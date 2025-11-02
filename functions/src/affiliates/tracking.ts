@@ -13,7 +13,9 @@ const db = admin.firestore();
  * Track affiliate click (HTTPS GET endpoint)
  * Usage: GET /trackClick?aff=CODE&utm_source=...&landing=/page&referer=...
  */
-export const trackClick = functions.https.onRequest(async (req, res) => {
+export const trackClick = functions.https.onRequest(
+  { invoker: 'public' },
+  async (req, res) => {
   // CORS headers
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'GET');
