@@ -19,7 +19,8 @@
     "perf:audit": "lighthouse http://localhost:9002 --output=html --output-path=./lighthouse-report.html --chrome-flags='--headless' --only-categories=performance,pwa,accessibility",
     "perf:mobile": "lighthouse http://localhost:9002 --output=html --output-path=./lighthouse-mobile.html --preset=mobile --chrome-flags='--headless'",
     "screenshots": "node scripts/capture-screenshots.js",
-    "playstore:feature": "node scripts/generate-feature-graphic.js"
+    "playstore:feature": "node scripts/generate-feature-graphic.js",
+    "playstore:screenshots:placeholder": "node scripts/generate-placeholder-screenshots.js"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
