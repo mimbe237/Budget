@@ -1,0 +1,67 @@
+{
+  "packageId": "com.touchpointinsights.budget",
+  "host": "budget-app.web.app",
+  "name": "Budget Pro",
+  "launcherName": "Budget Pro",
+  "display": "standalone",
+  "themeColor": "#4F46E5",
+  "navigationColor": "#1F2937",
+  "navigationColorDark": "#1F2937",
+  "navigationDividerColor": "#1F2937",
+  "navigationDividerColorDark": "#1F2937",
+  "backgroundColor": "#FFFFFF",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://budget-app.web.app/icons/icon-512.png",
+  "maskableIconUrl": "https://budget-app.web.app/icons/maskable-512.png",
+  "monochromeIconUrl": "https://budget-app.web.app/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "budget-key"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Transactions",
+      "short_name": "Transactions",
+      "url": "/transactions",
+      "icon": "https://budget-app.web.app/icons/icon-192.png"
+    },
+    {
+      "name": "Rapports",
+      "short_name": "Rapports",
+      "url": "/reports",
+      "icon": "https://budget-app.web.app/icons/icon-192.png"
+    },
+    {
+      "name": "Objectifs",
+      "short_name": "Objectifs",
+      "url": "/goals",
+      "icon": "https://budget-app.web.app/icons/icon-192.png"
+    },
+    {
+      "name": "Dettes",
+      "short_name": "Dettes",
+      "url": "/debts",
+      "icon": "https://budget-app.web.app/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://budget-app.web.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "minSdkVersion": 23,
+  "targetSdkVersion": 33
+}
