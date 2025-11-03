@@ -10,6 +10,7 @@ import { ReactQueryProvider } from '@/components/react-query-provider';
 import { FirebaseStatus } from '@/components/firebase-status';
 import { OnboardingGate } from '@/components/onboarding/OnboardingGate';
 import { HtmlLangSync } from '@/components/locale/html-lang';
+import { OfflineQueueSync } from '@/components/offline/OfflineQueueSync';
 import { I18nProviderWrapper } from '@/components/i18n-provider-wrapper';
 import { AffiliateTracker } from '@/components/affiliates/AffiliateTracker';
 import { BottomNav } from '@/components/mobile/BottomNav';
@@ -70,6 +71,9 @@ export default function RootLayout({
                 </OnboardingGate>
                 {/* Sync <html lang> with user locale */}
                 <HtmlLangSync />
+                {/* Offline queue sync on mount */}
+                <OfflineQueueSync />
+
               </I18nProviderWrapper>
             </FirebaseClientProvider>
             {/* Statut en ligne/hors ligne et update SW */}

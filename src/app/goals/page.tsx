@@ -506,13 +506,36 @@ function GoalsPageContent() {
     attachment?: { url: string; name: string; type: string }
   ) => {
     if (!user || !firestore) return;
-    
+
+    const enqueueAndNotify = async () => {
+      const { queueOperation } = await import('@/lib/offline-queue');
+      await queueOperation('goalContribution', {
+        userId: user!.uid,
+        goalId: goal.id,
+        amountInCents,
+        note,
+        attachment,
+      });
+      success(
+        isFrench ? 'Contribution planifiée hors ligne' : 'Contribution queued for sync',
+        isFrench ? 'Elle sera synchronisée à la reconnexion.' : 'It will sync when back online.'
+      );
+      setIsContributionDialogOpen(false);
+      setContributionGoal(null);
+    };
+
+    // Si hors-ligne, basculer directement en file d'attente
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      await enqueueAndNotify();
+      return;
+    }
+
     try {
       const goalRef = doc(firestore, `users/${user.uid}/budgetGoals`, goal.id);
       const newAmount = (goal.currentAmountInCents || 0) + amountInCents;
-      await updateDoc(goalRef, { 
+      await updateDoc(goalRef, {
         currentAmountInCents: newAmount,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       await addGoalTransaction(
         firestore,
@@ -523,21 +546,18 @@ function GoalsPageContent() {
         attachment,
         { sourceType: 'manual' }
       );
-  queryClient.invalidateQueries({ queryKey: [user ? `users/${user?.uid}/budgetGoals` : ""] });
+      queryClient.invalidateQueries({ queryKey: [user ? `users/${user?.uid}/budgetGoals` : ""] });
       success(
-        isFrench ? "Contribution ajoutée" : "Contribution Added",
+        isFrench ? 'Contribution ajoutée' : 'Contribution Added',
         formatMoney(amountInCents, displayCurrency, displayLocale)
       );
       setIsContributionDialogOpen(false);
       setContributionGoal(null);
-    } catch (err) {
+    } catch (err: any) {
       if (process.env.NODE_ENV !== 'production') {
-        console.error('[Goals] Contribution failed', err);
+        console.error('[Goals] Contribution failed, queueing offline', err);
       }
-      error(
-        isFrench ? "Erreur" : "Error",
-        isFrench ? "Impossible d'ajouter la contribution" : "Failed to add contribution"
-      );
+      await enqueueAndNotify();
     }
   };
 
