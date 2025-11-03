@@ -97,9 +97,35 @@ export default function OnboardingPage() {
     router.replace('/dashboard');
   };
 
+  const handleSkipWithDefaults = async () => {
+    if (!user || !firestore) return;
+    const profileRef = doc(firestore, `users/${user.uid}`);
+    setDocumentNonBlocking(profileRef, {
+      id: user.uid,
+      locale: 'fr-CM',
+      displayCurrency: 'XOF',
+      monthlyExpenseBudget: 100000, // 100,000 XOF par défaut
+      hasCompletedOnboarding: true,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+    router.replace('/dashboard');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-emerald-50 py-10 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto space-y-4">
+        {/* Bouton Skip en haut */}
+        <div className="flex justify-end">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleSkipWithDefaults}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Utiliser les valeurs par défaut →
+          </Button>
+        </div>
+
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="font-headline text-2xl">
@@ -111,7 +137,7 @@ export default function OnboardingPage() {
             <CardDescription>
               {step < 4
                 ? 'Nous avons besoin de quelques informations pour personnaliser votre expérience.'
-                : 'Configuration terminée. Vous pouvez commencer à utiliser l’application.'}
+                : 'Configuration terminée. Vous pouvez commencer à utiliser l'application.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
