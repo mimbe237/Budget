@@ -52,14 +52,26 @@ export async function getSpendingInsights(
   try {
     return await spendingInsightsFlow(input);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const isNetworkError = errorMessage.includes('fetch failed') || 
+                           errorMessage.includes('ECONNRESET') ||
+                           errorMessage.includes('ETIMEDOUT') ||
+                           errorMessage.includes('SocketError') ||
+                           errorMessage.includes('other side closed');
+    
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('[AI] Failed to fetch spending insights. Falling back to default copy.', error);
+      if (isNetworkError) {
+        console.info('[AI] Network error detected, using fallback content.');
+      } else {
+        console.warn('[AI] Failed to fetch spending insights. Falling back to default copy.', error);
+      }
     }
+    
     return {
       insights:
         'Impossible de générer des insights pour le moment. Nous affichons une synthèse générique afin de ne pas bloquer votre tableau de bord.',
       recommendations:
-        'Vérifiez votre connexion internet et la clé d’API Gemini, puis réessayez plus tard pour obtenir des recommandations personnalisées.',
+        'Vérifiez votre connexion internet et la clé d\'API Gemini, puis réessayez plus tard pour obtenir des recommandations personnalisées.',
     };
   }
 }

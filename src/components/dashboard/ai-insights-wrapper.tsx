@@ -78,8 +78,18 @@ export async function loadAIInsights(): Promise<AIInsightsState> {
       transactions = transactionsSnap.docs.map(doc => doc.data() as Transaction);
       budgets = budgetsSnap.docs.map(doc => doc.data() as Budget);
     } catch (firestoreError) {
+      const errorMessage = firestoreError instanceof Error ? firestoreError.message : 'Unknown error';
+      const isNetworkError = errorMessage.includes('UNAVAILABLE') || 
+                             errorMessage.includes('ECONNRESET') ||
+                             errorMessage.includes('ETIMEDOUT') ||
+                             errorMessage.includes('No connection established');
+      
       if (process.env.NODE_ENV !== 'production') {
-        console.warn('[AIInsights] Firestore unavailable, returning offline fallback.', firestoreError);
+        if (isNetworkError) {
+          console.info('[AIInsights] Firestore network unavailable, using fallback content.');
+        } else {
+          console.warn('[AIInsights] Firestore unavailable, returning offline fallback.', firestoreError);
+        }
       }
       return {
         status: 'error',
@@ -125,16 +135,23 @@ export async function loadAIInsights(): Promise<AIInsightsState> {
       insights = result.insights;
       recommendations = result.recommendations;
     } catch (error) {
+      // Erreur réseau ou API - utiliser fallback silencieusement
       if (process.env.NODE_ENV !== 'production') {
-        console.warn('[AIInsights] Falling back to default insights after Genkit error.', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const isNetworkError = errorMessage.includes('fetch failed') || 
+                               errorMessage.includes('ECONNRESET') ||
+                               errorMessage.includes('ETIMEDOUT') ||
+                               errorMessage.includes('SocketError');
+        
+        if (isNetworkError) {
+          console.info('[AIInsights] Network unavailable, using fallback content.');
+        } else {
+          console.warn('[AIInsights] Falling back to default insights after Genkit error.', error);
+        }
       }
-      return {
-        status: 'error',
-        insights: FALLBACK_ERROR_INSIGHTS,
-        recommendations: FALLBACK_ERROR_RECOMMENDATIONS,
-        lastUpdatedLabel: null,
-        sample: { transactionCount: transactions.length, budgetCount: budgets.length },
-      };
+      // Retourner le fallback sans re-lancer l'erreur
+      insights = FALLBACK_ERROR_INSIGHTS;
+      recommendations = FALLBACK_ERROR_RECOMMENDATIONS;
     }
 
     const latestTransactionDate = transactions
