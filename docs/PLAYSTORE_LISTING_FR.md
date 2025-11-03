@@ -37,7 +37,7 @@ Budget Pro est une application moderne de gestion financière qui vous aide à r
 - Particuliers, indépendants, petites entreprises qui veulent piloter simplement
 
 ### Assistance
-- Support: VOTRE-EMAIL-DE-SUPPORT
+- Support: businessclubleader7@gmail.com
 
 Version: 1.0.0
 
@@ -50,7 +50,7 @@ Version: 1.0.0
 Finance
 
 ## Éléments de contact (console Play)
-- Adresse e-mail: VOTRE-EMAIL-DE-SUPPORT
+- Adresse e-mail: businessclubleader7@gmail.com
 - Site web: https://budget-app.web.app/
 - Politique de confidentialité: https://budget-app.web.app/privacy.html
 

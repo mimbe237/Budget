@@ -37,7 +37,7 @@ Budget Pro helps you take control of your money with a clean, mobile-first exper
 - Individuals, freelancers, small businesses needing simple control
 
 ### Support
-- Email: YOUR-SUPPORT-EMAIL
+- Email: businessclubleader7@gmail.com
 
 Version: 1.0.0
 
@@ -50,7 +50,7 @@ Version: 1.0.0
 Finance
 
 ## Contact details (Play Console)
-- Email: YOUR-SUPPORT-EMAIL
+- Email: businessclubleader7@gmail.com
 - Website: https://budget-app.web.app/
 - Privacy policy: https://budget-app.web.app/privacy.html
 
