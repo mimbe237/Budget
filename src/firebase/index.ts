@@ -3,7 +3,25 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence, enableMultiTabIndexedDbPersistence } from 'firebase/firestore'
+import { 
+  getFirestore, 
+  enableIndexedDbPersistence, 
+  enableMultiTabIndexedDbPersistence,
+  connectFirestoreEmulator,
+  setLogLevel
+} from 'firebase/firestore';
+import { setupFirestoreLogger } from './firestore-logger';
+
+// Configurer le logger personnalisé AVANT toute initialisation Firebase
+if (typeof window !== 'undefined') {
+  setupFirestoreLogger();
+}
+
+// Réduire les logs Firestore en production et développement
+if (typeof window !== 'undefined') {
+  // 'error' = seulement les erreurs critiques, pas les warnings réseau
+  setLogLevel('error');
+}
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
@@ -37,12 +55,20 @@ export function getSdks(firebaseApp: FirebaseApp) {
   // Enable offline persistence for better UX with network issues
   if (typeof window !== 'undefined') {
     enableMultiTabIndexedDbPersistence(firestore).catch((err) => {
+      // Gestion silencieuse des erreurs non-critiques de persistance
       if (err.code === 'failed-precondition') {
-        console.warn('Multiple tabs open, persistence enabled in first tab only.');
+        // Multiple tabs - normal, pas besoin de log
+        if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_FIRESTORE) {
+          console.debug('[Firestore] Multiple tabs detected - persistence enabled in first tab');
+        }
       } else if (err.code === 'unimplemented') {
-        console.warn('Browser does not support offline persistence.');
+        // Browser ne supporte pas - normal pour certains navigateurs
+        if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_FIRESTORE) {
+          console.debug('[Firestore] Browser does not support offline persistence');
+        }
       } else {
-        console.warn('Error enabling offline persistence:', err);
+        // Erreur inattendue - log complet
+        console.error('[Firestore] Error enabling offline persistence:', err);
       }
     });
   }
