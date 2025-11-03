@@ -14,7 +14,7 @@ import { I18nProviderWrapper } from '@/components/i18n-provider-wrapper';
 import { AffiliateTracker } from '@/components/affiliates/AffiliateTracker';
 import { BottomNav } from '@/components/mobile/BottomNav';
 import { FAB } from '@/components/mobile/FAB';
-// import { poppins, ptSans } from './fonts'; // Désactivé temporairement (Turbopack issue)
+import { poppins, ptSans } from './fonts';
 
 export const metadata: Metadata = {
   title: 'Budget Pro',
@@ -29,14 +29,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${poppins.variable} ${ptSans.variable}`}>
       <head>
-        {/* Preconnect aux services critiques */}
-        <link rel="preconnect" href="https://firestore.googleapis.com" />
-        <link rel="preconnect" href="https://storage.googleapis.com" />
-        <link rel="dns-prefetch" href="https://firebase.googleapis.com" />
-        
-        {/* Fonts chargées via next/font (self-hosted, optimisé) */}
+        {/* Preconnect Firebase CDN */}
+        <link rel="preconnect" href="https://firebaseapp.com" />
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
         
         {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.webmanifest" />
@@ -53,16 +50,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-        
-        {/* Google Fonts temporaire pour Lighthouse */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=PT+Sans:wght@400;700&display=swap"
-          rel="stylesheet"
-        />
       </head>
-      <body className="font-body antialiased" style={{ fontFamily: "'PT Sans', system-ui, arial" }}>
+      <body className={`${ptSans.className} ${poppins.variable} font-body antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

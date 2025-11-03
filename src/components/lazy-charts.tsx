@@ -2,19 +2,12 @@
  * Dynamic Imports pour Recharts
  * Lazy loading des graphiques lourds pour optimiser le bundle initial
  * 
- * @phase Phase 3.1 - Code Splitting
+ * @phase Phase 3.1 - Code Splitting + Phase 4 - Skeleton Loaders
  * @savings ~45-60 kB par composant (Recharts non chargé au démarrage)
  */
 
 import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
-
-// Loading fallback component
-const ChartSkeleton = () => (
-  <div className="w-full h-[300px] flex items-center justify-center">
-    <Skeleton className="w-full h-full rounded-lg" />
-  </div>
-);
+import { ChartSkeleton, PieChartSkeleton, LineChartSkeleton } from '@/components/skeletons/ChartSkeleton';
 
 // Dashboard Components
 export const SpendingOverviewLazy = dynamic(
@@ -28,7 +21,7 @@ export const SpendingOverviewLazy = dynamic(
 export const GoalsOverviewLazy = dynamic(
   () => import('@/components/dashboard/goals-overview-new'),
   {
-    loading: () => <ChartSkeleton />,
+    loading: () => <PieChartSkeleton />,
     ssr: false,
   }
 );
@@ -37,7 +30,7 @@ export const GoalsOverviewLazy = dynamic(
 export const CashFlowChartLazy = dynamic(
   () => import('@/app/reports/_components/cashflow-chart').then(mod => ({ default: mod.CashflowChart })),
   {
-    loading: () => <ChartSkeleton />,
+    loading: () => <LineChartSkeleton />,
     ssr: false,
   }
 );
@@ -45,7 +38,7 @@ export const CashFlowChartLazy = dynamic(
 export const CategoryBreakdownLazy = dynamic(
   () => import('@/app/reports/_components/category-breakdown').then(mod => ({ default: mod.CategoryBreakdown })),
   {
-    loading: () => <ChartSkeleton />,
+    loading: () => <PieChartSkeleton />,
     ssr: false,
   }
 );
@@ -53,7 +46,7 @@ export const CategoryBreakdownLazy = dynamic(
 export const ChartFinanceDebtLazy = dynamic(
   () => import('@/app/reports/_components/chart-finance-debt').then(mod => ({ default: mod.ChartFinanceDebt })),
   {
-    loading: () => <ChartSkeleton />,
+    loading: () => <LineChartSkeleton />,
     ssr: false,
   }
 );
@@ -62,7 +55,7 @@ export const ChartFinanceDebtLazy = dynamic(
 export const CategoryDistributionChartLazy = dynamic(
   () => import('@/components/categories/category-distribution-chart').then(mod => ({ default: mod.CategoryDistributionChart })),
   {
-    loading: () => <ChartSkeleton />,
+    loading: () => <PieChartSkeleton />,
     ssr: false,
   }
 );
@@ -73,14 +66,5 @@ export const AffiliateStatsClientLazy = dynamic(
   {
     loading: () => <ChartSkeleton />,
     ssr: false,
-  }
-);
-
-// Debt Detail Chart (utilisé dans /debts/[id])
-export const DebtDetailChartLazy = dynamic(
-  () => import('@/app/debts/[id]/page').then(mod => ({ default: mod.default })),
-  {
-    loading: () => <div className="animate-pulse"><Skeleton className="w-full h-[400px]" /></div>,
-    ssr: true, // Page component, garde SSR
   }
 );
