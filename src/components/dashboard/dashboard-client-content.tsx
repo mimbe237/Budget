@@ -24,15 +24,15 @@ import type { Category, Transaction, UserProfile } from '@/lib/types';
 import type { Debt } from '@/types/debt';
 import { useUser, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, limit, orderBy, doc } from 'firebase/firestore';
+import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 
-import { SpendingOverview } from '@/components/dashboard/spending-overview';
+// Lazy loaded components (Code Splitting Phase 3)
+import { SpendingOverviewLazy, GoalsOverviewLazy, ChartFinanceDebtLazy } from '@/components/lazy-charts';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { BudgetsOverview } from '@/components/dashboard/budgets-overview';
-import GoalsOverview from '@/components/dashboard/goals-overview-new';
 import { BudgetOverviewMonthly } from '@/components/dashboard/budget-overview-monthly';
 import { BudgetAlertMonitor } from '@/components/budgets/budget-alert-monitor';
 import { GuidedTourLauncher } from '@/components/onboarding/GuidedTourLauncher';
-import { ChartFinanceDebt } from '@/app/reports/_components/chart-finance-debt';
 import { DebtSnapshot } from '@/components/dashboard/debt-snapshot';
 import type { SerializableFinancialReportData } from '@/app/dashboard/page';
 
@@ -59,6 +59,9 @@ const STATUS_COLORS: Record<string, 'default' | 'outline' | 'secondary' | 'destr
 export function DashboardClientContent({ reportData, children }: DashboardClientContentProps) {
   const { user } = useUser();
   const firestore = useFirestore();
+
+  // Hook Android back handler
+  useAndroidBackHandler();
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -303,7 +306,7 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
 
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
         <div className="min-w-0">
-          <ChartFinanceDebt
+          <ChartFinanceDebtLazy
             data={reportData.financialSeries}
             currency={displayCurrency}
             locale={displayLocale}
@@ -478,14 +481,14 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
               </CardDescription>
             </CardHeader>
             <CardContent className="pl-2">
-              <SpendingOverview transactions={spendingOverviewTransactions} />
+              <SpendingOverviewLazy transactions={spendingOverviewTransactions} />
             </CardContent>
           </Card>
 
           <RecentTransactions transactions={recentTransactions as Transaction[]} categoryIcons={categoryIcons} />
 
           <div data-tour="goals-overview">
-            <GoalsOverview />
+            <GoalsOverviewLazy />
           </div>
         </div>
 

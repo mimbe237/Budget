@@ -6,13 +6,14 @@ import { DateRangeFilter } from './_components/date-range-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Note: The 'searchParams' prop is automatically provided by Next.js in server components.
+// Next.js 15: searchParams is now a Promise and must be awaited
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
 
-  const params = searchParams || {};
+  const params = (await searchParams) || {};
   const from = typeof params.from === 'string' ? params.from : undefined;
   const to = typeof params.to === 'string' ? params.to : undefined;
   const includeDebt = params.includeDebt === undefined ? true : params.includeDebt === '1';

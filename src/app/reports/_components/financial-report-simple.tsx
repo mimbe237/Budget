@@ -30,7 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { ExportButtons } from './export-buttons';
 import { LedgerTables, LedgerRow } from './ledger-tables';
 import { makeCurrencyFormatter } from '@/lib/format';
-import { ChartFinanceDebt } from './chart-finance-debt';
+import { ChartFinanceDebtClient } from './chart-finance-debt-client';
 
 interface FinancialReportProps {
   from?: string;
@@ -289,7 +289,7 @@ export async function FinancialReport({ from, to, includeDebt = true }: Financia
 
         {/* 3. Graphique multi-séries */}
         <div className="print-section print:break-inside-avoid">
-          <ChartFinanceDebt
+          <ChartFinanceDebtClient
             data={reportData.financialSeries}
             currency={currency}
             locale={userProfile?.locale || (isFrench ? 'fr-CM' : 'en-US')}

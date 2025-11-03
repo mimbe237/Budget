@@ -12,6 +12,9 @@ import { OnboardingGate } from '@/components/onboarding/OnboardingGate';
 import { HtmlLangSync } from '@/components/locale/html-lang';
 import { I18nProviderWrapper } from '@/components/i18n-provider-wrapper';
 import { AffiliateTracker } from '@/components/affiliates/AffiliateTracker';
+import { BottomNav } from '@/components/mobile/BottomNav';
+import { FAB } from '@/components/mobile/FAB';
+import { poppins, ptSans } from './fonts';
 
 export const metadata: Metadata = {
   title: 'Budget Pro',
@@ -28,12 +31,30 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
-        <link rel="manifest" href="/manifest.json" />
+        {/* Preconnect aux services critiques */}
+        <link rel="preconnect" href="https://firestore.googleapis.com" />
+        <link rel="preconnect" href="https://storage.googleapis.com" />
+        <link rel="dns-prefetch" href="https://firebase.googleapis.com" />
+        
+        {/* Fonts chargées via next/font (self-hosted, optimisé) */}
+        
+        {/* PWA Manifest */}
+        <link rel="manifest" href="/manifest.webmanifest" />
+        
+        {/* Favicon optimisé (PNG) */}
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+        
+        {/* Theme colors */}
+        <meta name="theme-color" content="#4F46E5" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1F2937" />
+        
+        {/* PWA Apple */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
-      <body className="font-body antialiased">
+      <body className={`${ptSans.variable} ${poppins.variable} font-body antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -58,6 +79,9 @@ export default function RootLayout({
             <OnlineStatusIndicator />
             <ServiceWorkerUpdateNotification />
             <Toaster />
+            {/* Mobile UI Components (visible < 768px) */}
+            <BottomNav />
+            <FAB />
           </ReactQueryProvider>
         </ThemeProvider>
       </body>
