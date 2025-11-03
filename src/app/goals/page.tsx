@@ -457,14 +457,41 @@ function GoalsPageContent() {
     if (!user || !firestore) return;
     
     try {
+      // Créer un document dans goalsHistory
+      const historyRef = collection(firestore, `users/${user.uid}/goalsHistory`);
+      const historyData = {
+        goalName: goal.name,
+        targetAmountInCents: goal.targetAmountInCents,
+        currentAmountInCents: goal.currentAmountInCents || 0,
+        status: status,
+        archivedAt: new Date().toISOString(),
+        achievedAt: new Date().toISOString(),
+        linkedCategoryId: goal.linkedCategoryId || null,
+        linkedCategoryName: goal.linkedCategoryName || null,
+        linkedDebtId: goal.linkedDebtId || null,
+        linkedDebtTitle: goal.linkedDebtTitle || null,
+        icon: goal.icon || null,
+        color: goal.color || null,
+        originalGoalId: goal.id,
+      };
+      await addDocumentNonBlocking(historyRef, historyData);
+      
+      // Supprimer l'objectif de budgetGoals
       const goalRef = doc(firestore, `users/${user.uid}/budgetGoals`, goal.id);
-      await updateDocumentNonBlocking(goalRef, { archived: true, archiveStatus: status, archivedAt: new Date().toISOString() });
-  queryClient.invalidateQueries({ queryKey: [user ? `users/${user?.uid}/budgetGoals` : ""] });
+      await deleteDocumentNonBlocking(goalRef);
+      
+      // Invalider les deux queries
+      queryClient.invalidateQueries({ queryKey: [user ? `users/${user?.uid}/budgetGoals` : ""] });
+      queryClient.invalidateQueries({ queryKey: [user ? `users/${user?.uid}/goalsHistory` : ""] });
+      
       success(
         isFrench ? "Objectif archivé" : "Goal Archived",
         `${goal.name} - ${status === "completed" ? (isFrench ? "Atteint" : "Completed") : (isFrench ? "Abandonné" : "Abandoned")}`
       );
     } catch (err) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[Goals] Archive failed', err);
+      }
       error(
         isFrench ? "Erreur" : "Error",
         isFrench ? "Impossible d'archiver l'objectif" : "Failed to archive goal"

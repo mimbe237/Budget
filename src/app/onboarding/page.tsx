@@ -100,11 +100,11 @@ export default function OnboardingPage() {
   const handleSkipWithDefaults = async () => {
     if (!user || !firestore) return;
     const profileRef = doc(firestore, `users/${user.uid}`);
-    setDocumentNonBlocking(profileRef, {
+    await setDocumentNonBlocking(profileRef, {
       id: user.uid,
       locale: 'fr-CM',
       displayCurrency: 'XOF',
-      monthlyExpenseBudget: 100000, // 100,000 XOF par défaut
+      monthlyExpenseBudget: 100000,
       hasCompletedOnboarding: true,
       updatedAt: new Date().toISOString(),
     }, { merge: true });
@@ -137,7 +137,7 @@ export default function OnboardingPage() {
             <CardDescription>
               {step < 4
                 ? 'Nous avons besoin de quelques informations pour personnaliser votre expérience.'
-                : 'Configuration terminée. Vous pouvez commencer à utiliser l'application.'}
+                : 'Configuration terminée. Vous pouvez commencer à utiliser l\'application.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

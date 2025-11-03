@@ -172,10 +172,18 @@ export function GoalCard({
             {formatMoney(goal.currentAmountInCents || 0, goal.currency || displayCurrency, displayLocale)} /{' '}
             {formatMoney(goal.targetAmountInCents || 0, goal.currency || displayCurrency, displayLocale)}
           </div>
-          <Button size="sm" variant="outline" onClick={onAddContribution} className="w-fit">
-            <Plus className="mr-1 h-4 w-4" />
-            {translations.addContribution}
-          </Button>
+          {progress >= 100 ? (
+            <div className="w-fit rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+              {isFrench 
+                ? '✓ Objectif atteint ! Plus de contributions nécessaires.' 
+                : '✓ Goal reached! No more contributions needed.'}
+            </div>
+          ) : (
+            <Button size="sm" variant="outline" onClick={onAddContribution} className="w-fit">
+              <Plus className="mr-1 h-4 w-4" />
+              {translations.addContribution}
+            </Button>
+          )}
         </div>
       </td>
 
