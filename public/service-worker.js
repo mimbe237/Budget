@@ -1,15 +1,20 @@
 // Service Worker pour mode hors ligne et cache des assets
-const CACHE_NAME = 'budget-app-v1';
-const RUNTIME_CACHE = 'budget-runtime-v1';
+// v2: manifest.webmanifest + icônes + navigation preload
+const CACHE_NAME = 'budget-app-v2';
+const RUNTIME_CACHE = 'budget-runtime-v2';
 
-// Assets à mettre en cache lors de l'installation
+// Assets à mettre en cache lors de l'installation (léger et stable)
 const STATIC_ASSETS = [
   '/',
   '/offline',
-  '/manifest.json',
-  '/dashboard',
-  '/transactions',
-  '/goals',
+  '/manifest.webmanifest',
+  // Icônes PWA
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/maskable-512.png',
+  '/icons/apple-touch-icon.png',
+  '/icons/favicon-32x32.png',
+  '/icons/favicon-16x16.png',
 ];
 
 // Installation du Service Worker
@@ -33,6 +38,10 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  // Activer Navigation Preload si disponible (améliore NetworkFirst)
+  if ('navigationPreload' in self.registration) {
+    self.registration.navigationPreload.enable().catch(() => {});
+  }
   self.clients.claim();
 });
 
@@ -70,14 +79,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Pages: Network First avec cache fallback
+  // Pages: Network First avec cache fallback (+ Navigation Preload)
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request, event));
+    return;
+  }
+
+  // Par défaut (autres requêtes): Network First sécurisé
   event.respondWith(networkFirst(request));
 });
 
 // Stratégie Network First
-async function networkFirst(request) {
+async function networkFirst(request, event) {
   try {
-    const response = await fetch(request);
+    // Préférence à la réponse préchargée si présente (Navigation Preload)
+    const preload = event?.preloadResponse ? await event.preloadResponse : null;
+    const response = preload || (await fetch(request));
     if (response.ok) {
       const cache = await caches.open(RUNTIME_CACHE);
       cache.put(request, response.clone());

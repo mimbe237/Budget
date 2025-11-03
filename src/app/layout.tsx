@@ -14,7 +14,7 @@ import { I18nProviderWrapper } from '@/components/i18n-provider-wrapper';
 import { AffiliateTracker } from '@/components/affiliates/AffiliateTracker';
 import { BottomNav } from '@/components/mobile/BottomNav';
 import { FAB } from '@/components/mobile/FAB';
-import { poppins, ptSans } from './fonts';
+// import { poppins, ptSans } from './fonts'; // Désactivé temporairement (Turbopack issue)
 
 export const metadata: Metadata = {
   title: 'Budget Pro',
@@ -53,8 +53,16 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        
+        {/* Google Fonts temporaire pour Lighthouse */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=PT+Sans:wght@400;700&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className={`${ptSans.variable} ${poppins.variable} font-body antialiased`}>
+      <body className="font-body antialiased" style={{ fontFamily: "'PT Sans', system-ui, arial" }}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
