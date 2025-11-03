@@ -12,7 +12,7 @@ Impact   : 7/10 tâches complétées, 3 bloquées (réseau)
 
 RÉALISATIONS
 ───────────────────────────────────────────────────────────────────────────
-✅ Emails support configurés (businessclubleader7@gmail.com)
+✅ Emails support configurés (contact@budgetpro.net)
 ✅ Build Next.js production réussi (42 routes)
 ✅ Documentation roadmap Play Store (NEXT_STEPS_PLAYSTORE.md - 290 lignes)
 ✅ Log problèmes réseau (NETWORK_ISSUES_LOG.md - 292 lignes)
@@ -61,7 +61,7 @@ Repo GitHub : https://github.com/mimbe237/Budget
 
 CONTACT
 ───────────────────────────────────────────────────────────────────────────
-Email Support : businessclubleader7@gmail.com
+Email Support : contact@budgetpro.net
 Web App : https://budget-app.web.app (sera live après deploy)
 
 ═══════════════════════════════════════════════════════════════════════════

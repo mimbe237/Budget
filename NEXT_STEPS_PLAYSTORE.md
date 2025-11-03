@@ -8,7 +8,7 @@
 - ✅ Mis à jour dans `public/.well-known/assetlinks.json`
 
 ### 2. Emails de Support
-- ✅ Remplacé tous les placeholders avec : **businessclubleader7@gmail.com**
+- ✅ Remplacé tous les placeholders avec : **contact@budgetpro.net**
 - ✅ Fichiers mis à jour :
   - `public/privacy.html`
   - `docs/PLAYSTORE_LISTING_FR.md`
@@ -175,7 +175,7 @@ adb install playstore-assets/app-release.apk  # Après build
 4. **Store presence > Store settings** :
    - Catégorie : Finance
    - Tags : Budget, Dépenses, Épargne
-   - Email contact : businessclubleader7@gmail.com
+   - Email contact : contact@budgetpro.net
 5. **Policy > App content** :
    - Privacy policy URL : `https://budget-app.web.app/privacy.html`
    - Data safety questionnaire (données Firebase)
@@ -280,7 +280,7 @@ curl -I https://github.com
   - Bubblewrap CLI : https://github.com/GoogleChromeLabs/bubblewrap
   - TWA Guide : https://developer.chrome.com/docs/android/trusted-web-activity
 
-- **Email Support** : businessclubleader7@gmail.com
+- **Email Support** : contact@budgetpro.net
 - **Repo GitHub** : https://github.com/mimbe237/Budget
 
 ---

@@ -282,7 +282,7 @@ Environnement : .env.local chargé
 ⏸️ EN ATTENTE DE DÉPLOIEMENT
 Project : studio-3821270625-cd276 (Budget Pro)
 Region : us-central1
-Auth : businessclubleader7@gmail.com
+Auth : contact@budgetpro.net
 ```
 
 ### Firestore

@@ -14,7 +14,7 @@ Error: Failed to make request to https://firebasehosting.googleapis.com/v1beta1/
 
 **Tests effectués** :
 - ✅ `curl -I https://firebasehosting.googleapis.com` → HTTP/2 404 (connexion OK)
-- ✅ `firebase login:list` → businessclubleader7@gmail.com (auth OK)
+- ✅ `firebase login:list` → contact@budgetpro.net (auth OK)
 - ✅ `firebase projects:list` → 4 projets listés (API OK)
 - ❌ `firebase deploy --only hosting` → échec à la lecture des sites
 
