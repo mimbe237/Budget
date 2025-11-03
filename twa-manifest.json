@@ -17,8 +17,8 @@
   "monochromeIconUrl": "https://budget-app.web.app/icons/icon-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
-    "path": "./android.keystore",
-    "alias": "budget-key"
+    "path": "./android-keys/budget-app.keystore",
+    "alias": "budget-release"
   },
   "appVersionName": "1.0.0",
   "appVersionCode": 1,

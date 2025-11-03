@@ -31,7 +31,7 @@ Budget Pro est une application moderne de gestion financière qui vous aide à r
 
 ### Respect de la vie privée
 - Vos données vous appartiennent. Elles sont stockées de façon sécurisée sur Firebase.
-- Consultez notre politique de confidentialité: https://VOTRE-DOMAINE/privacy.html
+- Consultez notre politique de confidentialité: https://budget-app.web.app/privacy.html
 
 ### Pour qui ?
 - Particuliers, indépendants, petites entreprises qui veulent piloter simplement
@@ -51,8 +51,8 @@ Finance
 
 ## Éléments de contact (console Play)
 - Adresse e-mail: VOTRE-EMAIL-DE-SUPPORT
-- Site web: https://VOTRE-DOMAINE/
-- Politique de confidentialité: https://VOTRE-DOMAINE/privacy.html
+- Site web: https://budget-app.web.app/
+- Politique de confidentialité: https://budget-app.web.app/privacy.html
 
 ## Mots clés (suggestions)
 Budget, Dépenses, Épargne, Objectifs, Comptabilité, Finance, Cashflow, Rapport

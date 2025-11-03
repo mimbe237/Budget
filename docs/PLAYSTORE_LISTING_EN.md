@@ -31,7 +31,7 @@ Budget Pro helps you take control of your money with a clean, mobile-first exper
 
 ### Privacy-first
 - Your data is yours. Securely stored on Firebase.
-- Privacy policy: https://YOUR-DOMAIN/privacy.html
+- Privacy policy: https://budget-app.web.app/privacy.html
 
 ### Who is it for?
 - Individuals, freelancers, small businesses needing simple control
@@ -51,8 +51,8 @@ Finance
 
 ## Contact details (Play Console)
 - Email: YOUR-SUPPORT-EMAIL
-- Website: https://YOUR-DOMAIN/
-- Privacy policy: https://YOUR-DOMAIN/privacy.html
+- Website: https://budget-app.web.app/
+- Privacy policy: https://budget-app.web.app/privacy.html
 
 ## Keywords (suggestions)
 Budget, Expenses, Savings, Goals, Accounting, Finance, Cashflow, Report
