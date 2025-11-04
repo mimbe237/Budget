@@ -1,10 +1,11 @@
 {
   "packageId": "com.touchpointinsights.budget",
-  "host": "budget-app.web.app",
-  "name": "Budget Pro",
+  "host": "studio-3821270625-cd276.web.app",
+  "name": "Budget Pro - Gestion Finances",
   "launcherName": "Budget Pro",
   "display": "standalone",
   "themeColor": "#4F46E5",
+  "themeColorDark": "#1F2937",
   "navigationColor": "#1F2937",
   "navigationColorDark": "#1F2937",
   "navigationDividerColor": "#1F2937",
@@ -12,12 +13,11 @@
   "backgroundColor": "#FFFFFF",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://budget-app.web.app/icons/icon-512.png",
-  "maskableIconUrl": "https://budget-app.web.app/icons/maskable-512.png",
-  "monochromeIconUrl": "https://budget-app.web.app/icons/icon-512.png",
+  "iconUrl": "https://studio-3821270625-cd276.web.app/icons/icon-512.png",
+  "maskableIconUrl": "https://studio-3821270625-cd276.web.app/icons/maskable-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
-    "path": "./android-keys/budget-app.keystore",
+    "path": "/Users/macbook/Touch-Point-Insights/Finance/Budget/android-keys/budget-app.keystore",
     "alias": "budget-release"
   },
   "appVersionName": "1.0.0",
@@ -25,43 +25,49 @@
   "shortcuts": [
     {
       "name": "Transactions",
-      "short_name": "Transactions",
+      "shortName": "Transactions",
       "url": "/transactions",
-      "icon": "https://budget-app.web.app/icons/icon-192.png"
+      "chosenIconUrl": "https://studio-3821270625-cd276.web.app/icons/icon-192.png"
     },
     {
       "name": "Rapports",
-      "short_name": "Rapports",
+      "shortName": "Rapports",
       "url": "/reports",
-      "icon": "https://budget-app.web.app/icons/icon-192.png"
+      "chosenIconUrl": "https://studio-3821270625-cd276.web.app/icons/icon-192.png"
     },
     {
       "name": "Objectifs",
-      "short_name": "Objectifs",
+      "shortName": "Objectifs",
       "url": "/goals",
-      "icon": "https://budget-app.web.app/icons/icon-192.png"
+      "chosenIconUrl": "https://studio-3821270625-cd276.web.app/icons/icon-192.png"
     },
     {
       "name": "Dettes",
-      "short_name": "Dettes",
+      "shortName": "Dettes",
       "url": "/debts",
-      "icon": "https://budget-app.web.app/icons/icon-192.png"
+      "chosenIconUrl": "https://studio-3821270625-cd276.web.app/icons/icon-192.png"
     }
   ],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://budget-app.web.app/manifest.webmanifest",
+  "webManifestUrl": "https://studio-3821270625-cd276.web.app/manifest.webmanifest",
   "fallbackType": "customtabs",
-  "features": {
-    "locationDelegation": {
-      "enabled": false
-    },
-    "playBilling": {
-      "enabled": false
-    }
-  },
+  "features": {},
   "alphaDependencies": {
     "enabled": false
   },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://studio-3821270625-cd276.web.app/",
   "minSdkVersion": 23,
-  "targetSdkVersion": 33
+  "shareTarget": {},
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
 }
