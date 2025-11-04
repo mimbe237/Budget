@@ -1,26 +1,90 @@
 {
-  "name": "Budget Pro",
+  "name": "Budget Pro - Gestion Finances",
   "short_name": "Budget Pro",
-  "description": "Application de gestion de budget personnel avec IA",
-  "start_url": "/",
+  "description": "Application complète de gestion budgétaire et financière",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#10b981",
+  "orientation": "portrait",
+  "theme_color": "#4F46E5",
+  "background_color": "#FFFFFF",
+  "categories": ["finance", "productivity"],
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable any"
+      "src": "/icons/logo-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
-  "categories": ["finance", "productivity"],
-  "orientation": "portrait-primary",
+  "shortcuts": [
+    {
+      "name": "Ajouter Transaction",
+      "short_name": "Transaction",
+      "description": "Ajouter une nouvelle transaction rapidement",
+      "url": "/transactions/add?source=shortcut",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Mes Rapports",
+      "short_name": "Rapports",
+      "description": "Consulter les rapports financiers",
+      "url": "/reports?source=shortcut",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Mes Dettes",
+      "short_name": "Dettes",
+      "description": "Gérer mes dettes et échéances",
+      "url": "/debts?source=shortcut",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Objectifs",
+      "short_name": "Objectifs",
+      "description": "Suivre mes objectifs financiers",
+      "url": "/goals?source=shortcut",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
+  "share_target": {
+    "action": "/transactions/add",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "description",
+      "text": "notes",
+      "files": [
+        {
+          "name": "attachment",
+          "accept": ["image/*", "application/pdf"]
+        }
+      ]
+    }
+  },
   "prefer_related_applications": false
 }
