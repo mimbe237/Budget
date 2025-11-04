@@ -15,10 +15,12 @@
     "rules": "storage.rules"
   },
   "hosting": {
-    "source": ".",
-    "frameworksBackend": {
-      "region": "us-central1"
-    }
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
   },
   "emulators": {
     "auth": {
