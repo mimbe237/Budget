@@ -51,8 +51,8 @@ export default async function AIInsightsPage() {
             lastUpdatedLabel={data.lastUpdatedLabel}
           />
 
-          <div className="space-y-6">
-            <Card className="h-full border-slate-200/70">
+          <div className="space-y-6 lg:space-y-5">
+            <Card className="border-slate-200/70 shadow-sm backdrop-blur">
               <CardHeader>
                 <CardTitle className="text-base font-semibold text-slate-800">Couverture de l’analyse</CardTitle>
                 <CardDescription>Sources utilisées pour générer les suggestions IA.</CardDescription>
@@ -74,15 +74,21 @@ export default async function AIInsightsPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200/70">
-              <CardHeader>
+            <Card className="border-0 bg-gradient-to-br from-slate-50 via-white to-cyan-50 shadow-[0_20px_60px_-25px_rgba(8,47,73,0.45)] ring-1 ring-cyan-100">
+              <CardHeader className="space-y-1">
                 <CardTitle className="text-base font-semibold text-slate-800">Conseils pour enrichir l’IA</CardTitle>
                 <CardDescription>Étapes rapides pour améliorer la pertinence des insights.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-600">
-                <p>• Ajoutez vos dettes récentes et précisez les échéances pour anticiper les pics de trésorerie.</p>
-                <p>• Utilisez les catégories personnalisées afin d’identifier les clusters de dépenses.</p>
-                <p>• Programmez des objectifs d’épargne pour détecter automatiquement les écarts mensuels.</p>
+              <CardContent className="space-y-4 text-sm text-slate-700">
+                <div className="rounded-2xl bg-white/70 px-4 py-3 shadow-sm ring-1 ring-white/60">
+                  <p>Ajoutez vos dettes récentes et précisez les échéances pour anticiper les pics de trésorerie.</p>
+                </div>
+                <div className="rounded-2xl bg-white/70 px-4 py-3 shadow-sm ring-1 ring-white/60">
+                  <p>Utilisez les catégories personnalisées afin d’identifier les clusters de dépenses.</p>
+                </div>
+                <div className="rounded-2xl bg-white/70 px-4 py-3 shadow-sm ring-1 ring-white/60">
+                  <p>Programmez des objectifs d’épargne pour détecter automatiquement les écarts mensuels.</p>
+                </div>
               </CardContent>
             </Card>
           </div>

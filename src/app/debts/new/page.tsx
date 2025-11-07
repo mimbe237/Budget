@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
+
 import { AppLayout } from '@/components/dashboard/dashboard-client';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -21,140 +23,165 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { buildSchedule as computeSchedule, FREQUENCY_CONFIG } from '@/lib/debts/amortization';
+import { useUser } from '@/firebase';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  buildSchedule as computeSchedule,
+  type BuildScheduleInput,
+} from '@/lib/debts/amortization';
 import {
   buildDebtSchedule,
   createDebt,
   type CreateDebtInput,
 } from '@/lib/debts/api';
-import type { BuildScheduleInput } from '@/lib/debts/amortization';
 
-const debtWizardSchema = z.object({
-  title: z.string().min(2, 'Nom requis'),
+const MAX_START_OFFSET_DAYS = 30;
+
+const SUPPORTED_CURRENCIES = ['XAF', 'XOF', 'EUR', 'USD'];
+
+const debtFormSchema = z.object({
   type: z.enum(['EMPRUNT', 'PRET']),
-  counterparty: z.string().optional(),
+  title: z.string().min(2, 'Nom requis'),
+  principal: z.number().positive('Montant requis'),
   currency: z.string().length(3, 'Devise ISO (3 lettres)'),
-  principalInitial: z.number().positive('Montant requis'),
-  annualRate: z.number().min(0),
-  rateType: z.enum(['FIXE', 'VARIABLE']),
-  amortizationMode: z.enum(['ANNUITE', 'PRINCIPAL_CONSTANT', 'INTEREST_ONLY', 'BALLOON']),
-  totalPeriods: z.number().int().positive(),
-  frequency: z.enum(['MENSUEL', 'HEBDOMADAIRE', 'ANNUEL']),
-  startDate: z.string(),
-  gracePeriods: z.number().int().min(0),
-  balloonPct: z.number().min(0).max(1),
-  upfrontFees: z.number().min(0),
-  monthlyInsurance: z.number().min(0),
-  prepaymentPenaltyPct: z.number().min(0).max(1),
+  startDate: z
+    .string()
+    .refine(
+      (value) => {
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return false;
+        const maxDate = addDays(new Date(), MAX_START_OFFSET_DAYS);
+        return parsed <= maxDate;
+      },
+      { message: 'La date doit être dans les 30 prochains jours.' }
+    ),
+  termMonths: z.number().int().min(1, 'Durée minimale : 1 mois'),
+  annualRatePct: z.number().min(0, 'Taux invalide'),
+  counterpart: z.string().optional(),
+  upfrontFees: z.number().min(0).optional(),
+  monthlyInsurance: z.number().min(0).optional(),
+  prepaymentPenaltyPct: z.number().min(0).max(1).optional(),
+  interestOnly: z.boolean(),
+  enableVariableRate: z.boolean(),
   variableIndexCode: z.string().optional(),
-  variableMarginBps: z.number().nullable().optional(),
-  recalcEachPeriod: z.boolean(),
+  variableMarginBps: z.number().min(0).nullable().optional(),
+  enableBalloon: z.boolean(),
+  balloonPct: z.number().min(0).max(1).optional(),
+  gracePeriods: z.number().int().min(0).optional(),
 });
 
-type DebtWizardValues = z.infer<typeof debtWizardSchema>;
+type DebtFormValues = z.infer<typeof debtFormSchema>;
 
-const defaultValues: DebtWizardValues = {
-  title: '',
+const buildDefaultValues = (currency: string): DebtFormValues => ({
   type: 'EMPRUNT',
-  counterparty: '',
-  currency: 'EUR',
-  principalInitial: 100000,
-  annualRate: 0.05,
-  rateType: 'FIXE',
-  amortizationMode: 'ANNUITE',
-  totalPeriods: 120,
-  frequency: 'MENSUEL',
+  title: '',
+  principal: 1000,
+  currency,
   startDate: format(new Date(), 'yyyy-MM-dd'),
-  gracePeriods: 0,
-  balloonPct: 0,
+  termMonths: 12,
+  annualRatePct: 0,
+  counterpart: '',
   upfrontFees: 0,
   monthlyInsurance: 0,
   prepaymentPenaltyPct: 0,
+  interestOnly: false,
+  enableVariableRate: false,
   variableIndexCode: '',
   variableMarginBps: null,
-  recalcEachPeriod: false,
-};
+  enableBalloon: false,
+  balloonPct: 0,
+  gracePeriods: 0,
+});
 
-const formSteps = [
-  'Informations générales',
-  'Montants & taux',
-  'Mode d’amortissement',
-  'Options',
-  'Aperçu',
-] as const;
+const currencyFormatter = (value: number, currency: string) =>
+  new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(value);
 
-function DebtsNewContent() {
+export default function NewDebtPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [step, setStep] = useState(0);
+  const { userProfile } = useUser();
+  const defaultCurrency = (userProfile?.displayCurrency ?? 'EUR').toUpperCase();
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<DebtWizardValues>({
-    resolver: zodResolver(debtWizardSchema),
+  const form = useForm<DebtFormValues>({
+    resolver: zodResolver(debtFormSchema),
+    defaultValues: buildDefaultValues(defaultCurrency.toUpperCase()),
     mode: 'onBlur',
-    defaultValues,
   });
 
   const watchAll = form.watch();
+  const resolvedCurrency = (watchAll.currency || defaultCurrency).toUpperCase();
 
   const preview = useMemo(() => {
     try {
+      if (!watchAll.principal || !watchAll.termMonths || !watchAll.startDate) {
+        return null;
+      }
       const input: BuildScheduleInput = {
-        principal: watchAll.principalInitial,
-        annualRate: watchAll.annualRate,
-        rateType: watchAll.rateType,
-        amortizationMode: watchAll.amortizationMode,
-        totalPeriods: watchAll.totalPeriods,
-        gracePeriods: watchAll.gracePeriods,
-        balloonPct: watchAll.balloonPct,
-        monthlyInsurance: watchAll.monthlyInsurance,
-        upfrontFees: watchAll.upfrontFees,
-        frequency: watchAll.frequency,
+        principal: watchAll.principal,
+        annualRate: (watchAll.annualRatePct ?? 0) / 100,
+        amortizationMode: watchAll.interestOnly ? 'INTEREST_ONLY' : 'ANNUITE',
+        totalPeriods: watchAll.termMonths,
+        gracePeriods: watchAll.gracePeriods ?? 0,
+        balloonPct: watchAll.enableBalloon ? watchAll.balloonPct ?? 0 : 0,
+        monthlyInsurance: watchAll.monthlyInsurance ?? 0,
+        upfrontFees: watchAll.upfrontFees ?? 0,
+        frequency: 'MENSUEL',
         startDate: new Date(watchAll.startDate),
         variableRates: undefined,
-        recalcEachPeriod: watchAll.recalcEachPeriod,
+        recalcEachPeriod: false,
       };
       const lines = computeSchedule(input);
+      if (!lines?.length) return null;
       const totalInterest = lines.reduce((acc, line) => acc + line.interestDue, 0);
-      const totalInsurance = lines.reduce((acc, line) => acc + line.insuranceDue, 0);
+      const totalPaid = lines.reduce((acc, line) => acc + line.totalDue, 0);
       return {
         lines: lines.slice(0, 6),
         totalInterest,
-        totalInsurance,
-        totalPaid: lines.reduce((acc, line) => acc + line.totalDue, 0),
+        totalPaid,
+        avgInstallment: lines.reduce((acc, line) => acc + line.totalDue, 0) / lines.length,
       };
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }, [watchAll]);
 
-  const handleNext = async () => {
-    const valid = await form.trigger();
-    if (!valid) return;
-    setStep((current) => Math.min(current + 1, formSteps.length - 1));
-  };
-
-  const handleBack = () => {
-    setStep((current) => Math.max(current - 1, 0));
-  };
-
-  const onSubmit = async (values: DebtWizardValues) => {
+  const handleSubmit = async (values: DebtFormValues) => {
     setIsSubmitting(true);
     try {
       const payload: CreateDebtInput = {
-        ...values,
+        title: values.title,
+        type: values.type,
+        counterparty: values.counterpart || null,
+        currency: resolvedCurrency,
+        principalInitial: values.principal,
+        annualRate: (values.annualRatePct ?? 0) / 100,
+        rateType: values.enableVariableRate ? 'VARIABLE' : 'FIXE',
+        amortizationMode: values.interestOnly ? 'INTEREST_ONLY' : 'ANNUITE',
+        totalPeriods: values.termMonths,
+        frequency: 'MENSUEL',
         startDate: values.startDate,
-        counterparty: values.counterparty || null,
+        gracePeriods: values.gracePeriods ?? 0,
+        balloonPct: values.enableBalloon ? values.balloonPct ?? 0 : 0,
+        upfrontFees: values.upfrontFees ?? 0,
+        monthlyInsurance: values.monthlyInsurance ?? 0,
+        prepaymentPenaltyPct: values.prepaymentPenaltyPct ?? 0,
+        variableIndexCode: values.enableVariableRate ? values.variableIndexCode || null : null,
+        variableMarginBps: values.enableVariableRate ? values.variableMarginBps ?? null : null,
+        recalcEachPeriod: values.enableVariableRate ? true : false,
       };
+
       const created = await createDebt(payload);
       await buildDebtSchedule(created.id);
+
       toast({
         title: 'Dette créée',
-        description: 'L’échéancier a été généré et la dette est disponible.',
+        description: 'Nous avons généré les premières mensualités automatiquement.',
       });
       router.push(`/debts/${created.id}`);
     } catch (error: any) {
-      console.error(error);
       toast({
         title: 'Erreur',
         description: error?.message ?? 'Impossible de créer la dette.',
@@ -165,451 +192,509 @@ function DebtsNewContent() {
     }
   };
 
-  const currentStep = formSteps[step];
-
   return (
     <AppLayout>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-        <div>
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-12">
+        <div className="space-y-2">
+          <Badge variant="secondary" className="w-fit">
+            {watchAll.type === 'EMPRUNT' ? 'Je dois' : 'On me doit'}
+          </Badge>
           <h1 className="text-2xl font-semibold tracking-tight">Nouvelle dette</h1>
-          <p className="text-muted-foreground">
-            Complétez les étapes pour configurer un nouvel emprunt ou prêt.
+          <p className="text-sm text-muted-foreground">
+            Remplissez les informations essentielles pour suivre rapidement vos prêts et emprunts.
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>{currentStep}</CardTitle>
-            <CardDescription>
-              Étape {step + 1} sur {formSteps.length}
-            </CardDescription>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle>Essentiel</CardTitle>
+                <CardDescription>
+                  7 champs pour enregistrer la dette et générer l’échéancier automatiquement.
+                </CardDescription>
+              </div>
+              <Badge variant="outline" className="text-xs uppercase tracking-wide">
+                Devise utilisée&nbsp;: {resolvedCurrency}
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
-                {step === 0 && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nom de la dette</FormLabel>
+              <form className="space-y-8" onSubmit={form.handleSubmit(handleSubmit)}>
+                <section className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <Input placeholder="Ex. Crédit immobilier siège social" {...field} />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sélectionner" />
+                            </SelectTrigger>
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="counterparty"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Contrepartie</FormLabel>
+                          <SelectContent>
+                            <SelectItem value="EMPRUNT">Emprunt (je dois)</SelectItem>
+                            <SelectItem value="PRET">Prêt (on me doit)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nom de la dette</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex. Crédit immobilier" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="principal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Montant initial ({resolvedCurrency})</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={field.value ?? ''}
+                            onChange={(event) =>
+                              field.onChange(
+                                event.target.value === '' ? undefined : Number(event.target.value)
+                              )
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="currency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Devise</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <Input placeholder="Banque, client..." {...field} />
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="EMPRUNT">Emprunt (je dois)</SelectItem>
-                              <SelectItem value="PRET">Prêt (on me doit)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="currency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Devise</FormLabel>
-                          <FormControl>
-                            <Input placeholder="EUR" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
+                          <SelectContent>
+                            {SUPPORTED_CURRENCIES.map((currency) => (
+                              <SelectItem key={currency} value={currency}>
+                                {currency}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date de départ</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="termMonths"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Durée (mois)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={field.value ?? ''}
+                            onChange={(event) =>
+                              field.onChange(
+                                event.target.value === '' ? undefined : Number(event.target.value)
+                              )
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="annualRatePct"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Taux annuel (%)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={field.value ?? ''}
+                            onChange={(event) =>
+                              field.onChange(
+                                event.target.value === '' ? undefined : Number(event.target.value)
+                              )
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </section>
 
-                {step === 1 && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="principalInitial"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Montant initial</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="annualRate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Taux annuel (%)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.0001"
-                              value={Number(field.value * 100).toFixed(3)}
-                              onChange={(event) => field.onChange(Number(event.target.value) / 100)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="totalPeriods"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nombre de périodes</FormLabel>
-                          <FormControl>
-                            <Input type="number" min={1} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="frequency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fréquence</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                  <section className="space-y-4 rounded-2xl border p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-base font-semibold">Options avancées</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Renseignez ces champs uniquement si vous avez besoin de personnaliser davantage le calcul.
+                        </p>
+                      </div>
+                      <CollapsibleTrigger asChild>
+                        <Button type="button" variant="outline" size="sm">
+                          {showAdvanced ? 'Masquer' : 'Afficher'}
+                        </Button>
+                      </CollapsibleTrigger>
+                    </div>
+                    <CollapsibleContent className="grid gap-4 md:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="counterpart"
+                        render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>Contrepartie</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
+                              <Input placeholder="Banque, client..." {...field} />
                             </FormControl>
-                            <SelectContent>
-                              <SelectItem value="MENSUEL">Mensuelle</SelectItem>
-                              <SelectItem value="HEBDOMADAIRE">Hebdomadaire</SelectItem>
-                              <SelectItem value="ANNUEL">Annuelle</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="startDate"
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                          <FormLabel>Date de départ</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="rateType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Taux</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="upfrontFees"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Frais initiaux ({resolvedCurrency})</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={field.value ?? ''}
+                                onChange={(event) =>
+                                  field.onChange(
+                                    event.target.value === '' ? undefined : Number(event.target.value)
+                                  )
+                                }
+                              />
                             </FormControl>
-                            <SelectContent>
-                              <SelectItem value="FIXE">Fixe</SelectItem>
-                              <SelectItem value="VARIABLE">Variable</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="monthlyInsurance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Assurance par échéance ({resolvedCurrency})</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={field.value ?? ''}
+                                onChange={(event) =>
+                                  field.onChange(
+                                    event.target.value === '' ? undefined : Number(event.target.value)
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="prepaymentPenaltyPct"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Pénalité remboursement anticipé (%)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                value={
+                                  field.value === undefined || field.value === null
+                                    ? ''
+                                    : (field.value ?? 0) * 100
+                                }
+                                onChange={(event) => {
+                                  const raw = event.target.value;
+                                  field.onChange(raw === '' ? undefined : Number(raw) / 100);
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="interestOnly"
+                        render={({ field }) => (
+                          <FormItem className="flex items-start justify-between rounded-lg border p-4">
+                            <div className="space-y-1">
+                              <FormLabel>Mode intérêts seuls</FormLabel>
+                              <p className="text-sm text-muted-foreground">
+                                Les mensualités couvrent uniquement les intérêts. À réserver aux cas particuliers.
+                              </p>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="gracePeriods"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Périodes de différé</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={field.value ?? ''}
+                                onChange={(event) =>
+                                  field.onChange(
+                                    event.target.value === '' ? undefined : Number(event.target.value)
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="enableVariableRate"
+                        render={({ field }) => (
+                          <FormItem className="flex items-start justify-between rounded-lg border p-4 md:col-span-2">
+                            <div className="space-y-1">
+                              <FormLabel>Taux variable</FormLabel>
+                              <p className="text-sm text-muted-foreground">
+                                Activez uniquement si la dette dépend d’un indice (type Euribor).
+                              </p>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      {watchAll.enableVariableRate && (
+                        <>
+                          <FormField
+                            control={form.control}
+                            name="variableIndexCode"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Indice</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Ex. EURIBOR 3M" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="variableMarginBps"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Marge (bps)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={field.value ?? ''}
+                                    onChange={(event) =>
+                                      field.onChange(
+                                        event.target.value === '' ? null : Number(event.target.value)
+                                      )
+                                    }
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </>
                       )}
-                    />
-                    {watchAll.rateType === 'VARIABLE' && (
-                      <>
+                      <FormField
+                        control={form.control}
+                        name="enableBalloon"
+                        render={({ field }) => (
+                          <FormItem className="flex items-start justify-between rounded-lg border p-4 md:col-span-2">
+                            <div className="space-y-1">
+                              <FormLabel>Balloon / remboursement final</FormLabel>
+                              <p className="text-sm text-muted-foreground">
+                                Utilisez-le pour prévoir un capital restant dû important à la dernière échéance.
+                              </p>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      {watchAll.enableBalloon && (
                         <FormField
                           control={form.control}
-                          name="variableIndexCode"
+                          name="balloonPct"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Indice de référence</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Code de l’indice (ex. EURIBOR)" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="variableMarginBps"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Marge (bps)</FormLabel>
+                              <FormLabel>Pourcentage balloon (%)</FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
-                                  placeholder="Ex. 120 bps"
-                                  value={field.value ?? ''}
-                                  onChange={(event) => field.onChange(Number(event.target.value))}
+                                  min="0"
+                                  max="100"
+                                  step="0.1"
+                                  value={
+                                    field.value === undefined || field.value === null
+                                      ? ''
+                                      : (field.value ?? 0) * 100
+                                  }
+                                  onChange={(event) => {
+                                    const raw = event.target.value;
+                                    field.onChange(raw === '' ? undefined : Number(raw) / 100);
+                                  }}
                                 />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={form.control}
-                          name="recalcEachPeriod"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center justify-between rounded-lg border px-4 py-3">
-                              <div>
-                                <FormLabel>Ré-amortir à chaque variation</FormLabel>
-                                <p className="text-sm text-muted-foreground">
-                                  Recalcule le montant des échéances après chaque changement de taux.
-                                </p>
-                              </div>
-                              <FormControl>
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                      </>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </CollapsibleContent>
+                  </section>
+                </Collapsible>
 
-                {step === 2 && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="amortizationMode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Mode d’amortissement</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="ANNUITE">Mensualité constante</SelectItem>
-                              <SelectItem value="PRINCIPAL_CONSTANT">Principal constant</SelectItem>
-                              <SelectItem value="INTEREST_ONLY">Intérêts seuls</SelectItem>
-                              <SelectItem value="BALLOON">Balloon</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="gracePeriods"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Périodes de différé</FormLabel>
-                          <FormControl>
-                            <Input type="number" min={0} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="balloonPct"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Balloon (%)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={(field.value * 100).toFixed(2)}
-                              onChange={(event) => field.onChange(Number(event.target.value) / 100)}
-                              disabled={watchAll.amortizationMode !== 'BALLOON'}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <section className="space-y-4">
+                  <div>
+                    <h3 className="text-base font-semibold">Aperçu</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Mensualité moyenne, intérêts estimés et premiers mois calculés automatiquement.
+                    </p>
                   </div>
-                )}
-
-                {step === 3 && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="upfrontFees"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Frais initiaux</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="monthlyInsurance"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Assurance périodique</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="prepaymentPenaltyPct"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Pénalité de remboursement anticipé (%)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={(field.value * 100).toFixed(2)}
-                              onChange={(event) => field.onChange(Number(event.target.value) / 100)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-
-                {step === 4 && (
-                  <div className="space-y-4">
-                    {preview ? (
-                      <>
-                        <div className="grid gap-3 md:grid-cols-3">
-                          <Card>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-sm text-muted-foreground">Echéance moyenne</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-semibold">
-                                {preview.lines.length
-                                  ? (
-                                      preview.lines.reduce((acc, line) => acc + line.totalDue, 0) /
-                                      preview.lines.length
-                                    ).toFixed(2)
-                                  : '—'}
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                Sur les six premières périodes
-                              </p>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-sm text-muted-foreground">Intérêts estimés</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-semibold">{preview.totalInterest.toFixed(2)}</div>
-                              <p className="text-xs text-muted-foreground">
-                                Somme des intérêts prévisionnels
-                              </p>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-sm text-muted-foreground">Total à payer</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-semibold">{preview.totalPaid.toFixed(2)}</div>
-                              <p className="text-xs text-muted-foreground">
-                                Hors remboursements anticipés
-                              </p>
-                            </CardContent>
-                          </Card>
-                        </div>
-                        <div className="overflow-hidden rounded-md border">
-                          <table className="w-full text-sm">
-                            <thead className="bg-muted/40">
-                              <tr>
-                                <th className="px-3 py-2 text-left">Période</th>
-                                <th className="px-3 py-2 text-right">Principal</th>
-                                <th className="px-3 py-2 text-right">Intérêts</th>
-                                <th className="px-3 py-2 text-right">Assurance</th>
-                                <th className="px-3 py-2 text-right">Total</th>
+                  {preview ? (
+                    <>
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm text-muted-foreground">Mensualité moyenne</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-semibold">
+                              {currencyFormatter(preview.avgInstallment, resolvedCurrency)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Basée sur le plan prévisionnel</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm text-muted-foreground">Intérêts estimés</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-semibold">
+                              {currencyFormatter(preview.totalInterest, resolvedCurrency)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Sur toute la durée</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm text-muted-foreground">Total à rembourser</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-semibold">
+                              {currencyFormatter(preview.totalPaid, resolvedCurrency)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Hors remboursements anticipés</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      <div className="overflow-hidden rounded-lg border">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/40">
+                            <tr>
+                              <th className="px-3 py-2 text-left">Période</th>
+                              <th className="px-3 py-2 text-right">Principal</th>
+                              <th className="px-3 py-2 text-right">Intérêts</th>
+                              <th className="px-3 py-2 text-right">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {preview.lines.map((line) => (
+                              <tr key={line.periodIndex} className="border-t">
+                                <td className="px-3 py-2">#{line.periodIndex}</td>
+                                <td className="px-3 py-2 text-right">
+                                  {currencyFormatter(line.principalDue, resolvedCurrency)}
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  {currencyFormatter(line.interestDue, resolvedCurrency)}
+                                </td>
+                                <td className="px-3 py-2 text-right font-medium">
+                                  {currencyFormatter(line.totalDue, resolvedCurrency)}
+                                </td>
                               </tr>
-                            </thead>
-                            <tbody>
-                              {preview.lines.map((line) => (
-                                <tr key={line.periodIndex} className="border-t">
-                                  <td className="px-3 py-2">#{line.periodIndex}</td>
-                                  <td className="px-3 py-2 text-right">{line.principalDue.toFixed(2)}</td>
-                                  <td className="px-3 py-2 text-right">{line.interestDue.toFixed(2)}</td>
-                                  <td className="px-3 py-2 text-right">{line.insuranceDue.toFixed(2)}</td>
-                                  <td className="px-3 py-2 text-right font-medium">{line.totalDue.toFixed(2)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Les paramètres fournis ne permettent pas de générer un aperçu pour le moment.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <Button type="button" variant="outline" onClick={handleBack} disabled={step === 0 || isSubmitting}>
-                    Retour
-                  </Button>
-                  {step < formSteps.length - 1 ? (
-                    <Button type="button" onClick={handleNext} disabled={isSubmitting}>
-                      Continuer
-                    </Button>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   ) : (
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? 'Création...' : 'Créer la dette'}
-                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      Renseignez les champs essentiels pour calculer l’échéancier.
+                    </p>
                   )}
+                </section>
+
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Création...' : 'Créer la dette'}
+                  </Button>
                 </div>
               </form>
             </Form>
@@ -618,8 +703,4 @@ function DebtsNewContent() {
       </div>
     </AppLayout>
   );
-}
-
-export default function NewDebtPage() {
-  return <DebtsNewContent />;
 }

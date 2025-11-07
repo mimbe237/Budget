@@ -13,8 +13,6 @@ import { HtmlLangSync } from '@/components/locale/html-lang';
 import { OfflineQueueSync } from '@/components/offline/OfflineQueueSync';
 import { I18nProviderWrapper } from '@/components/i18n-provider-wrapper';
 import { AffiliateTracker } from '@/components/affiliates/AffiliateTracker';
-import { BottomNav } from '@/components/mobile/BottomNav';
-import { FAB } from '@/components/mobile/FAB';
 import { poppins, ptSans } from './fonts';
 
 export const metadata: Metadata = {
@@ -30,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${poppins.variable} ${ptSans.variable}`}>
+  <html lang="en" suppressHydrationWarning>
       <head>
         {/* Preconnect Firebase CDN */}
         <link rel="preconnect" href="https://firebaseapp.com" />
@@ -52,7 +50,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
-      <body className={`${ptSans.className} ${poppins.variable} font-body antialiased`}>
+  <body className={`${poppins.variable} ${ptSans.variable} font-body antialiased bg-background text-foreground`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -80,9 +78,6 @@ export default function RootLayout({
             <OnlineStatusIndicator />
             <ServiceWorkerUpdateNotification />
             <Toaster />
-            {/* Mobile UI Components (visible < 768px) */}
-            <BottomNav />
-            <FAB />
           </ReactQueryProvider>
         </ThemeProvider>
       </body>

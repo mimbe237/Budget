@@ -55,6 +55,8 @@ export default function OnboardingPage() {
     }
   }, [user, isUserLoading, router]);
 
+  const hasCompletedOnboarding = userProfile?.hasCompletedOnboarding === true;
+
   useEffect(() => {
     if (!user) return;
 
@@ -62,9 +64,10 @@ export default function OnboardingPage() {
     const isAdminEmail = user.email ? adminEmailSet.has(user.email.toLowerCase()) : false;
     const isAdmin = isAdminProfile || isAdminEmail;
     const alreadyConfigured =
-      !!userProfile?.locale &&
-      !!userProfile?.displayCurrency &&
-      typeof userProfile?.monthlyExpenseBudget === 'number';
+      hasCompletedOnboarding ||
+      (!!userProfile?.locale &&
+        !!userProfile?.displayCurrency &&
+        typeof userProfile?.monthlyExpenseBudget === 'number');
 
     if (isAdmin || userProfile?.status === 'suspended') {
       router.replace('/dashboard');
@@ -74,7 +77,7 @@ export default function OnboardingPage() {
     if (alreadyConfigured) {
       router.replace('/dashboard');
     }
-  }, [user, userProfile, router]);
+  }, [user, userProfile, router, adminEmailSet, hasCompletedOnboarding]);
 
   const isStepValid = useMemo(() => {
     if (step === 1) return !!locale;

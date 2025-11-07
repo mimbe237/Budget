@@ -200,26 +200,66 @@ const TESTIMONIALS = [
   },
 ];
 
-const FAQ_ITEMS = [
+export const FAQ_ITEMS = [
   {
-    question: "Puis-je tester avant de payer ?",
+    question: "Puis-je essayer Budget Pro gratuitement ?",
     answer:
-      "Oui ! 30 jours d&apos;essai gratuit, sans carte. Accès complet à toutes les fonctionnalités.",
+      "Oui ! Vous bénéficiez de 30 jours d’essai gratuit, sans carte bancaire. L’accès est complet à toutes les fonctionnalités : suivi des dépenses, objectifs, dettes, IA et rapports. À la fin de l’essai, vous décidez si vous continuez ou non.",
   },
   {
-    question: "Mes données sont-elles sécurisées ?",
+    question: "Mes données financières sont-elles vraiment sécurisées ?",
     answer:
-      "Chiffrement AES-256, hébergement certifié ISO 27001, sauvegardes quotidiennes. Vos données vous appartiennent.",
+      "Absolument. Budget Pro utilise le chiffrement **AES-256** pour les données et **TLS 1.3** pour les connexions. L’hébergement est certifié **ISO 27001** et **GDPR-compliant**. Seul vous avez accès à vos données ; rien n’est partagé sans votre consentement.",
   },
   {
-    question: "Comment importer mes anciennes données ?",
+    question: "Puis-je gérer plusieurs devises ?",
     answer:
-      "Import CSV, Excel, ou connexion bancaire directe (via partenaires sécurisés). 2 minutes max.",
+      "Oui. Budget Pro prend en charge **XAF, XOF, EUR et USD**, avec formatage automatique selon votre langue. Vous pouvez définir votre devise principale dès l’onboarding et suivre vos opérations multidevises sans conversion manuelle.",
   },
   {
-    question: "Support en français ?",
+    question: "Comment suivre mes dettes et prêts ?",
     answer:
-      "Oui, support par chat, email et téléphone en français, du lundi au samedi.",
+      "Le module **Dettes** permet d’ajouter vos emprunts ou prêts personnels, de suivre les remboursements, les échéances et le capital restant dû. Vous recevez des **alertes automatiques** avant chaque échéance et un résumé clair sur votre tableau de bord.",
+  },
+  {
+    question: "L’application fonctionne-t-elle sans connexion ?",
+    answer:
+      "Oui ! Grâce au mode **PWA offline-first**, Budget Pro continue de fonctionner sans internet. Vos transactions, objectifs et contributions sont enregistrés hors-ligne et se synchronisent automatiquement à la reconnexion.",
+  },
+  {
+    question: "Quelles analyses ou recommandations propose l’IA ?",
+    answer:
+      "L’IA intégrée analyse vos dépenses, budgets et objectifs pour vous donner des **insights personnalisés** : tendances, alertes budgétaires, suggestions d’optimisation et conseils d’épargne. Tout est localisé selon votre profil et vos habitudes réelles.",
+  },
+  {
+    question: "Puis-je importer ou exporter mes données ?",
+    answer:
+      "Oui. Vous pouvez **importer** vos transactions depuis un fichier **CSV ou Excel**, et **exporter** vos rapports financiers complets (revenus, dépenses, budgets, dettes, objectifs) au format **Excel ou PDF**. Compatible avec les logiciels comptables.",
+  },
+  {
+    question: "Budget Pro fonctionne-t-il sur mobile ?",
+    answer:
+      "Oui, totalement ! C’est une **application web progressive (PWA)** installable sur **Android, iPhone et Desktop**. Interface mobile optimisée, navigation fluide, mode sombre, notifications push et ajout rapide de transactions.",
+  },
+  {
+    question: "Y a-t-il une assistance en français ?",
+    answer:
+      "Oui. Notre équipe de support répond en **français et en anglais**, du lundi au samedi, par **chat intégré**, **email** et **téléphone**. Une base de connaissances est également disponible pour les questions fréquentes.",
+  },
+  {
+    question: "Que se passe-t-il si je dépasse mon budget ?",
+    answer:
+      "Budget Pro affiche une **alerte visuelle** et vous notifie en push si une catégorie ou votre budget mensuel est dépassé. Vous pouvez ensuite ajuster vos montants, revoir vos priorités ou consulter les recommandations IA pour retrouver l’équilibre.",
+  },
+  {
+    question: "Puis-je partager ou synchroniser mes comptes avec un partenaire ?",
+    answer:
+      "Oui, vous pouvez **inviter un second utilisateur** (partenaire, conjoint, collaborateur) en lecture ou en co-gestion. Chaque profil conserve ses droits d’accès et ses paramètres de confidentialité.",
+  },
+  {
+    question: "Quelles sont les prochaines évolutions prévues ?",
+    answer:
+      "Prochainement : **import automatique bancaire (Open Banking)**, **badges de progression et gamification**, **mode sombre complet**, **synchronisation mobile native** et API publique pour intégrations externes.",
   },
 ];
 

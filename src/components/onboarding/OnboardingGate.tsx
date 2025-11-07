@@ -29,6 +29,8 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const hasCompletedOnboarding = userProfile?.hasCompletedOnboarding === true;
+
   useEffect(() => {
     if (isUserLoading || isUserProfileLoading) return;
 
@@ -38,24 +40,38 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     // Ne pas boucler sur la page d'onboarding, les pages d'auth ou les pages marketing publiques
     if (isAuthPage || isOnboardingPage || isMarketingPage) return;
 
-    const isAdmin = userProfile?.role === 'admin' || userProfile?.isAdmin === true;
-    if (isAdmin) return;
-
-    // Éviter l'onboarding pour les administrateurs (claims ou email whitelist)
     const isAdminProfile = userProfile?.role === 'admin' || userProfile?.isAdmin === true;
     const isAdminEmail = user.email ? adminEmailSet.has(user.email.toLowerCase()) : false;
     if (isAdminProfile || isAdminEmail) return;
 
+    // Si l'utilisateur a déjà complété l'onboarding au moins une fois, ne plus le rediriger
+    if (hasCompletedOnboarding) return;
+
+    // Vérifier si le userProfile existe déjà (signe que l'utilisateur s'est déjà connecté)
+    // Si createdAt existe, l'utilisateur n'est pas nouveau
+    const hasEverLoggedIn = userProfile?.createdAt != null;
+    if (hasEverLoggedIn) return;
+
     const needsLocale = !userProfile?.locale;
     const needsCurrency = !userProfile?.displayCurrency;
     const needsBudget = typeof userProfile?.monthlyExpenseBudget !== 'number';
-
     const needsOnboarding = needsLocale || needsCurrency || needsBudget;
 
     if (needsOnboarding) {
       router.replace('/onboarding');
     }
-  }, [user, userProfile, isUserLoading, isUserProfileLoading, isAuthPage, isOnboardingPage, isMarketingPage, router]);
+  }, [
+    user,
+    userProfile,
+    isUserLoading,
+    isUserProfileLoading,
+    isAuthPage,
+    isOnboardingPage,
+    isMarketingPage,
+    hasCompletedOnboarding,
+    adminEmailSet,
+    router,
+  ]);
 
   return <>{children}</>;
 }

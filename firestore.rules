@@ -29,18 +29,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function hasAdminProfile(uid) {
-      return exists(/databases/$(database)/documents/users/$(uid)) &&
-             (get(/databases/$(database)/documents/users/$(uid)).data.isAdmin == true ||
-              get(/databases/$(database)/documents/users/$(uid)).data.admin == true ||
-              get(/databases/$(database)/documents/users/$(uid)).data.role == 'admin');
-    }
-
     function isAdmin() {
       return isAuthenticated() &&
              (request.auth.token.admin == true ||
-              request.auth.token.role == 'admin' ||
-              hasAdminProfile(request.auth.uid));
+              request.auth.token.role == 'admin');
     }
 
     function isChangingProtectedProfileFields() {
@@ -52,19 +44,33 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+    function clauseStringValue(clause) {
+      return clause.value != null && clause.value.stringValue != null ? clause.value.stringValue : null;
     }
 
-    function debtExists(debtId) {
-      return exists(/databases/$(database)/documents/debts/$(debtId));
+    function isEqualityOperator(op) {
+      return op == 'EQUAL' || op == '==';
     }
 
-    function isDebtOwner(debtId) {
+    function clauseMatchesCurrentUser(clause) {
+      return clause.field != null &&
+             clause.field.fieldPath == 'userId' &&
+             isEqualityOperator(clause.op) &&
+             clauseStringValue(clause) == request.auth.uid;
+    }
+
+    function hasUserScope(whereClauses, index) {
+      return whereClauses != null &&
+             whereClauses.size() > index &&
+             (clauseMatchesCurrentUser(whereClauses[index]) || hasUserScope(whereClauses, index + 1));
+    }
+
+    function isDebtsQueryScopedToCurrentUser() {
       return isAuthenticated() &&
-             debtExists(debtId) &&
-             get(/databases/$(database)/documents/debts/$(debtId)).data.userId == request.auth.uid;
+             request.query != null &&
+             hasUserScope(request.query.where, 0);
     }
+
 
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
@@ -184,31 +190,26 @@ service cloud.firestore {
 
     // Règles pour la collection debts à la racine (existantes)
     match /debts/{debtId} {
-      // Autorise la liste uniquement pour un utilisateur authentifié ;
-      // les documents retournés restent filtrés par la règle get ci-dessous.
-      allow list: if isAuthenticated();
-      // Autorise lecture (get) uniquement pour le propriétaire de la dette
-      allow get: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      // Création uniquement si userId (payload) correspond au user connecté
+      allow list: if isAdmin() || isDebtsQueryScopedToCurrentUser();
+      allow get: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      // Mise à jour/suppression uniquement par le propriétaire, et sans usurpation de userId
-      allow update: if isDebtOwner(debtId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isDebtOwner(debtId);
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid && request.resource.data.userId == resource.data.userId);
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
     }
 
     match /debtSchedules/{scheduleId} {
-      allow read: if request.auth != null && isDebtOwner(resource.data.debtId);
-      allow create, update, delete: if false;
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
     }
 
     match /debtPayments/{paymentId} {
-      allow read: if request.auth != null && isDebtOwner(resource.data.debtId);
-      allow create, update, delete: if false;
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
     }
 
     match /debtRateHistory/{historyId} {
-      allow read: if request.auth != null && isDebtOwner(resource.data.debtId);
-      allow create, update, delete: if false;
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
     }
 
     match /admin_logs/{logId} {

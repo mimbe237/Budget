@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
@@ -48,6 +48,8 @@ const accentStyles: Record<AccentToken, { icon: string; halo: string; card: stri
 export function QuickAddShortcuts() {
   const [isOpen, setIsOpen] = useState(false);
   const { user, isUserLoading, userProfile } = useUser();
+  const currency = userProfile?.displayCurrency ?? 'EUR';
+  const router = useRouter();
 
   if (isUserLoading || !user) {
     return null;
@@ -84,7 +86,7 @@ export function QuickAddShortcuts() {
       accent: 'indigo',
     },
     {
-      href: '/debts/new',
+      href: `/debts/new?currency=${currency}`,
       icon: Landmark,
       title: isFrench ? 'Dette' : 'Debt',
       description: isFrench
@@ -102,8 +104,18 @@ export function QuickAddShortcuts() {
       ? 'Ouvrir les raccourcis rapides'
       : 'Open quick shortcuts';
 
+  const handleNavigate = (href: string) => {
+    setIsOpen(false);
+    router.push(href);
+  };
+
+  const floatingOffset = 'calc(var(--bottom-nav-height) + 1rem + var(--safe-area-bottom))';
+
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
+    <div
+      className="fixed right-4 z-50 flex flex-col items-end gap-4 sm:right-6"
+      style={{ bottom: floatingOffset }}
+    >
       <div
         className={cn(
           'pointer-events-none flex w-[306px] flex-col gap-3 transition-all duration-200 ease-out sm:w-[340px]',
@@ -117,7 +129,7 @@ export function QuickAddShortcuts() {
           <ShortcutCard
             key={action.href}
             action={action}
-            onSelect={() => setIsOpen(false)}
+            onNavigate={handleNavigate}
           />
         ))}
       </div>
@@ -128,7 +140,7 @@ export function QuickAddShortcuts() {
         aria-expanded={isOpen}
         aria-label={toggleLabel}
         className={cn(
-          'group relative h-11 w-11 overflow-hidden rounded-full border border-primary/20 bg-background/70 text-primary shadow-lg shadow-primary/15 backdrop-blur-sm transition-all duration-200',
+          'group relative h-14 w-14 overflow-hidden rounded-full border border-primary/20 bg-gradient-to-br from-primary/90 to-primary shadow-primary/30 text-white shadow-lg backdrop-blur-sm transition-all duration-200',
           isOpen
             ? 'ring-2 ring-primary/30'
             : 'hover:-translate-y-1 hover:shadow-primary/25'
@@ -150,19 +162,19 @@ export function QuickAddShortcuts() {
 
 type ShortcutCardProps = {
   action: Shortcut;
-  onSelect: () => void;
+  onNavigate: (href: string) => void;
 };
 
-function ShortcutCard({ action, onSelect }: ShortcutCardProps) {
+function ShortcutCard({ action, onNavigate }: ShortcutCardProps) {
   const Icon = action.icon;
   const accent = accentStyles[action.accent];
 
   return (
-    <Link
-      href={action.href}
-      onClick={onSelect}
+    <button
+      type="button"
+      onClick={() => onNavigate(action.href)}
       className={cn(
-        'group relative block overflow-hidden rounded-2xl border border-border/40 bg-background/75 p-4 shadow-lg shadow-black/5 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2',
+        'group relative block w-full overflow-hidden rounded-2xl border border-border/40 bg-background/75 p-4 text-left shadow-lg shadow-black/5 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2',
         accent.card
       )}
     >
@@ -184,6 +196,6 @@ function ShortcutCard({ action, onSelect }: ShortcutCardProps) {
           </p>
         </div>
       </div>
-    </Link>
+    </button>
   );
 }
