@@ -48,7 +48,6 @@ const accentStyles: Record<AccentToken, { icon: string; halo: string; card: stri
 export function QuickAddShortcuts() {
   const [isOpen, setIsOpen] = useState(false);
   const { user, isUserLoading, userProfile } = useUser();
-  const currency = userProfile?.displayCurrency ?? 'EUR';
   const router = useRouter();
 
   if (isUserLoading || !user) {
@@ -86,12 +85,12 @@ export function QuickAddShortcuts() {
       accent: 'indigo',
     },
     {
-      href: `/debts/new?currency=${currency}`,
+      href: '/debts',
       icon: Landmark,
-      title: isFrench ? 'Dette' : 'Debt',
+      title: isFrench ? 'Dettes' : 'Debts',
       description: isFrench
-        ? 'Ajoutez un prêt ou un emprunt pour suivre vos remboursements.'
-        : 'Track a new loan or debt to stay ahead of repayments.',
+        ? 'Accédez à vos dettes pour enregistrer un nouvel emprunt ou un remboursement.'
+        : 'Go to your debts to add new loans or log repayments.',
       accent: 'amber',
     },
   ];

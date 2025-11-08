@@ -182,6 +182,7 @@ export default function NewDebtPage() {
       });
       router.push(`/debts/${created.id}`);
     } catch (error: any) {
+      console.error('[debts/new] createDebt failed', error);
       toast({
         title: 'Erreur',
         description: error?.message ?? 'Impossible de créer la dette.',
