@@ -3,7 +3,7 @@
   "name": "Budget Pro - Gestion Finances Personnelles",
   "short_name": "Budget Pro",
   "description": "Gérez votre budget, suivez vos dépenses, remboursez vos dettes et atteignez vos objectifs financiers avec Budget Pro. Application complète de gestion financière personnelle avec rapports détaillés, graphiques et mode hors ligne.",
-  "start_url": "/?source=pwa",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
