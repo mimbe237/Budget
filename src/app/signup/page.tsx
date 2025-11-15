@@ -203,19 +203,11 @@ export default function SignupPage() {
           }),
         });
 
-      if (!response.ok) {
-        throw new Error('identity-check-failed');
-      }
+        if (!response.ok) {
+          throw new Error('identity-check-failed');
+        }
 
-      const payload = await response.json();
-      if (payload.emailDeleted) {
-        setError(
-          formData.language.startsWith('fr')
-            ? 'Cet email a été définitivement supprimé. Contactez le support si nécessaire.'
-            : 'This email is linked to a deleted account and cannot be reused.'
-        );
-        return;
-      }
+        const payload = await response.json();
         if (payload.emailDeleted) {
           setError(
             formData.language.startsWith('fr')
@@ -224,7 +216,6 @@ export default function SignupPage() {
           );
           return;
         }
-
         if (payload.emailExists) {
           setError(
             formData.language.startsWith('fr')
@@ -280,6 +271,8 @@ export default function SignupPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
+
+      await sendEmailVerification(userCredential.user);
 
       // Rediriger vers la page d'attente de validation
       router.push('/pending-approval');
