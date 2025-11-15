@@ -95,7 +95,7 @@ async function networkFirst(request, event) {
     // Préférence à la réponse préchargée si présente (Navigation Preload)
     const preload = event?.preloadResponse ? await event.preloadResponse : null;
     const response = preload || (await fetch(request));
-    if (response.ok) {
+    if (response.ok && request.method === 'GET') {
       const cache = await caches.open(RUNTIME_CACHE);
       cache.put(request, response.clone());
     }

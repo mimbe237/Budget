@@ -8,10 +8,10 @@ import {
   Banknote,
   Calendar,
   Filter,
-  Layers,
   Link2,
   ListChecks,
   Trash2,
+  PlusCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -44,7 +44,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
 import { SummaryCard } from '@/components/dashboard/summary-card';
 import { DateRangePicker } from '../reports/_components/date-range-picker';
-import { QuickTransactionDialog } from '@/components/transactions/quick-transaction-dialog';
 import { ImportTransactionsDialog } from '@/components/transactions/import-transactions-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -238,18 +237,18 @@ function TransactionsContent() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <QuickTransactionDialog categories={categoryOptions} isFrench={isFrench} />
+          {/* Primary action now opens the full form instead of the quick dialog */}
+          <Button size="sm" className="h-9 gap-2" asChild>
+            <Link href="/transactions/add">
+              <PlusCircle className="h-4 w-4" />
+              {isFrench ? 'Ajouter une Transaction' : 'Full form'}
+            </Link>
+          </Button>
           <ImportTransactionsDialog isFrench={isFrench} />
           <Button variant="outline" size="sm" className="h-9 gap-2" asChild>
             <Link href="/reports?tab=transactions">
               <Banknote className="h-4 w-4" />
               {isFrench ? 'Voir les rapports' : 'View reports'}
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" className="h-9 gap-2" asChild>
-            <Link href="/transactions/add">
-              <Layers className="h-4 w-4" />
-              {isFrench ? 'Formulaire complet' : 'Full form'}
             </Link>
           </Button>
         </div>

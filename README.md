@@ -39,6 +39,10 @@ Prérequis: Node.js 18+, npm.
 - Rapports enrichis (KPIs dettes, graphique multi-séries, exports CSV/Excel étendus)
 - Gestion complète des dettes (emprunts & prêts) : création, échéanciers, paiements, simulations (voir `docs/DEBTS_MODULE.md`)
 - Analyse IA dédiée avec aperçu sur le tableau de bord et page complète `/ai-insights`
+  - **Optimisé pour les coûts** : Cache intelligent 24h pour réduire les appels API de ~85-90%
+  - **Données limitées** : Maximum 100 transactions sur 60 jours pour minimiser les tokens
+  - **Bouton refresh** : Forcer la régénération quand nécessaire
+  - Voir `docs/AI_COST_OPTIMIZATION.md` pour les détails
 
 ## Configuration Firebase
 

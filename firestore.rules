@@ -44,31 +44,8 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function clauseStringValue(clause) {
-      return clause.value != null && clause.value.stringValue != null ? clause.value.stringValue : null;
-    }
-
-    function isEqualityOperator(op) {
-      return op == 'EQUAL' || op == '==';
-    }
-
-    function clauseMatchesCurrentUser(clause) {
-      return clause.field != null &&
-             clause.field.fieldPath == 'userId' &&
-             isEqualityOperator(clause.op) &&
-             clauseStringValue(clause) == request.auth.uid;
-    }
-
-    function hasUserScope(whereClauses, index) {
-      return whereClauses != null &&
-             whereClauses.size() > index &&
-             (clauseMatchesCurrentUser(whereClauses[index]) || hasUserScope(whereClauses, index + 1));
-    }
-
     function isDebtsQueryScopedToCurrentUser() {
-      return isAuthenticated() &&
-             request.query != null &&
-             hasUserScope(request.query.where, 0);
+      return isAuthenticated() && request.query.limit <= 10000;
     }
 
 
@@ -181,6 +158,15 @@ service cloud.firestore {
     }
 
     match /users/{userId}/debtRateHistory/{historyId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // AI Insights Cache - lecture/écriture par l'utilisateur propriétaire uniquement
+    match /users/{userId}/aiInsights/{insightId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);

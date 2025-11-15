@@ -5,6 +5,12 @@ import { AIInsights } from './ai-insights';
 import { cookies, headers } from 'next/headers';
 import { getAdminAuth, getAdminFirestore } from '@/firebase/admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
+import { 
+  getCachedInsights, 
+  setCachedInsights, 
+  generateDataHash,
+  hasDataChanged 
+} from '@/lib/ai-cache';
 
 async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
   const headersInstance = await headers();
@@ -70,8 +76,16 @@ export async function loadAIInsights(): Promise<AIInsightsState> {
     let budgets: Budget[] = [];
 
     try {
+      // Limiter aux 60 derniers jours et max 100 transactions pour réduire les coûts
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
       const [transactionsSnap, budgetsSnap] = await Promise.all([
-        db.collection(`users/${user.uid}/expenses`).get(),
+        db.collection(`users/${user.uid}/expenses`)
+          .where('date', '>=', sixtyDaysAgo.toISOString())
+          .orderBy('date', 'desc')
+          .limit(100)
+          .get(),
         db.collection(`users/${user.uid}/categories`).get(),
       ]);
 
@@ -110,6 +124,46 @@ export async function loadAIInsights(): Promise<AIInsightsState> {
       };
     }
 
+    // Générer le hash des données pour détecter les changements
+    const dataHash = generateDataHash({
+      transactionIds: transactions.map(t => t.id),
+      budgetIds: budgets.map(b => b.id),
+      transactionCount: transactions.length,
+      budgetCount: budgets.length,
+    });
+
+    // Vérifier si on a un cache valide
+    const cachedResult = await getCachedInsights(user.uid);
+    
+    if (cachedResult) {
+      // Vérifier si les données ont changé
+      const dataChanged = await hasDataChanged(user.uid, dataHash);
+      
+      if (!dataChanged) {
+        // Utiliser le cache
+        if (process.env.NODE_ENV !== 'production') {
+          console.info(`[AIInsights] Using cached insights for user ${user.uid}`);
+        }
+        
+        const latestTransactionDate = transactions
+          .map(t => new Date(t.date ?? Date.now()).getTime())
+          .sort((a, b) => b - a)[0];
+
+        const formatter = new Intl.DateTimeFormat('fr-FR', {
+          dateStyle: 'medium',
+        });
+
+        return {
+          status: 'ok',
+          insights: cachedResult.insights,
+          recommendations: cachedResult.recommendations,
+          lastUpdatedLabel: latestTransactionDate ? formatter.format(new Date(latestTransactionDate)) : null,
+          sample: { transactionCount: transactions.length, budgetCount: budgets.length },
+        };
+      }
+    }
+
+    // Pas de cache valide ou données changées - générer de nouveaux insights
     const spendingHistory = transactions
       .map(t => {
         const amount = (t.amountInCents || 0) / 100;
@@ -128,12 +182,29 @@ export async function loadAIInsights(): Promise<AIInsightsState> {
     let recommendations = FALLBACK_ERROR_RECOMMENDATIONS;
 
     try {
+      if (process.env.NODE_ENV !== 'production') {
+        console.info(`[AIInsights] Generating new insights for user ${user.uid}`);
+      }
+
       const result = await getSpendingInsights({
         spendingHistory,
         budgetGoals,
       });
       insights = result.insights;
       recommendations = result.recommendations;
+
+      // Sauvegarder dans le cache
+      const transactionDates = transactions.map(t => new Date(t.date ?? Date.now()));
+      const periodStart = new Date(Math.min(...transactionDates.map(d => d.getTime()))).toISOString();
+      const periodEnd = new Date(Math.max(...transactionDates.map(d => d.getTime()))).toISOString();
+
+      await setCachedInsights(user.uid, insights, recommendations, {
+        dataHash,
+        transactionCount: transactions.length,
+        budgetCount: budgets.length,
+        periodStart,
+        periodEnd,
+      });
     } catch (error) {
       // Erreur réseau ou API - utiliser fallback silencieusement
       if (process.env.NODE_ENV !== 'production') {

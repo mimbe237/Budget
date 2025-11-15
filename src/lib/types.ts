@@ -208,3 +208,19 @@ export type FinancialReportData = {
     // User profile for formatting
     userProfile: UserProfile | null;
 };
+
+// ===== AI INSIGHTS CACHE =====
+export type AIInsightsCache = {
+  id: string; // Format: "latest" ou timestamp
+  userId: string;
+  insights: string;
+  recommendations: string;
+  generatedAt: string; // ISO timestamp
+  expiresAt: string; // ISO timestamp (generatedAt + 24h)
+  dataHash: string; // Hash des transactions/budgets pour détecter les changements
+  transactionCount: number;
+  budgetCount: number;
+  periodStart?: string; // Date de début des données analysées
+  periodEnd?: string; // Date de fin des données analysées
+  modelVersion?: string; // Version du modèle IA utilisé
+};

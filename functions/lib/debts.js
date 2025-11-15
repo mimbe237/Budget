@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDebtSummary = exports.uploadContractUrl = exports.restructureDebt = exports.markLateAndPenalize = exports.applyPrepayment = exports.simulatePrepayment = exports.recordPayment = exports.buildSchedule = exports.createDebt = void 0;
+exports.getDebtSummary = exports.uploadContractUrl = exports.restructureDebt = exports.markLateAndPenalize = exports.applyPrepayment = exports.simulatePrepayment = exports.recordPayment = exports.buildSchedule = exports.onDebtWrite = exports.createDebt = void 0;
 const functions = __importStar(require("firebase-functions"));
 const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
@@ -377,6 +377,32 @@ exports.createDebt = functions.https.onCall(async (data, context) => {
     });
     const snapshot = await docRef.get();
     return { id: docRef.id, ...snapshot.data() };
+});
+/**
+ * Mirror root debts into per-user subcollection for client-side scoped queries.
+ * This keeps /users/{uid}/debts in sync with /debts while authoritative writes
+ * continue to target the root collection from callable functions.
+ */
+exports.onDebtWrite = functions.firestore
+    .document('debts/{debtId}')
+    .onWrite(async (change, context) => {
+    const debtId = context.params.debtId;
+    const before = change.before.exists ? change.before.data() : null;
+    const after = change.after.exists ? change.after.data() : null;
+    // Determine userId from after or before
+    const userId = (after && after.userId) || (before && before.userId);
+    if (!userId) {
+        console.warn('[onDebtWrite] Missing userId for debt', debtId);
+        return;
+    }
+    const mirrorRef = db.doc(`users/${userId}/debts/${debtId}`);
+    if (!after) {
+        // Delete mirror when root deleted
+        await mirrorRef.delete().catch(() => undefined);
+        return;
+    }
+    // Copy allowed fields as-is (root is source of truth)
+    await mirrorRef.set({ ...after }, { merge: true });
 });
 exports.buildSchedule = functions.https.onCall(async (data, context) => {
     const uid = ensureAuth(context);

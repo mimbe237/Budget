@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Lightbulb, TrendingUp, LayoutDashboard } from 'lucide-react';
+import { RefreshInsightsButton } from './refresh-button';
 
 export default async function AIInsightsPage() {
   const data = await loadAIInsights();
@@ -39,6 +40,7 @@ export default async function AIInsightsPage() {
                 Suivre mes dettes
               </Link>
             </Button>
+            <RefreshInsightsButton />
           </div>
         </header>
 

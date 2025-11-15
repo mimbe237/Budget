@@ -2,7 +2,7 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { 
   getFirestore, 
   enableIndexedDbPersistence, 
@@ -10,6 +10,7 @@ import {
   connectFirestoreEmulator,
   setLogLevel
 } from 'firebase/firestore';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { setupFirestoreLogger } from './firestore-logger';
 
 // Configurer le logger personnalisé AVANT toute initialisation Firebase
@@ -51,7 +52,38 @@ export function initializeFirebase() {
 
 export function getSdks(firebaseApp: FirebaseApp) {
   const firestore = getFirestore(firebaseApp);
+  const auth = getAuth(firebaseApp);
   
+  // Optional: connect to Firebase Emulators for zero-config local dev
+  if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === '1') {
+    try {
+      const host = process.env.NEXT_PUBLIC_FIREBASE_EMULATORS_HOST || '127.0.0.1';
+      const fsPort = Number(process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_PORT || 8080);
+      const authPort = Number(process.env.NEXT_PUBLIC_AUTH_EMULATOR_PORT || 9099);
+      const fnPort = Number(process.env.NEXT_PUBLIC_FUNCTIONS_EMULATOR_PORT || 5001);
+      connectFirestoreEmulator(firestore, host, fsPort);
+      connectAuthEmulator(auth, `http://${host}:${authPort}`, { disableWarnings: true });
+      const functions = getFunctions(firebaseApp);
+      connectFunctionsEmulator(functions, host, fnPort);
+      if (process.env.NEXT_PUBLIC_DEBUG_FIREBASE) {
+        console.info(`[Emulators] Connected (firestore:${fsPort}, auth:${authPort}, functions:${fnPort})`);
+      }
+    } catch (e) {
+      console.warn('[Emulators] Failed to connect, continuing with default services:', e);
+    }
+  }
+
+  // Optional: fully offline mode (no network) for UI-only runs
+  // Useful when internet is down; Firestore reads from IndexedDB.
+  if (process.env.NEXT_PUBLIC_FIREBASE_OFFLINE_ONLY === '1') {
+    import('firebase/firestore').then(({ disableNetwork }) => {
+      disableNetwork(firestore).catch(() => undefined);
+      if (process.env.NEXT_PUBLIC_DEBUG_FIREBASE) {
+        console.info('[Firestore] Network disabled (offline-only mode)');
+      }
+    });
+  }
+
   // Enable offline persistence for better UX with network issues
   if (typeof window !== 'undefined') {
     enableMultiTabIndexedDbPersistence(firestore).catch((err) => {
@@ -75,7 +107,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
   
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
+    auth,
     firestore
   };
 }

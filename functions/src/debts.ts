@@ -544,6 +544,37 @@ export const createDebt = functions.https.onCall(async (data, context) => {
   return { id: docRef.id, ...snapshot.data() };
 });
 
+/**
+ * Mirror root debts into per-user subcollection for client-side scoped queries.
+ * This keeps /users/{uid}/debts in sync with /debts while authoritative writes
+ * continue to target the root collection from callable functions.
+ */
+export const onDebtWrite = functions.firestore
+  .document('debts/{debtId}')
+  .onWrite(async (change, context) => {
+    const debtId = context.params.debtId as string;
+    const before = change.before.exists ? change.before.data() : null as any;
+    const after = change.after.exists ? change.after.data() : null as any;
+
+    // Determine userId from after or before
+    const userId = (after && after.userId) || (before && before.userId);
+    if (!userId) {
+      console.warn('[onDebtWrite] Missing userId for debt', debtId);
+      return;
+    }
+
+    const mirrorRef = db.doc(`users/${userId}/debts/${debtId}`);
+
+    if (!after) {
+      // Delete mirror when root deleted
+      await mirrorRef.delete().catch(() => undefined);
+      return;
+    }
+
+    // Copy allowed fields as-is (root is source of truth)
+    await mirrorRef.set({ ...after }, { merge: true });
+  });
+
 export const buildSchedule = functions.https.onCall(async (data, context) => {
   const uid = ensureAuth(context);
   const { debtId } = z.object({ debtId: z.string().min(1) }).parse(data);

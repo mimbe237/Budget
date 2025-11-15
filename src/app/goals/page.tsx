@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PlusCircle, PiggyBank, Activity, AlarmClock, Bell, Target } from "lucide-react";
 import { useFirestore, useUser, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, doc, query, where, orderBy, updateDoc, limit } from "firebase/firestore";
+import { collection, doc, query, orderBy, updateDoc, limit } from "firebase/firestore";
 import type { Goal, Currency, CategoryDocument } from "@/lib/types";
 import { useEnhancedToast } from "@/components/ui/enhanced-toast";
 import { useFirestoreInfiniteQuery } from "@/hooks/use-firestore-infinite-query";
@@ -146,7 +146,11 @@ function GoalsPageContent() {
 
   const debtsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, "debts"), where("userId", "==", user.uid));
+    return query(
+      collection(firestore, `users/${user.uid}/debts`),
+      orderBy("createdAt", "desc"),
+      limit(100)
+    );
   }, [firestore, user]);
 
   const { data: categoriesDocs } = useCollection<CategoryDocument>(categoriesQuery);

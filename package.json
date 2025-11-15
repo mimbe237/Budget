@@ -20,7 +20,12 @@
     "perf:mobile": "lighthouse http://localhost:9002 --output=html --output-path=./lighthouse-mobile.html --preset=mobile --chrome-flags='--headless'",
     "screenshots": "node scripts/capture-screenshots.js",
     "playstore:feature": "node scripts/generate-feature-graphic.js",
-    "playstore:screenshots:placeholder": "node scripts/generate-placeholder-screenshots.js"
+    "playstore:screenshots:placeholder": "node scripts/generate-placeholder-screenshots.js",
+    "backfill:debts": "node scripts/backfill-debts-mirror.js",
+    "backfill:debts:dry": "node scripts/backfill-debts-mirror.js --dry-run",
+    "backfill:debts:skip-existing": "node scripts/backfill-debts-mirror.js --skip-existing",
+    "seed:debts": "node scripts/reset-debts-test-data.js",
+    "seed:debts:dry": "node scripts/reset-debts-test-data.js --dry-run"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",

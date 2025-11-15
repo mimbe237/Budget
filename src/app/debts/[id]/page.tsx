@@ -173,9 +173,9 @@ function DebtDetailContent() {
   } = useNotifications();
 
   const debtRef = useMemoFirebase(() => {
-    if (!firestore || !id) return null;
-    return doc(firestore, 'debts', id);
-  }, [firestore, id]);
+    if (!firestore || !id || !user) return null;
+    return doc(firestore, `users/${user.uid}/debts`, id);
+  }, [firestore, id, user]);
 
   const { data: debt, isLoading: debtLoading } = useDoc<Debt>(debtRef);
 

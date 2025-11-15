@@ -81,7 +81,12 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
 
   const debtsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, `users/${user.uid}/debts`));
+    // Scope to the authenticated user's debts subcollection to satisfy security rules
+    return query(
+      collection(firestore, `users/${user.uid}/debts`),
+      orderBy('createdAt', 'desc'),
+      limit(200)
+    );
   }, [firestore, user]);
   const { data: debts } = useCollection<Debt>(debtsQuery);
 

@@ -24,8 +24,8 @@ import {
 } from "lucide-react";
 
 // CONFIG: URLs dynamiques
-const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || "http://localhost:9002/login";
-const SIGNUP_URL = process.env.NEXT_PUBLIC_SIGNUP_URL || "http://localhost:9002/signup";
+const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || "/login";
+const SIGNUP_URL = process.env.NEXT_PUBLIC_SIGNUP_URL || "/signup";
 
 type ButtonVariant = "ghost" | "secondary" | "default" | "outline";
 
@@ -323,8 +323,6 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    document.querySelectorAll("[data-login]").forEach((el) => ((el as HTMLAnchorElement).href = LOGIN_URL));
-    document.querySelectorAll("[data-signup]").forEach((el) => ((el as HTMLAnchorElement).href = SIGNUP_URL));
     const yearSpan = document.getElementById("landing-year");
     if (yearSpan) yearSpan.textContent = new Date().getFullYear().toString();
   }, []);
@@ -355,6 +353,8 @@ export default function LandingPage() {
   const primaryCtaHref = homeContent?.ctaHref;
 
   const heroHasCustomMedia = Boolean(homeContent?.heroImage);
+  const heroPrimaryHref = primaryCtaHref ?? SIGNUP_URL;
+  const heroPrimaryDataAttr = primaryCtaHref ? {} : { "data-signup": "" };
 
   return (
     <div className="landing">
@@ -401,8 +401,8 @@ export default function LandingPage() {
             </nav>
 
             <div className="landing__actions">
-              <a className="landing__btn landing__btn--ghost" data-login href="#">Se connecter</a>
-              <a className="landing__btn landing__btn--secondary" data-signup href="#">Créer un compte</a>
+              <a className="landing__btn landing__btn--ghost" data-login href={LOGIN_URL}>Se connecter</a>
+              <a className="landing__btn landing__btn--secondary" data-signup href={SIGNUP_URL}>Créer un compte</a>
             </div>
           </div>
 
@@ -412,8 +412,8 @@ export default function LandingPage() {
             <a href="#pricing" onClick={() => setMenuOpen(false)}>Tarifs</a>
             <Link href="/affiliates" onClick={() => setMenuOpen(false)}>Affiliation</Link>
             <a href="#faq" onClick={() => setMenuOpen(false)}>FAQ</a>
-            <a className="landing__btn landing__btn--ghost" data-login href="#">Se connecter</a>
-            <a className="landing__btn landing__btn--secondary" data-signup href="#">Créer un compte</a>
+            <a className="landing__btn landing__btn--ghost" data-login href={LOGIN_URL}>Se connecter</a>
+            <a className="landing__btn landing__btn--secondary" data-signup href={SIGNUP_URL}>Créer un compte</a>
           </div>
         </div>
       </header>
@@ -430,16 +430,14 @@ export default function LandingPage() {
             <p className="landing__hero-subtitle">{heroSubtitle}</p>
 
             <div className="landing__hero-actions">
-              {primaryCtaHref ? (
-                <a href={primaryCtaHref} className="landing__btn landing__btn--primary landing__btn--shine">
-                  {primaryCtaLabel} <ArrowRight className="h-5 w-5" />
-                </a>
-              ) : (
-                <a data-signup href="#" className="landing__btn landing__btn--primary landing__btn--shine">
-                  {primaryCtaLabel} <ArrowRight className="h-5 w-5" />
-                </a>
-              )}
-              <a data-login href="#" className="landing__btn landing__btn--ghost">
+              <a
+                href={heroPrimaryHref}
+                className="landing__btn landing__btn--primary landing__btn--shine"
+                {...heroPrimaryDataAttr}
+              >
+                {primaryCtaLabel} <ArrowRight className="h-5 w-5" />
+              </a>
+              <a data-login href={LOGIN_URL} className="landing__btn landing__btn--ghost">
                 <Users2 className="h-5 w-5" /> Démo live
               </a>
             </div>
@@ -673,10 +671,10 @@ export default function LandingPage() {
             <p className="landing__section-lead landing__cta-sub">30&nbsp;jours gratuits. Aucune carte requise. Annulation en un clic.</p>
 
             <div className="landing__hero-actions" style={{ justifyContent: "center" }}>
-              <a data-signup href="#" className="landing__btn landing__btn--primary landing__btn--shine px-8 py-4">
+              <a data-signup href={SIGNUP_URL} className="landing__btn landing__btn--primary landing__btn--shine px-8 py-4">
                 Démarrer l&apos;essai gratuit <ArrowRight className="h-5 w-5 ml-2" />
               </a>
-              <a data-login href="#" className="landing__btn landing__btn--outline px-8 py-4">
+              <a data-login href={LOGIN_URL} className="landing__btn landing__btn--outline px-8 py-4">
                 Voir la démo
               </a>
             </div>

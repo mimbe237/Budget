@@ -17,7 +17,7 @@ import {
   Table as TableIcon,
   Wallet,
 } from 'lucide-react';
-import { collection, orderBy, query, where } from 'firebase/firestore';
+import { collection, limit, orderBy, query } from 'firebase/firestore';
 
 import { AppLayout } from '@/components/dashboard/dashboard-client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -148,7 +148,8 @@ function DebtsPageContent() {
     }
     return query(
       collection(firestore, `users/${user.uid}/debts`),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(500)
     );
   }, [firestore, user]);
 

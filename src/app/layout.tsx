@@ -44,9 +44,10 @@ export default function RootLayout({
         {/* Theme colors */}
         <meta name="theme-color" content="#4F46E5" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1F2937" />
-        
+
         {/* PWA Apple */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
