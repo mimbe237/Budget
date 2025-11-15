@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,12 +28,20 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarIcon, PlusCircle } from 'lucide-react';
+import {
+  FALLBACK_CATEGORY_ID,
+  FALLBACK_SUBCATEGORY_ID,
+  getCategoryOptions,
+  getSubcategoryOptions,
+  getSubcategoriesForCategory,
+} from '@/lib/budget-categories';
 
 const quickTransactionSchema = z.object({
   description: z.string().min(2, 'Description requise'),
   amount: z.string().regex(/^-?\d+([.,]\d{1,2})?$/, 'Montant invalide'),
   type: z.enum(['income', 'expense']),
-  category: z.string().min(1, 'Catégorie requise'),
+  categoryId: z.string().min(1, 'Catégorie requise'),
+  subcategoryId: z.string().min(1, 'Sous-catégorie requise'),
   date: z.string().min(1, 'Date requise'),
   account: z.string().optional(),
 });
@@ -44,7 +52,8 @@ const DEFAULT_VALUES: QuickTransactionValues = {
   description: '',
   amount: '',
   type: 'expense',
-  category: '',
+  categoryId: FALLBACK_CATEGORY_ID,
+  subcategoryId: FALLBACK_SUBCATEGORY_ID,
   date: new Date().toISOString().slice(0, 10),
   account: '',
 };
@@ -58,6 +67,13 @@ export function QuickTransactionDialog({ categories, isFrench }: QuickTransactio
   const [open, setOpen] = useState(false);
   const { user, userProfile } = useUser();
   const firestore = useFirestore();
+  const [selectedCategoryId, setSelectedCategoryId] = useState(FALLBACK_CATEGORY_ID);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState(FALLBACK_SUBCATEGORY_ID);
+  const categoryOptions = useMemo(() => getCategoryOptions(userProfile?.locale), [userProfile?.locale]);
+  const subcategoryOptions = useMemo(
+    () => getSubcategoryOptions(selectedCategoryId, userProfile?.locale),
+    [selectedCategoryId, userProfile?.locale]
+  );
 
   const form = useForm<QuickTransactionValues>({
     resolver: zodResolver(quickTransactionSchema),
@@ -70,17 +86,25 @@ export function QuickTransactionDialog({ categories, isFrench }: QuickTransactio
       const amountFloat = parseFloat(values.amount.replace(',', '.'));
       const amountInCents = Math.round(amountFloat * 100);
 
-      await addDoc(collection(firestore, `users/${user.uid}/expenses`), {
-        description: values.description,
-        amountInCents,
-        type: values.type,
-        category: values.category,
-        date: values.date,
-        currency: userProfile?.displayCurrency || 'USD',
-        accountName: values.account || null,
-        userId: user.uid,
-        createdAt: serverTimestamp(),
-      });
+    const categoryLabel =
+      values.type === 'expense'
+        ? getSubcategoriesForCategory(values.categoryId).find(sub => sub.id === values.subcategoryId)?.labelEn ??
+          values.categoryId
+        : values.categoryId;
+
+    await addDoc(collection(firestore, `users/${user.uid}/expenses`), {
+      description: values.description,
+      amountInCents,
+      type: values.type,
+      categoryId: values.categoryId,
+      subcategoryId: values.subcategoryId,
+      category: categoryLabel,
+      date: values.date,
+      currency: userProfile?.displayCurrency || 'USD',
+      accountName: values.account || null,
+      userId: user.uid,
+      createdAt: serverTimestamp(),
+    });
 
       toast({
         title: isFrench ? 'Transaction ajoutée' : 'Transaction added',
@@ -167,34 +191,72 @@ export function QuickTransactionDialog({ categories, isFrench }: QuickTransactio
             </div>
 
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{isFrench ? 'Catégorie' : 'Category'}</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+              <div className="space-y-3">
+                <FormField
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{isFrench ? 'Catégorie' : 'Category'}</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={isFrench ? 'Choisir une catégorie' : 'Select category'} />
-                        </SelectTrigger>
+                        <Select
+                          value={field.value}
+                          onValueChange={(value) => {
+                            setSelectedCategoryId(value);
+                            field.onChange(value);
+                            const nextSubs = getSubcategoryOptions(value, userProfile?.locale);
+                            const nextSub = nextSubs[0]?.value ?? FALLBACK_SUBCATEGORY_ID;
+                            form.setValue('subcategoryId', nextSub);
+                            setSelectedSubcategoryId(nextSub);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={isFrench ? 'Choisir une catégorie' : 'Select category'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categoryOptions.map(option => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
-                      <SelectContent>
-                        {categories.length === 0 ? (
-                          <SelectItem value="">{isFrench ? 'Aucune catégorie' : 'No category'}</SelectItem>
-                        ) : (
-                          categories.map(category => (
-                            <SelectItem key={category} value={category}>
-                              {category}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="subcategoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{isFrench ? 'Sous-catégorie' : 'Subcategory'}</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            setSelectedSubcategoryId(value);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={isFrench ? 'Choisir une sous-catégorie' : 'Select subcategory'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subcategoryOptions.map(option => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="date"

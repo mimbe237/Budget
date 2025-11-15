@@ -727,13 +727,33 @@ export default function LandingPage() {
             <nav>
               <strong>Légal</strong>
               <a href="/privacy">Confidentialité</a>
-              <a href="/terms">Conditions</a>
+              <a href="/terms">Conditions de service</a>
+              <a href="/terms-box">Conditions Boîte</a>
+              <a href="/data-deletion">Suppression des données</a>
               <a href="/security">Sécurité</a>
             </nav>
           </div>
           <div className="landing__footer-bottom">
             <p>© <span id="landing-year"></span> Budget Pro. Tous droits réservés.</p>
             <p className="text-sm opacity-70">Fait avec <span className="text-red-500">♥</span> en Afrique</p>
+            <p className="text-xs opacity-60 mt-2">
+              Powered by{' '}
+              <a 
+                href="http://beonweb.cm" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:opacity-100 hover:underline transition-opacity"
+              >
+                BEONWEB
+              </a>
+              {' '}•{' '}
+              <a 
+                href="mailto:contact@budgetpro.net"
+                className="hover:opacity-100 hover:underline transition-opacity"
+              >
+                contact@budgetpro.net
+              </a>
+            </p>
           </div>
         </div>
       </footer>

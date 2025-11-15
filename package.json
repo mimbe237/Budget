@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "icons:all": "node scripts/generate-all-icons.js",
     "pwa:icons": "node scripts/generate-pwa-icons-sharp.js",
     "pwa:icons:svg": "node scripts/generate-pwa-icons-simple.js",
     "perf:audit": "lighthouse http://localhost:9002 --output=html --output-path=./lighthouse-report.html --chrome-flags='--headless' --only-categories=performance,pwa,accessibility",
@@ -25,9 +26,14 @@
     "backfill:debts:dry": "node scripts/backfill-debts-mirror.js --dry-run",
     "backfill:debts:skip-existing": "node scripts/backfill-debts-mirror.js --skip-existing",
     "seed:debts": "node scripts/reset-debts-test-data.js",
-    "seed:debts:dry": "node scripts/reset-debts-test-data.js --dry-run"
+    "seed:debts:dry": "node scripts/reset-debts-test-data.js --dry-run",
+    "apk:prepare": "bash scripts/prepare-apk.sh"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/splash-screen": "^7.0.3",
     "@genkit-ai/google-genai": "^1.20.0",
     "@genkit-ai/next": "^1.20.0",
     "@hookform/resolvers": "^4.1.3",

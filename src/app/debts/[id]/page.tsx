@@ -279,13 +279,77 @@ function DebtDetailContent() {
   const locale = userProfile?.locale || 'fr-FR';
   const currency = debt?.currency || userProfile?.displayCurrency || 'EUR';
 
-  if (debtLoading || !debt) {
+  // Handle loading state
+  if (debtLoading) {
     return (
       <AppLayout>
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-1/3" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-[400px] w-full" />
+        <div className="container mx-auto max-w-7xl space-y-6 py-6">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-24 mb-2" />
+                  <Skeleton className="h-3 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-64 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-3 text-muted-foreground">
+                  {locale.startsWith('fr') ? 'Chargement des détails de la dette...' : 'Loading debt details...'}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Handle debt not found
+  if (!debt) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto max-w-7xl py-10">
+          <Card>
+            <CardHeader>
+              <CardTitle>{locale.startsWith('fr') ? 'Dette introuvable' : 'Debt not found'}</CardTitle>
+              <CardDescription>
+                {locale.startsWith('fr') 
+                  ? 'Cette dette n\'existe pas ou n\'a pas encore été créée.' 
+                  : 'This debt does not exist or has not been created yet.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {locale.startsWith('fr')
+                  ? 'Si vous venez de créer cette dette, veuillez patienter quelques instants pendant que les données sont générées.'
+                  : 'If you just created this debt, please wait a moment while the data is being generated.'}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => router.back()}>
+                  {locale.startsWith('fr') ? 'Retour' : 'Go back'}
+                </Button>
+                <Button onClick={() => window.location.reload()}>
+                  {locale.startsWith('fr') ? 'Actualiser' : 'Refresh'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </AppLayout>
     );

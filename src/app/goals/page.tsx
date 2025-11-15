@@ -48,7 +48,6 @@ type GoalProgressInsight = {
   daysRemaining: number;
 };
 const GoalHistoryDialog = lazy(() => import("@/components/goals/GoalHistoryDialog").then((m) => ({ default: m.GoalHistoryDialog })));
-const GoalAIDialog = lazy(() => import("@/components/goals/GoalAIDialog").then((m) => ({ default: m.GoalAIDialog })));
 
 function formatMoney(amountInCents: number, currency: Currency, locale: string) {
   const amount = (amountInCents || 0) / 100;
@@ -80,14 +79,12 @@ function GoalsPageContent() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
   const [isContributionDialogOpen, setIsContributionDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const [currentGoal, setCurrentGoal] = useState<Goal | null>(null);
   const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
   const [showHistoryGoal, setShowHistoryGoal] = useState<Goal | null>(null);
-  const [showAIGoal, setShowAIGoal] = useState<Goal | null>(null);
   const [contributionGoal, setContributionGoal] = useState<Goal | null>(null);
   const [forecastMap, setForecastMap] = useState<Record<string, number>>({});
   const [isForecastLoading, setIsForecastLoading] = useState(false);
@@ -860,10 +857,6 @@ function GoalsPageContent() {
                               setShowHistoryGoal(goal);
                               setIsHistoryOpen(true);
                             }}
-                            onShowAIAnalysis={() => {
-                              setShowAIGoal(goal);
-                              setIsAIDialogOpen(true);
-                            }}
                             formatMoney={formatMoney}
                             insight={goalInsights[goal.id]}
                             dateLocale={dateLocale}
@@ -1022,9 +1015,6 @@ function GoalsPageContent() {
       )}
       <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">{isFrench ? "Chargement..." : "Loading..."}</div>}>
         {isHistoryOpen && (<GoalHistoryDialog goal={showHistoryGoal} userId={user?.uid} firestore={firestore} isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} isFrench={isFrench} />)}
-      </Suspense>
-      <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">{isFrench ? "Chargement..." : "Loading..."}</div>}>
-        {isAIDialogOpen && (<GoalAIDialog goal={showAIGoal} isOpen={isAIDialogOpen} onClose={() => setIsAIDialogOpen(false)} isFrench={isFrench} userProfile={userProfile} />)}
       </Suspense>
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>

@@ -174,12 +174,20 @@ export default function NewDebtPage() {
       };
 
       const created = await createDebt(payload);
-      await buildDebtSchedule(created.id);
+      
+      // Lancer la génération de l'échéancier (asynchrone)
+      buildDebtSchedule(created.id).catch((err) => {
+        console.error('[debts/new] buildSchedule failed after creation', err);
+      });
 
       toast({
         title: 'Dette créée',
-        description: 'Nous avons généré les premières mensualités automatiquement.',
+        description: 'L\'échéancier est en cours de génération. Cela peut prendre quelques secondes...',
       });
+      
+      // Attendre 2 secondes pour laisser le temps à la Cloud Function de s'exécuter
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      
       router.push(`/debts/${created.id}`);
     } catch (error: any) {
       console.error('[debts/new] createDebt failed', error);

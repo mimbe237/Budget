@@ -37,7 +37,12 @@ service cloud.firestore {
 
     function isChangingProtectedProfileFields() {
       return resource != null &&
-        request.resource.data.diff(resource.data).changedKeys().hasAny(['role', 'admin', 'status']);
+        request.resource.data.diff(resource.data).changedKeys().hasAny(['role', 'admin']);
+    }
+
+    function isChangingStatus() {
+      return resource != null &&
+        request.resource.data.diff(resource.data).changedKeys().hasAny(['status']);
     }
 
     function isOwner(userId) {
@@ -55,8 +60,9 @@ service cloud.firestore {
       allow create: if isOwner(userId) &&
                     request.resource.data.id == userId &&
                     (!('role' in request.resource.data) || request.resource.data.role == 'user') &&
-                    (!('admin' in request.resource.data) || request.resource.data.admin == false);
-      allow update: if isAdmin() || (isOwner(userId) && !isChangingProtectedProfileFields());
+                    (!('admin' in request.resource.data) || request.resource.data.admin == false) &&
+                    (!('status' in request.resource.data) || request.resource.data.status == 'pending');
+      allow update: if isAdmin() || (isOwner(userId) && !isChangingProtectedProfileFields() && !isChangingStatus());
       allow delete: if isAdmin();
     }
 

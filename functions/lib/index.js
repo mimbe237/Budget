@@ -39,4 +39,5 @@ admin.initializeApp();
 const debts = __importStar(require("./debts"));
 const notifications = __importStar(require("./notifications"));
 const affiliates = __importStar(require("./affiliates"));
-module.exports = Object.assign({}, debts, notifications, affiliates);
+const auth = __importStar(require("./auth"));
+module.exports = Object.assign({}, debts, notifications, affiliates, auth);

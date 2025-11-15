@@ -17,17 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ShieldCheck, Landmark, AlertTriangle, Sparkles } from 'lucide-react';
-
-const ADMIN_EMAIL_SET = (() => {
-  if (typeof process === 'undefined') return new Set<string>();
-  const raw = process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? '';
-  return new Set(
-    raw
-      .split(',')
-      .map(email => email.trim().toLowerCase())
-      .filter(Boolean)
-  );
-})();
+import { isAdminEmail } from '@/lib/admin-auth';
 
 export default function AdminLoginPage() {
   const auth = useAuth();
@@ -56,11 +46,7 @@ export default function AdminLoginPage() {
     if (userProfile?.status === 'suspended') {
       return false;
     }
-    // Vérification admin : on utilise uniquement le set d'emails admins
-    if (user.email) {
-      return ADMIN_EMAIL_SET.has(user.email.toLowerCase());
-    }
-    return false;
+    return isAdminEmail(user.email);
   }, [user, userProfile]);
 
   useEffect(() => {
@@ -137,7 +123,23 @@ export default function AdminLoginPage() {
     setErrorMessage(null);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Vérifier que l'email est dans la liste des admins
+      const userEmail = userCredential.user.email;
+      if (!isAdminEmail(userEmail)) {
+        setErrorMessage("Vous n'avez pas les droits administrateur pour accéder à cette console.");
+        await signOut(auth);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Stocker le token dans un cookie pour les Server Actions
+      const idToken = await userCredential.user.getIdToken();
+      document.cookie = `firebaseIdToken=${idToken}; path=/; max-age=3600; SameSite=Strict`;
+      
+      // Forcer le rechargement pour que le user soit détecté
+      router.refresh();
     } catch (error: any) {
       let message = 'Connexion impossible. Vérifiez vos identifiants.';
       if (error?.code === 'auth/invalid-email') {
@@ -146,6 +148,8 @@ export default function AdminLoginPage() {
         message = 'Aucun compte administrateur avec cette adresse.';
       } else if (error?.code === 'auth/wrong-password') {
         message = 'Mot de passe incorrect.';
+      } else if (error?.code === 'auth/invalid-credential') {
+        message = 'Identifiants invalides. Vérifiez votre email et mot de passe.';
       } else if (error?.message) {
         message = error.message;
       }

@@ -70,7 +70,6 @@ interface GoalCardProps {
   onArchive: (status: 'completed' | 'abandoned') => void;
   onAddContribution: () => void;
   onShowHistory: () => void;
-  onShowAIAnalysis: () => void;
   formatMoney: (amountInCents: number, currency: Currency, locale: string) => string;
   insight?: GoalProgressInsight;
   dateLocale?: Locale;
@@ -86,7 +85,6 @@ export function GoalCard({
   onArchive,
   onAddContribution,
   onShowHistory,
-  onShowAIAnalysis,
   formatMoney,
   insight,
   dateLocale,
@@ -112,7 +110,6 @@ export function GoalCard({
     markCompleted: isFrench ? 'Marquer comme atteint' : 'Mark as completed',
     abandon: isFrench ? 'Abandonner' : 'Abandon',
     history: isFrench ? 'Historique' : 'History',
-    aiAnalysis: isFrench ? 'Analyse IA' : 'AI Analysis',
     addContribution: isFrench ? 'Ajouter contribution' : 'Add contribution',
     account: isFrench ? 'Compte :' : 'Account:',
     notSpecified: isFrench ? 'Non renseigné' : 'Not specified',
@@ -149,9 +146,6 @@ export function GoalCard({
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={onShowHistory}>
                 {translations.history}
-              </Button>
-              <Button size="sm" variant="secondary" onClick={onShowAIAnalysis}>
-                {translations.aiAnalysis}
               </Button>
             </div>
           </div>

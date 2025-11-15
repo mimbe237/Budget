@@ -21,7 +21,7 @@ import {
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-import { useUser } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 
 import { UserNav } from '@/components/user-nav';
 import { Logo } from '@/components/logo';
@@ -31,6 +31,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { signOut } from 'firebase/auth';
 // ...existing code...
 import { ThemeToggle } from '@/components/theme-toggle';
 import { QuickAddShortcuts } from './quick-add-shortcuts';
@@ -43,6 +44,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, isUserLoading, userProfile } = useUser();
+  const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -240,8 +242,20 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="w-full flex-1">
             {/* Can add a search bar or other header content here */}
           </div>
-          <ThemeToggle isFrench={isFrench} />
-          <UserNav premium />
+          <div className="flex items-center gap-3">
+            <ThemeToggle isFrench={isFrench} />
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 px-3 py-2 text-sm font-semibold"
+              onClick={() => {
+                if (!auth) return;
+                signOut(auth).then(() => router.push('/login'));
+              }}
+            >
+              {isFrench ? 'Déconnexion' : 'Log out'}
+            </Button>
+            <UserNav premium />
+          </div>
           </header>
           <main
             id="main-content"

@@ -151,3 +151,10 @@ Les tests se trouvent dans le dossier `e2e/` et couvrent :
 ---
 
 - L'application ne dépend pas d'un backend NestJS. Les besoins d'API supplémentaires peuvent être couverts via des Route Handlers Next.js (`src/app/api/.../route.ts`).
+
+## Suppression de compte
+
+- Les utilisateurs peuvent demander l'effacement de leur compte depuis la page [Paramètres > Zone de danger](/settings) en confirmant leur identité (mot-clé `DELETE/SUPPRIMER` + mot de passe). Une boîte de dialogue explique ce qui sera effacé et demande la saisie du mot-clé ou de l’email.
+- La route `DELETE /api/user/me` vérifie l’identifiant Firebase, marque le compte comme `pending_deletion` et déclenche la suppression définitive au bout de 30 jours (le document, les sous-collections, les dettes, les tokens, etc.). Pendant la période de grâce, on peut revenir en arrière en contactant la team privacy.
+- La page [Suppression des données utilisateur](/data-deletion) reprend toute la procédure, les délais et l’impact sur les données.
+- Le script `scripts/purge-pending-deletions.js` (à exécuter via un cron ou Cloud Scheduler, par exemple `0 3 * * * cd /Users/macbook/Touch-Point-Insights/Finance/Budget && node scripts/purge-pending-deletions.js`) parcourt les comptes `pending_deletion` dont la date est passée et supprime définitivement leurs sous-collections, documents et identifiants Firebase.

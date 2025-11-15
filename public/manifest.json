@@ -1,19 +1,32 @@
 {
-  "name": "Budget Pro - Gestion Finances",
+  "name": "Budget Pro - Gestion Finances Personnelles",
   "short_name": "Budget Pro",
-  "description": "Application complète de gestion budgétaire et financière",
+  "description": "Gérez votre budget, suivez vos dépenses, remboursez vos dettes et atteignez vos objectifs financiers avec Budget Pro. Application complète de gestion financière personnelle avec rapports détaillés, graphiques et mode hors ligne.",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#4F46E5",
   "background_color": "#FFFFFF",
+  "lang": "fr-FR",
   "categories": ["finance", "productivity"],
   "icons": [
     {
-      "src": "/icons/logo-icon.svg",
+      "src": "/icons/budget-pro-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png",
       "purpose": "any"
     },
     {

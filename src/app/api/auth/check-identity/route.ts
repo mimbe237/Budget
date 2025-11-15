@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     const firestore = getAdminFirestore();
 
     let emailExists = false;
+    let emailDeleted = false;
     if (email) {
       try {
         await auth.getUserByEmail(email);
@@ -42,6 +43,11 @@ export async function POST(request: Request) {
           );
         }
       }
+      const deletedSnapshot = await firestore
+        .collection('deletedEmails')
+        .doc(email)
+        .get();
+      emailDeleted = deletedSnapshot.exists;
     }
 
     let phoneExists = false;
@@ -58,6 +64,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         emailExists,
+        emailDeleted,
         phoneExists,
       },
       { status: 200 }

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SocialAuthButtons } from '@/components/auth/social-auth-buttons';
 import { useAuth, useUser, initiateEmailSignIn } from '@/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
@@ -17,6 +17,9 @@ export default function LoginPage() {
   const auth = useAuth();
   const { user, userProfile, userError, isUserLoading, isUserProfileLoading } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const accountDeletedFlag = searchParams?.get('accountDeleted');
+  const isFrench = userProfile?.locale === 'fr-CM';
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -31,6 +34,12 @@ export default function LoginPage() {
     }
     return null;
   }, [userProfile?.status, userError?.message]);
+
+  const deletedMessage = accountDeletedFlag === '1'
+    ? (isFrench
+      ? 'Ce compte a été supprimé définitivement. Vous ne pouvez plus vous connecter.'
+      : 'This account has been deleted permanently. You cannot sign in anymore.')
+    : null;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -63,6 +72,15 @@ export default function LoginPage() {
                 <path d="M10 6v4M10 14h.01" strokeLinecap="round" />
               </svg>
               <p>{suspendedMessage}</p>
+            </div>
+          )}
+          {deletedMessage && (
+            <div className="login-alert">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="10" cy="10" r="8" />
+                <path d="M7 7l6 6M13 7l-6 6" strokeLinecap="round" />
+              </svg>
+              <p>{deletedMessage}</p>
             </div>
           )}
 

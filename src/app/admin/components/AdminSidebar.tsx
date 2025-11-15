@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { Users, UserCheck, Layers, CreditCard, FileBarChart2, Settings, LogOut, Edit, Landmark, Sparkles } from 'lucide-react';
+import { Clock, Users, UserCheck, Layers, CreditCard, FileBarChart2, Settings, LogOut, Edit, Landmark, Sparkles } from 'lucide-react';
 
 const menu = [
   { href: '/admin/users', label: 'Utilisateurs', icon: Users },
+  { href: '/admin/users/deletions', label: 'Suppressions', icon: Clock },
   // Affiliation (nouvelle navigation conforme au système actuel)
   { href: '/admin/affiliates', label: 'Affiliés', icon: Layers },
   { href: '/admin/affiliates/payouts', label: 'Payouts affiliés', icon: Sparkles },

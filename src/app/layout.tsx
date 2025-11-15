@@ -13,6 +13,8 @@ import { HtmlLangSync } from '@/components/locale/html-lang';
 import { OfflineQueueSync } from '@/components/offline/OfflineQueueSync';
 import { I18nProviderWrapper } from '@/components/i18n-provider-wrapper';
 import { AffiliateTracker } from '@/components/affiliates/AffiliateTracker';
+import { AuthStatusGuard } from '@/components/auth/auth-status-guard';
+import { Footer } from '@/components/footer';
 import { poppins, ptSans } from './fonts';
 
 export const metadata: Metadata = {
@@ -37,7 +39,8 @@ export default function RootLayout({
         {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.webmanifest" />
         
-        {/* Favicon optimisé (PNG) */}
+        {/* Favicon (généré depuis budget-pro-icon.svg) */}
+        <link rel="icon" type="image/svg+xml" href="/icons/budget-pro-icon.svg" />
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
         
@@ -51,7 +54,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
-  <body className={`${poppins.variable} ${ptSans.variable} font-body antialiased bg-background text-foreground`}>
+  <body className={`${poppins.variable} ${ptSans.variable} font-body antialiased bg-background text-foreground flex flex-col min-h-screen`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -65,9 +68,16 @@ export default function RootLayout({
                 <FirebaseStatus />
                 {/* Tracking affilié global (détecte ?aff=CODE et envoie l'événement) */}
                 <AffiliateTracker />
-                <OnboardingGate>
-                  {children}
-                </OnboardingGate>
+                <AuthStatusGuard>
+                  <OnboardingGate>
+                    <div className="flex flex-col min-h-screen">
+                      <main className="flex-1">
+                        {children}
+                      </main>
+                      <Footer />
+                    </div>
+                  </OnboardingGate>
+                </AuthStatusGuard>
                 {/* Sync <html lang> with user locale */}
                 <HtmlLangSync />
                 {/* Offline queue sync on mount */}

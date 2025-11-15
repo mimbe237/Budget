@@ -2,6 +2,8 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Note: output: 'export' désactivé car incompatible avec les API routes
+  // Utiliser Firebase App Hosting pour Next.js SSR
   typescript: {
     ignoreBuildErrors: true,
   },

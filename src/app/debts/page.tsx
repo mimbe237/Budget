@@ -767,8 +767,8 @@ function DebtsEmptyState({ hasFiltersApplied }: { hasFiltersApplied: boolean }) 
         <>
           <p>Vous n’avez pas encore enregistré de dettes. Créez votre premier dossier pour suivre les échéances.</p>
           <Button asChild>
-            <Link href="/debts/new">
-              <Plus className="mr-2 h-4 w-4" />
+            <Link href="/debts/new" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
               Ajouter une dette
             </Link>
           </Button>

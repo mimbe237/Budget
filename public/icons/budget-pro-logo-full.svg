@@ -1,0 +1,31 @@
+<svg width="512" height="200" viewBox="0 0 512 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Wallet Icon -->
+  <g transform="translate(20, 40)">
+    <!-- Wallet main body -->
+    <rect x="0" y="20" width="100" height="80" rx="8" fill="#4F46E5"/>
+    
+    <!-- Wallet top flap -->
+    <path d="M 8 20 L 8 10 C 8 6.68629 10.6863 4 14 4 L 86 4 C 89.3137 4 92 6.68629 92 10 L 92 20 Z" fill="#4F46E5"/>
+    
+    <!-- Card slot line -->
+    <rect x="12" y="32" width="76" height="1" rx="0.5" fill="white" opacity="0.3"/>
+    
+    <!-- Wallet clasp -->
+    <g transform="translate(72, 52)">
+      <rect x="0" y="0" width="20" height="20" rx="5" fill="white" opacity="0.9"/>
+      <circle cx="10" cy="10" r="4" fill="#4F46E5"/>
+    </g>
+    
+    <!-- Money lines -->
+    <g opacity="0.3">
+      <rect x="12" y="48" width="52" height="2" rx="1" fill="white"/>
+      <rect x="12" y="58" width="40" height="2" rx="1" fill="white"/>
+      <rect x="12" y="68" width="46" height="2" rx="1" fill="white"/>
+    </g>
+  </g>
+  
+  <!-- Text "Budget Pro" -->
+  <g transform="translate(140, 65)">
+    <text x="0" y="40" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#4F46E5" letter-spacing="-0.02em">Budget Pro</text>
+  </g>
+</svg>

@@ -3,11 +3,44 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useNotifications } from '@/hooks/use-notifications';
 import { Bell, BellOff, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+type NotificationToggleButtonProps = {
+  id: string;
+  isActive: boolean;
+  labelOn: string;
+  labelOff: string;
+  onToggle: () => void;
+};
+
+function NotificationToggleButton({
+  id,
+  isActive,
+  labelOn,
+  labelOff,
+  onToggle,
+}: NotificationToggleButtonProps) {
+  return (
+    <Button
+      id={id}
+      onClick={onToggle}
+      variant={isActive ? 'default' : 'outline'}
+      size="sm"
+      className="min-w-[120px] text-sm"
+      aria-pressed={isActive}
+    >
+      {isActive ? (
+        <CheckCircle className="mr-2 h-4 w-4" />
+      ) : (
+        <BellOff className="mr-2 h-4 w-4" />
+      )}
+      {isActive ? labelOn : labelOff}
+    </Button>
+  );
+}
 
 export function NotificationSettings() {
   const { permission, fcmToken, error, requestPermission, isSupported } = useNotifications();
@@ -19,6 +52,10 @@ export function NotificationSettings() {
     weeklyReport: true,
     monthlyReport: true,
   });
+  const toggleLabels = {
+    on: 'Activé',
+    off: 'Désactivé',
+  };
 
   const handleEnableNotifications = async () => {
     setIsLoading(true);
@@ -137,10 +174,12 @@ export function NotificationSettings() {
                       Alertes quand vous dépassez un budget
                     </p>
                   </div>
-                  <Switch
+                  <NotificationToggleButton
                     id="budget-exceeded"
-                    checked={notificationTypes.budgetExceeded}
-                    onCheckedChange={() => handleToggleNotificationType('budgetExceeded')}
+                    isActive={notificationTypes.budgetExceeded}
+                    labelOn={toggleLabels.on}
+                    labelOff={toggleLabels.off}
+                    onToggle={() => handleToggleNotificationType('budgetExceeded')}
                   />
                 </div>
 
@@ -151,10 +190,12 @@ export function NotificationSettings() {
                       Célébrez vos réussites financières
                     </p>
                   </div>
-                  <Switch
+                  <NotificationToggleButton
                     id="goal-achieved"
-                    checked={notificationTypes.goalAchieved}
-                    onCheckedChange={() => handleToggleNotificationType('goalAchieved')}
+                    isActive={notificationTypes.goalAchieved}
+                    labelOn={toggleLabels.on}
+                    labelOff={toggleLabels.off}
+                    onToggle={() => handleToggleNotificationType('goalAchieved')}
                   />
                 </div>
 
@@ -165,10 +206,12 @@ export function NotificationSettings() {
                       Dépenses supérieures à 100€
                     </p>
                   </div>
-                  <Switch
+                  <NotificationToggleButton
                     id="large-transaction"
-                    checked={notificationTypes.largeTransaction}
-                    onCheckedChange={() => handleToggleNotificationType('largeTransaction')}
+                    isActive={notificationTypes.largeTransaction}
+                    labelOn={toggleLabels.on}
+                    labelOff={toggleLabels.off}
+                    onToggle={() => handleToggleNotificationType('largeTransaction')}
                   />
                 </div>
 
@@ -179,10 +222,12 @@ export function NotificationSettings() {
                       Résumé de vos dépenses chaque semaine
                     </p>
                   </div>
-                  <Switch
+                  <NotificationToggleButton
                     id="weekly-report"
-                    checked={notificationTypes.weeklyReport}
-                    onCheckedChange={() => handleToggleNotificationType('weeklyReport')}
+                    isActive={notificationTypes.weeklyReport}
+                    labelOn={toggleLabels.on}
+                    labelOff={toggleLabels.off}
+                    onToggle={() => handleToggleNotificationType('weeklyReport')}
                   />
                 </div>
 
@@ -193,10 +238,12 @@ export function NotificationSettings() {
                       Analyse complète en fin de mois
                     </p>
                   </div>
-                  <Switch
+                  <NotificationToggleButton
                     id="monthly-report"
-                    checked={notificationTypes.monthlyReport}
-                    onCheckedChange={() => handleToggleNotificationType('monthlyReport')}
+                    isActive={notificationTypes.monthlyReport}
+                    labelOn={toggleLabels.on}
+                    labelOff={toggleLabels.off}
+                    onToggle={() => handleToggleNotificationType('monthlyReport')}
                   />
                 </div>
               </div>

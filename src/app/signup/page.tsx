@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import { User, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { buildPhoneCompositeKey } from '@/lib/phone';
+import { sendEmailVerification } from 'firebase/auth';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -202,11 +203,28 @@ export default function SignupPage() {
           }),
         });
 
-        if (!response.ok) {
-          throw new Error('identity-check-failed');
+      if (!response.ok) {
+        throw new Error('identity-check-failed');
+      }
+
+      const payload = await response.json();
+      if (payload.emailDeleted) {
+        setError(
+          formData.language.startsWith('fr')
+            ? 'Cet email a été définitivement supprimé. Contactez le support si nécessaire.'
+            : 'This email is linked to a deleted account and cannot be reused.'
+        );
+        return;
+      }
+        if (payload.emailDeleted) {
+          setError(
+            formData.language.startsWith('fr')
+              ? 'Cet email a été définitivement supprimé. Contactez le support si nécessaire.'
+              : 'This email belonged to a deleted account and cannot be reused. Contact support if needed.'
+          );
+          return;
         }
 
-        const payload = await response.json();
         if (payload.emailExists) {
           setError(
             formData.language.startsWith('fr')
@@ -258,11 +276,13 @@ export default function SignupPage() {
         monthlyExpenseBudget: 0, // Will be set in onboarding
         hasCompletedOnboarding: false,
         hasCompletedTour: false,
+        status: 'pending', // Nouveau compte en attente de validation admin
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
 
-      router.push('/onboarding');
+      // Rediriger vers la page d'attente de validation
+      router.push('/pending-approval');
     } catch (error: any) {
       if (error?.message === 'identity-check-failed') {
         setError(
@@ -483,6 +503,7 @@ export default function SignupPage() {
                       value={formData.country}
                       onChange={(value) => {
                         handleChange('country', value);
+                        handleChange('phoneCountryCode', value);
                         markAsTouched('country');
                       }}
                       error={touched.country ? errors.country : undefined}
@@ -542,9 +563,9 @@ export default function SignupPage() {
 
                 {/* Phone */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">
-                    Numéro de téléphone *
-                  </Label>
+                <Label className="text-sm font-medium text-gray-700">
+                  WhatsApp *
+                </Label>
                   <div className="mt-1 relative">
                     <PhoneInput
                       countryCode={formData.phoneCountryCode}

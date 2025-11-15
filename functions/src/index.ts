@@ -7,6 +7,7 @@ admin.initializeApp();
 import * as debts from './debts';
 import * as notifications from './notifications';
 import * as affiliates from './affiliates';
+import * as auth from './auth';
 
 // Re-export each named export so Firebase can discover them from lib/index.js
-export = Object.assign({}, debts, notifications, affiliates);
+export = Object.assign({}, debts, notifications, affiliates, auth);
