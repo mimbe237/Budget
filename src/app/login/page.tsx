@@ -10,7 +10,8 @@ import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { AlertCircle } from "lucide-react";
-import { FirebaseError, signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { FirebaseError } from "firebase/app";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -24,8 +25,10 @@ export default function LoginPage() {
   const accountDeletedFlag = searchParams?.get("accountDeleted");
   const isFrench = userProfile?.locale === "fr-CM";
   useEffect(() => {
-    if (!isUserLoading && !isUserProfileLoading && user && userProfile?.status !== "suspended") {
-      router.push("/dashboard");
+    if (!isUserLoading && !isUserProfileLoading) {
+      if (user && userProfile?.status === "active") {
+        router.push("/dashboard");
+      }
     }
   }, [user, userProfile?.status, isUserLoading, isUserProfileLoading, router]);
 
@@ -41,6 +44,13 @@ export default function LoginPage() {
       ? isFrench
         ? "Ce compte a été supprimé définitivement. Vous ne pouvez plus vous connecter."
         : "This account has been deleted permanently. You cannot sign in anymore."
+      : null;
+
+  const validationPendingMessage =
+    userProfile?.status === "pending"
+      ? isFrench
+        ? "Votre compte est en cours de validation. Un administrateur approuvera votre accès sous 24‑48 h."
+        : "Your account is pending validation. An administrator will approve access within 24-48h."
       : null;
 
   useEffect(() => {
@@ -105,6 +115,19 @@ export default function LoginPage() {
             <div className="login-alert login-error">
               <AlertCircle className="h-5 w-5" />
               <p>{loginError}</p>
+            </div>
+          )}
+
+          {validationPendingMessage && (
+            <div className="login-alert login-info">
+              <AlertCircle className="h-5 w-5" />
+              <p>
+                {validationPendingMessage} {isFrench ? "Contactez" : "Contact"}{" "}
+                <a href="mailto:contact@budgetpro.net" className="font-semibold text-blue-600">
+                  contact@budgetpro.net
+                </a>{" "}
+                {isFrench ? "pour accélérer" : "to follow up"}.
+              </p>
             </div>
           )}
 
@@ -283,6 +306,16 @@ export default function LoginPage() {
           color: #991b1b;
           font-size: 0.9rem;
           font-weight: 500;
+        }
+
+        .login-alert.login-info {
+          background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(59, 130, 246, 0.08));
+          border-color: rgba(14, 165, 233, 0.35);
+          color: #1d4ed8;
+        }
+
+        .login-alert.login-info svg {
+          color: #0ea5e9;
         }
 
         .login-alert.login-error {
