@@ -25,9 +25,10 @@ import {
   Landmark,
 } from "lucide-react";
 
-// CONFIG: URLs dynamiques
+// CONFIG: URLs dynamiques et redirection automatique
 const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || "/login";
 const SIGNUP_URL = process.env.NEXT_PUBLIC_SIGNUP_URL || "/signup";
+const AUTO_REDIRECT_TO_LOGIN = true; // Active la redirection automatique vers /login
 
 type ButtonVariant = "ghost" | "secondary" | "default" | "outline";
 
@@ -385,18 +386,13 @@ export default function LandingPage() {
           <div className="landing__nav-bar">
             <Link href="/" className="landing__logo" aria-label="Budget Pro - Accueil">
               <span className="landing__logo-mark" aria-hidden="true">
-                <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                  <circle cx="18" cy="18" r="18" fill="url(#logoGradient)" />
-                  <text x="18" y="24" textAnchor="middle" fontSize="18" fill="white" fontWeight="bold">
-                    BP
-                  </text>
-                  <defs>
-                    <linearGradient id="logoGradient" x1="0" y1="0" x2="1" y2="1">
-                      <stop stopColor="#2563eb" />
-                      <stop offset="1" stopColor="#0ea5e9" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+                <Image 
+                  src="/icons/icon-192.png" 
+                  alt="Budget Pro" 
+                  width={36} 
+                  height={36}
+                  className="rounded-lg"
+                />
               </span>
               <span className="landing__logo-wordmark">Budget Pro</span>
             </Link>
@@ -736,16 +732,13 @@ export default function LandingPage() {
             <div>
               <Link href="/" className="landing__logo">
                 <span className="landing__logo-mark">
-                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <circle cx="16" cy="16" r="16" fill="url(#footerGradient)" />
-                    <text x="16" y="21" textAnchor="middle" fontSize="16" fill="white" fontWeight="bold">BP</text>
-                    <defs>
-                      <linearGradient id="footerGradient" x1="0" y1="0" x2="1" y2="1">
-                        <stop stopColor="#2563eb" />
-                        <stop offset="1" stopColor="#0ea5e9" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
+                  <Image 
+                    src="/icons/icon-192.png" 
+                    alt="Budget Pro" 
+                    width={32} 
+                    height={32}
+                    className="rounded-lg"
+                  />
                 </span>
                 Budget Pro
               </Link>
