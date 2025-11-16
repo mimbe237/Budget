@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { signOut } from 'firebase/auth';
 // ...existing code...
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { QuickAddShortcuts } from './quick-add-shortcuts';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AppBottomNav } from '@/components/layout/app-bottom-nav';
@@ -149,7 +150,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           📄 MAIN CONTENT AREA 
           Flex column avec header sticky et main scrollable
         */}
-        <div className="flex min-h-screen flex-col w-full"
+        <div className="flex min-h-screen flex-col w-full">
           {/* 
             🎯 HEADER - Sticky avec hauteur responsive
             - Mobile: 56px (compact)
@@ -254,11 +255,19 @@ export function AppLayout({ children }: AppLayoutProps) {
                 })}
               </nav>
               <div className="border-t border-white/35 bg-white/60 px-6 py-4 backdrop-blur-md">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-600">
-                    {isFrench ? 'Apparence' : 'Appearance'}
-                  </span>
-                  <ThemeToggle isFrench={isFrench} />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-slate-600">
+                      {isFrench ? 'Langue' : 'Language'}
+                    </span>
+                    <LanguageSwitcher compact />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-slate-600">
+                      {isFrench ? 'Apparence' : 'Appearance'}
+                    </span>
+                    <ThemeToggle isFrench={isFrench} />
+                  </div>
                 </div>
               </div>
             </SheetContent>
@@ -271,10 +280,13 @@ export function AppLayout({ children }: AppLayoutProps) {
           {/* 
             🎯 HEADER ACTIONS - Responsive
             - Mobile: Seulement menu burger + UserNav
-            - Tablet: + ThemeToggle
+            - Tablet: + LanguageSwitcher + ThemeToggle
             - Desktop: + Déconnexion
           */}
           <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
+            <div className="hidden sm:block">
+              <LanguageSwitcher compact />
+            </div>
             <div className="hidden md:block">
               <ThemeToggle isFrench={isFrench} />
             </div>

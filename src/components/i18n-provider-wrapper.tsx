@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback, ReactNode } from 'react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import { I18nProvider, Locale } from '@/lib/i18n';
 
 const DEFAULT_LOCALE: Locale = 'fr';
@@ -13,8 +14,13 @@ function normalizeLocale(value?: string | null): Locale {
   return 'fr';
 }
 
+function localeToFirestore(locale: Locale): string {
+  return locale === 'en' ? 'en-US' : 'fr-CM';
+}
+
 export function I18nProviderWrapper({ children }: { children: ReactNode }) {
-  const { userProfile } = useUser();
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
 
   // Charger le locale depuis localStorage (client uniquement)
@@ -37,12 +43,26 @@ export function I18nProviderWrapper({ children }: { children: ReactNode }) {
     }
   }, [userProfile?.locale]);
 
-  const handleLocaleChange = useCallback((next: Locale) => {
+  const handleLocaleChange = useCallback(async (next: Locale) => {
     setLocale(next);
+    
+    // Sauvegarder dans localStorage
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferredLocale', next);
     }
-  }, []);
+
+    // Sauvegarder dans Firestore si l'utilisateur est connecté
+    if (user && firestore) {
+      try {
+        const userRef = doc(firestore, `users/${user.uid}`);
+        await updateDoc(userRef, {
+          locale: localeToFirestore(next),
+        });
+      } catch (error) {
+        console.error('Failed to update locale in Firestore:', error);
+      }
+    }
+  }, [user, firestore]);
 
   return (
     <I18nProvider locale={locale} onLocaleChange={handleLocaleChange}>
