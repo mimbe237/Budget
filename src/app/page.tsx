@@ -746,6 +746,7 @@ export default function LandingPage() {
             </div>
             <nav>
               <strong>Produit</strong>
+              <a href="/">Présentation</a>
               <a href="#features">Fonctionnalités</a>
               <a href="#pricing">Tarifs</a>
               <a href="#faq">FAQ</a>
@@ -778,7 +779,7 @@ export default function LandingPage() {
               >
                 BEONWEB
               </a>
-              {' '}•{' '}
+              {' '}• Contactez-nous : {' '}
               <a 
                 href="mailto:contact@budgetpro.net"
                 className="hover:opacity-100 hover:underline transition-opacity"

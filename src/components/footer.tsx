@@ -25,10 +25,17 @@ export function Footer() {
           </p>
           <span className="hidden text-muted-foreground/50 sm:inline">•</span>
           <a
+            href="/"
+            className="text-xs text-muted-foreground/70 transition-colors hover:text-primary hover:underline sm:text-sm"
+          >
+            {isFrench ? 'Présentation' : 'About'}
+          </a>
+          <span className="hidden text-muted-foreground/50 sm:inline">•</span>
+          <a
             href="mailto:contact@budgetpro.net"
             className="text-xs text-muted-foreground/70 transition-colors hover:text-primary hover:underline sm:text-sm"
           >
-            contact@budgetpro.net
+            {isFrench ? 'Contactez-nous : ' : 'Contact us: '}contact@budgetpro.net
           </a>
         </div>
       </div>
