@@ -224,19 +224,23 @@ function TransactionsContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+    <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6">
+      {/* 
+        🎯 HEADER - Responsive layout et typography
+      */}
+      <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl laptop:text-4xl font-semibold tracking-tight text-slate-900">
             {isFrench ? 'Transactions' : 'Transactions'}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm lg:text-base text-muted-foreground max-w-2xl">
             {isFrench
               ? 'Pilotez vos flux financiers, filtrez, importez et catégorisez vos opérations.'
               : 'Manage your financial activity, filter, import and categorise your operations.'}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Action buttons - responsive wrapping */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           {/* Primary action now opens the full form instead of the quick dialog */}
           <Button size="sm" className="h-9 gap-2" asChild>
             <Link href="/transactions/add">
@@ -254,13 +258,24 @@ function TransactionsContent() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* 
+        🎯 SUMMARY CARDS - Grille responsive
+        - Mobile (< 480px): 1 colonne
+        - Mobile+ (≥ 480px): 2 colonnes
+        - Desktop (≥ 1024px): 3 colonnes
+      */}
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
         <SummaryCard title={isFrench ? 'Revenus filtrés' : 'Filtered income'} amountInCents={totals.income} icon={<ArrowUpCircle />} />
         <SummaryCard title={isFrench ? 'Dépenses filtrées' : 'Filtered expenses'} amountInCents={totals.expense} icon={<ArrowDownCircle />} />
         <SummaryCard title={isFrench ? 'Solde net' : 'Net balance'} amountInCents={balance} icon={<BadgeCheck />} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+      {/* 
+        🎯 FILTERS SECTION - Layout adaptatif
+        - Mobile: Stack vertical
+        - Desktop: 2 colonnes (filters + tips)
+      */}
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-[2fr_1fr]">
         <Card>
           <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-1">
@@ -276,11 +291,18 @@ function TransactionsContent() {
             </div>
             <DateRangePicker />
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {/* 
+            🎯 FILTER INPUTS - Grille responsive
+            - Mobile: 1 colonne
+            - Tablet (≥ 768px): 2 colonnes
+            - Desktop (≥ 1280px): 4 colonnes
+          */}
+          <CardContent className="grid gap-2 sm:gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 p-4 sm:p-6">
             <Input
               placeholder={isFrench ? 'Rechercher...' : 'Search...'}
               value={searchTerm}
               onChange={event => setSearchTerm(event.target.value)}
+              className="h-9 sm:h-10 text-sm"
             />
             <Select value={typeFilter} onValueChange={value => setTypeFilter(value as typeof typeFilter)}>
               <SelectTrigger>
@@ -376,12 +398,16 @@ function TransactionsContent() {
             </Button>
           </div>
         </CardHeader>
+        {/* 
+          🎯 TABLE - Scroll horizontal sur mobile avec sticky column
+          Les colonnes importantes restent visibles
+        */}
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
+          <div className="overflow-x-auto -mx-px">
+            <Table className="min-w-[800px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[40px]">
+                  <TableHead className="w-[40px] sticky left-0 bg-background z-10">
                     <Checkbox
                       aria-label={isFrench ? 'Tout sélectionner' : 'Select all'}
                       checked={

@@ -8,11 +8,37 @@ export default {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    // 🎯 Breakpoints responsive optimisés (mobile-first)
+    screens: {
+      // Mobiles
+      'xs': '360px',      // Très petits mobiles (iPhone SE, Galaxy S8)
+      'sm': '480px',      // Mobiles standards et grands mobiles
+      'md': '768px',      // Tablettes portrait
+      'lg': '1024px',     // Tablettes paysage / petits laptops
+      'xl': '1280px',     // Laptops standards
+      '2xl': '1536px',    // Desktop Full HD
+      '3xl': '1920px',    // Moniteurs larges
+      '4xl': '2560px',    // Ultra-wide
+      // Breakpoints custom pour laptop 1366px (référence importante)
+      'laptop': '1366px', 
+    },
     extend: {
       fontFamily: {
         body: ['var(--font-pt-sans)', 'PT Sans', 'sans-serif'],
         headline: ['var(--font-poppins)', 'Poppins', 'sans-serif'],
         code: ['monospace'],
+      },
+      // 📏 Spacing responsive (mobile-first)
+      spacing: {
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
+      },
+      // 📐 Max-width pour éviter le vide sur grands écrans
+      maxWidth: {
+        '8xl': '90rem',   // 1440px
+        '9xl': '100rem',  // 1600px
       },
       colors: {
         background: 'hsl(var(--background))',

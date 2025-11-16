@@ -57,6 +57,78 @@ const STATUS_COLORS: Record<string, 'default' | 'outline' | 'secondary' | 'destr
   A_ECHoir: 'outline',
 };
 
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+type DebtDashboardMetrics = {
+  total: number;
+  late: number;
+  upcoming: number;
+  archived: number;
+};
+
+function parseDebtDate(value: Debt['nextDueDate'] | undefined | null): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value === 'string') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const firebaseTimestamp = value as { toDate?: () => Date };
+  if (firebaseTimestamp?.toDate) {
+    try {
+      return firebaseTimestamp.toDate();
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function buildDebtDashboardMetrics(debts?: Debt[] | null): DebtDashboardMetrics {
+  if (!debts || debts.length === 0) {
+    return {
+      total: 0,
+      late: 0,
+      upcoming: 0,
+      archived: 0,
+    };
+  }
+
+  const now = Date.now();
+  let late = 0;
+  let upcoming = 0;
+  let archived = 0;
+
+  for (const debt of debts) {
+    if (debt.status === 'SOLDEE') {
+      archived += 1;
+      continue;
+    }
+
+    const graceDays = debt.gracePeriods ?? 0;
+    const nextDue = parseDebtDate(debt.nextDueDate);
+    const graceMs = graceDays * MS_PER_DAY;
+    const duePoint = nextDue?.getTime() ?? null;
+
+    const isLate =
+      debt.status === 'EN_RETARD' ||
+      (duePoint !== null && now > duePoint + graceMs);
+    if (isLate) {
+      late += 1;
+    } else if (duePoint !== null) {
+      upcoming += 1;
+    }
+  }
+
+  return {
+    total: debts.length,
+    late,
+    upcoming,
+    archived,
+  };
+}
+
 export function DashboardClientContent({ reportData, children }: DashboardClientContentProps) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -129,13 +201,13 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
   const financialSeries = reportData.financialSeries ?? [];
   const latestFinancialPoint = financialSeries.length > 0 ? financialSeries[financialSeries.length - 1] : null;
   const currentBalanceCents = latestFinancialPoint?.cumulativeBalance ?? reportData.netBalance ?? 0;
-  const netSavingsCents = reportData.totalIncome - reportData.totalExpenses - (reportData.debtSummary?.serviceDebtTotal ?? 0);
-  const outstandingDebtCents = reportData.debtSummary?.remainingPrincipalEnd ?? 0;
   const serviceDebtTotal = reportData.debtSummary?.serviceDebtTotal ?? 0;
-  const interestPaidTotal = reportData.debtSummary?.interestPaidTotal ?? 0;
+  const netSavingsCents = reportData.totalIncome - reportData.totalExpenses - serviceDebtTotal;
+  const outstandingDebtCents = reportData.debtSummary?.remainingPrincipalEnd ?? 0;
   const upcomingInstallments = reportData.debtSummary?.next3Installments ?? [];
   const lateInstallments = reportData.debtSummary?.lateCount ?? 0;
   const dti = reportData.debtSummary?.dti ?? null;
+  const debtMetrics = useMemo(() => buildDebtDashboardMetrics(debts), [debts]);
 
   const topExpenses = reportData.spendingByCategory.slice(0, 3);
   const topIncomes = (reportData.incomeByCategory ?? []).slice(0, 3);
@@ -153,19 +225,7 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
     }
   }, [reportData.period.from, displayLocale]);
 
-  const interestShare = reportData.totalExpenses > 0 ? interestPaidTotal / reportData.totalExpenses : 0;
-
   const alerts: AlertMessage[] = [];
-
-  if (interestShare > 0.1) {
-    alerts.push({
-      id: 'interest-share',
-      tone: 'warning',
-      message: isFrench
-        ? `Vos intérêts représentent ${(interestShare * 100).toFixed(1)} % de vos dépenses sur ${periodLabel}. Envisagez une renégociation ou un remboursement anticipé.`
-        : `Interest charges represent ${(interestShare * 100).toFixed(1)}% of your spending in ${periodLabel}. Consider refinancing or prepaying.`,
-    });
-  }
 
   if (typeof dti === 'number' && dti > 0.35) {
     alerts.push({
@@ -257,6 +317,39 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
               variant: (dti > 0.35 ? 'destructive' : 'secondary') as 'destructive' | 'secondary',
             }
           : null,
+    },
+    {
+      id: 'late-debts',
+      title: isFrench ? 'Dettes en retard' : 'Late debts',
+      value: debtMetrics.late.toString(),
+      icon: <AlertTriangle className="h-5 w-5 text-rose-500" />,
+      accent: 'from-rose-50/80 via-rose-100/70 to-slate-100/60',
+      badge: {
+        text: isFrench ? 'Action requise' : 'Action required',
+        variant: 'destructive',
+      },
+    },
+    {
+      id: 'upcoming-debts',
+      title: isFrench ? 'Échéances à venir' : 'Upcoming installments',
+      value: debtMetrics.upcoming.toString(),
+      icon: <Calendar className="h-5 w-5 text-sky-500" />,
+      accent: 'from-sky-50/80 via-sky-100/70 to-slate-100/60',
+      badge: {
+        text: isFrench ? 'Préparez les paiements' : 'Prepare payments',
+        variant: 'outline',
+      },
+    },
+    {
+      id: 'archived-debts',
+      title: isFrench ? 'Dettes archivées' : 'Archived debts',
+      value: debtMetrics.archived.toString(),
+      icon: <Sparkles className="h-5 w-5 text-indigo-500" />,
+      accent: 'from-indigo-50/80 via-indigo-100/70 to-slate-100/60',
+      badge: {
+        text: isFrench ? 'Historique complet' : 'Archive ready',
+        variant: 'secondary',
+      },
     },
   ];
 
@@ -358,13 +451,7 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <DebtSnapshot
-          debts={debts}
-          locale={displayLocale}
-          currency={displayCurrency}
-          interestPaid={interestPaidTotal}
-          serviceDebt={serviceDebtTotal}
-        />
+        <DebtSnapshot debts={debts} locale={displayLocale} currency={displayCurrency} />
 
         <Card className="min-w-0 print:break-inside-avoid">
           <CardHeader>
