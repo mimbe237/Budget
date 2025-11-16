@@ -8,13 +8,13 @@ import { AutoSeedCategories } from '@/components/AutoSeedCategories';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ReactQueryProvider } from '@/components/react-query-provider';
 import { FirebaseStatus } from '@/components/firebase-status';
-import { OnboardingGate } from '@/components/onboarding/OnboardingGate';
 import { HtmlLangSync } from '@/components/locale/html-lang';
 import { OfflineQueueSync } from '@/components/offline/OfflineQueueSync';
+import { BudgetSetupNotification } from '@/components/onboarding/BudgetSetupNotification';
 import { I18nProviderWrapper } from '@/components/i18n-provider-wrapper';
 import { AffiliateTracker } from '@/components/affiliates/AffiliateTracker';
 import { AuthStatusGuard } from '@/components/auth/auth-status-guard';
-import { Footer } from '@/components/footer';
+import { FooterGuard } from '@/components/footer-guard';
 import { poppins, ptSans } from './fonts';
 
 export const metadata: Metadata = {
@@ -69,19 +69,19 @@ export default function RootLayout({
                 {/* Tracking affilié global (détecte ?aff=CODE et envoie l'événement) */}
                 <AffiliateTracker />
                 <AuthStatusGuard>
-                  <OnboardingGate>
-                    <div className="flex flex-col min-h-screen">
-                      <main className="flex-1">
-                        {children}
-                      </main>
-                      <Footer />
-                    </div>
-                  </OnboardingGate>
+                  <div className="flex flex-col min-h-screen">
+                    <main className="flex-1">
+                      {children}
+                    </main>
+                    <FooterGuard />
+                  </div>
                 </AuthStatusGuard>
                 {/* Sync <html lang> with user locale */}
                 <HtmlLangSync />
                 {/* Offline queue sync on mount */}
                 <OfflineQueueSync />
+                {/* Notification pour configurer le budget (première connexion) */}
+                <BudgetSetupNotification />
 
               </I18nProviderWrapper>
             </FirebaseClientProvider>
