@@ -34,6 +34,7 @@ import { BudgetOverviewMonthly } from '@/components/dashboard/budget-overview-mo
 import { BudgetAlertMonitor } from '@/components/budgets/budget-alert-monitor';
 import { GuidedTourLauncher } from '@/components/onboarding/GuidedTourLauncher';
 import { DebtSnapshot } from '@/components/dashboard/debt-snapshot';
+import { FirstTimeSetupBanner } from '@/components/first-time-setup/FirstTimeSetupBanner';
 import type { SerializableFinancialReportData } from '@/app/dashboard/page';
 
 type DashboardClientContentProps = {
@@ -267,6 +268,7 @@ export function DashboardClientContent({ reportData, children }: DashboardClient
   return (
     <>
       <BudgetAlertMonitor />
+      <FirstTimeSetupBanner />
 
       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between mb-6">
         <div>

@@ -13,7 +13,6 @@ export function FAB() {
     pathname.includes('/add') || 
     pathname.includes('/edit') || 
     pathname.includes('/new') ||
-    pathname.includes('/onboarding') ||
     pathname.includes('/login') ||
     pathname.includes('/signup') ||
     pathname.includes('/admin');

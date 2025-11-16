@@ -10,7 +10,6 @@ import { ReactQueryProvider } from '@/components/react-query-provider';
 import { FirebaseStatus } from '@/components/firebase-status';
 import { HtmlLangSync } from '@/components/locale/html-lang';
 import { OfflineQueueSync } from '@/components/offline/OfflineQueueSync';
-import { BudgetSetupNotification } from '@/components/onboarding/BudgetSetupNotification';
 import { I18nProviderWrapper } from '@/components/i18n-provider-wrapper';
 import { AffiliateTracker } from '@/components/affiliates/AffiliateTracker';
 import { AuthStatusGuard } from '@/components/auth/auth-status-guard';
@@ -80,8 +79,6 @@ export default function RootLayout({
                 <HtmlLangSync />
                 {/* Offline queue sync on mount */}
                 <OfflineQueueSync />
-                {/* Notification pour configurer le budget (première connexion) */}
-                <BudgetSetupNotification />
 
               </I18nProviderWrapper>
             </FirebaseClientProvider>
