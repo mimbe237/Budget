@@ -733,11 +733,12 @@ export default function LandingPage() {
               <Link href="/" className="landing__logo">
                 <span className="landing__logo-mark">
                   <Image 
-                    src="/icons/icon-192.png" 
+                    src="/icons/icon-192.png?v=2" 
                     alt="Budget Pro" 
                     width={32} 
                     height={32}
                     className="rounded-lg"
+                    priority
                   />
                 </span>
                 Budget Pro
