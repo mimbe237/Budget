@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LegalLayout } from "@/components/legal-layout";
 
 const SECTION = "terms";
 
@@ -31,9 +32,9 @@ const sectionData = [
   },
 ];
 
-export default function TermsPage() {
+export function TermsPageContent() {
   return (
-    <main className="min-h-screen bg-slate-50 py-16 px-4">
+    <LegalLayout>
       <div className="mx-auto w-full max-w-4xl rounded-3xl border border-slate-200 bg-white p-10 shadow-lg">
         <h1 className="text-3xl font-semibold text-slate-900">Conditions de service</h1>
         <p className="mt-3 text-lg text-slate-600">
@@ -64,6 +65,10 @@ export default function TermsPage() {
           </p>
         </div>
       </div>
-    </main>
+    </LegalLayout>
   );
+}
+
+export default function TermsPage() {
+  return <TermsPageContent />;
 }

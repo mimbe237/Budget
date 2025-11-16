@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LegalLayout } from "@/components/legal-layout";
 
 const steps = [
   "Identifiez les comptes à supprimer (factures, budgets, pièces jointes) depuis le tableau de bord.",
@@ -8,9 +9,9 @@ const steps = [
   "Envoyez votre requête via le formulaire sécurisé (lien ci-dessous) ou par email à privacy@budgetpro.net.",
 ];
 
-export default function DataDeletionPage() {
+export function DataDeletionContent() {
   return (
-    <main className="min-h-screen bg-slate-50 py-16 px-4">
+    <LegalLayout>
       <div className="mx-auto w-full max-w-3xl space-y-8 rounded-3xl border border-slate-200 bg-white p-10 shadow-xl">
         <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Vie privée</p>
         <h1 className="text-3xl font-semibold text-slate-900">Suppression des données utilisateur</h1>
@@ -70,6 +71,10 @@ export default function DataDeletionPage() {
           </p>
         </section>
       </div>
-    </main>
+    </LegalLayout>
   );
+}
+
+export default function DataDeletionPage() {
+  return <DataDeletionContent />;
 }
