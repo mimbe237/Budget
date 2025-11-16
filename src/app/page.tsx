@@ -24,6 +24,7 @@ import {
   X,
   Landmark,
 } from "lucide-react";
+import { ContactDialog } from "@/components/contact-dialog";
 
 // CONFIG: URLs dynamiques et redirection automatique
 const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || "/login";
@@ -311,6 +312,7 @@ export default function LandingPage() {
   const router = useRouter();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isContactOpen, setContactOpen] = useState(false);
   const { firestore } = initializeFirebase();
   const [homeContent, setHomeContent] = useState<HomeContent | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -1921,6 +1923,32 @@ export default function LandingPage() {
           margin: 0;
           color: var(--text-muted);
           font-size: 0.9rem;
+        }
+
+        /* Footer sur une seule ligne sur mobile */
+        @media (max-width: 768px) {
+          .landing__footer-bottom {
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+          }
+          
+          .landing__footer-bottom p {
+            font-size: 0.75rem;
+            display: inline;
+          }
+          
+          .landing__footer-bottom p::after {
+            content: ' • ';
+            margin: 0 0.25rem;
+          }
+          
+          .landing__footer-bottom p:last-child::after {
+            content: '';
+          }
         }
 
         /* Steps Grid */
