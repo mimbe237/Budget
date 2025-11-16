@@ -15,8 +15,9 @@
   flex-wrap: wrap;
   align-items: center;
 
-  /* Correction principale : espace entre les blocs */
-  justify-content: space-between;
+  /* Centré sur tous les écrans */
+  justify-content: center;
+  text-align: center;
 
   gap: 0.75rem;
   font-size: 0.875rem;
@@ -29,6 +30,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
 }
 
@@ -37,6 +39,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
 }
 
@@ -72,16 +75,9 @@
 @media (max-width: 640px) {
   .footer-inner {
     flex-direction: column;
-    justify-content: center;
-    text-align: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
     font-size: 0.8rem;
-  }
-
-  .footer-left,
-  .footer-right {
-    justify-content: center;
   }
 
   .footer-dot {
