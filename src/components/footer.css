@@ -3,6 +3,7 @@
   border-top: 1px solid hsl(var(--border) / 0.5);
   background: hsl(var(--background) / 0.8);
   backdrop-filter: blur(8px);
+  margin-top: auto;
 }
 
 .footer-inner {
@@ -17,7 +18,7 @@
   /* Correction principale : espace entre les blocs */
   justify-content: space-between;
 
-  gap: 0.5rem;
+  gap: 0.75rem;
   font-size: 0.875rem;
   color: hsl(var(--muted-foreground) / 0.7);
   line-height: 1.5;
@@ -28,7 +29,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 /* Bloc droit (liens) */
