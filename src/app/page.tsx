@@ -316,6 +316,7 @@ export default function LandingPage() {
   const { firestore } = initializeFirebase();
   const [homeContent, setHomeContent] = useState<HomeContent | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   // Redirection automatique vers /login pour les utilisateurs non connectés (mobile app)
   useEffect(() => {
@@ -323,10 +324,11 @@ export default function LandingPage() {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
                   (window.navigator as any).standalone === true;
     
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setIsCheckingAuth(false);
+      setUser(currentUser);
       // Si c'est une PWA/app mobile et l'utilisateur n'est pas connecté, rediriger vers /login
-      if (isPWA && !user) {
+      if (isPWA && !currentUser) {
         router.push('/login');
       }
     });
@@ -420,8 +422,17 @@ export default function LandingPage() {
             </nav>
 
             <div className="landing__actions">
-              <a className="landing__btn landing__btn--ghost" data-login href={LOGIN_URL}>Se connecter</a>
-              <a className="landing__btn landing__btn--secondary" data-signup href={SIGNUP_URL}>Créer un compte</a>
+              {user ? (
+                <Link href="/dashboard" className="landing__btn landing__btn--primary landing__btn--dashboard">
+                  <BarChart3 className="h-4 w-4" />
+                  Tableau de bord
+                </Link>
+              ) : (
+                <>
+                  <a className="landing__btn landing__btn--ghost" data-login href={LOGIN_URL}>Se connecter</a>
+                  <a className="landing__btn landing__btn--secondary" data-signup href={SIGNUP_URL}>Créer un compte</a>
+                </>
+              )}
             </div>
           </div>
 
@@ -436,8 +447,17 @@ export default function LandingPage() {
             <a href="#pricing" role="menuitem" onClick={() => setMenuOpen(false)}>Tarifs</a>
             <Link href="/affiliates" role="menuitem" onClick={() => setMenuOpen(false)}>Affiliation</Link>
             <a href="#faq" role="menuitem" onClick={() => setMenuOpen(false)}>FAQ</a>
-            <a className="landing__btn landing__btn--ghost" data-login href={LOGIN_URL}>Se connecter</a>
-            <a className="landing__btn landing__btn--secondary" data-signup href={SIGNUP_URL}>Créer un compte</a>
+            {user ? (
+              <Link href="/dashboard" className="landing__btn landing__btn--primary landing__btn--dashboard" onClick={() => setMenuOpen(false)}>
+                <BarChart3 className="h-4 w-4" />
+                Tableau de bord
+              </Link>
+            ) : (
+              <>
+                <a className="landing__btn landing__btn--ghost" data-login href={LOGIN_URL}>Se connecter</a>
+                <a className="landing__btn landing__btn--secondary" data-signup href={SIGNUP_URL}>Créer un compte</a>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -764,7 +784,6 @@ export default function LandingPage() {
               <strong>Légal</strong>
               <a href="/privacy">Confidentialité</a>
               <a href="/terms">Conditions de service</a>
-              <a href="/terms-box">Conditions Boîte</a>
               <a href="/data-deletion">Suppression des données</a>
               <a href="/security">Sécurité</a>
             </nav>
@@ -772,27 +791,30 @@ export default function LandingPage() {
           <div className="landing__footer-bottom">
             <p>© <span id="landing-year"></span> Budget Pro. Tous droits réservés.</p>
             <p className="text-sm opacity-70">Fait avec <span className="text-red-500">♥</span> en Afrique</p>
-            <p className="text-xs opacity-60 mt-2">
+            <p className="text-xs opacity-60 mt-2 flex flex-wrap items-center justify-center gap-1">
               Powered by{' '}
-              <a 
-                href="https://www.beonweb.cm" 
-                target="_blank" 
+              <a
+                href="https://www.beonweb.cm"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="hover:opacity-100 hover:underline transition-opacity"
               >
                 BEONWEB
               </a>
-              {' '}• Contactez-nous : {' '}
-              <a 
-                href="mailto:contact@budgetpro.net"
-                className="hover:opacity-100 hover:underline transition-opacity"
+              •
+              <button
+                type="button"
+                onClick={() => setContactOpen(true)}
+                className="text-xs text-current underline hover:text-primary hover:opacity-80 transition-opacity"
               >
                 contact@budgetpro.net
-              </a>
+              </button>
             </p>
           </div>
         </div>
       </footer>
+
+      <ContactDialog open={isContactOpen} onOpenChange={setContactOpen} />
 
       {/* STYLES CSS COMPLETS */}
       <style jsx global>{`
@@ -1085,6 +1107,13 @@ export default function LandingPage() {
         .landing__btn--primary:active {
           transform: translateY(0);
           box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+        }
+
+        .landing__btn--dashboard {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.6rem;
+          font-weight: 600;
         }
 
         .landing__btn--secondary {
@@ -1915,7 +1944,10 @@ export default function LandingPage() {
           border-top: 1px solid var(--border-light);
           text-align: center;
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
+          flex-wrap: wrap;
+          justify-content: center;
+          align-items: center;
           gap: 0.5rem;
         }
 
@@ -1923,31 +1955,35 @@ export default function LandingPage() {
           margin: 0;
           color: var(--text-muted);
           font-size: 0.9rem;
+          display: inline-flex;
+          align-items: center;
         }
 
-        /* Footer sur une seule ligne sur mobile */
+        .landing__footer-bottom p::after {
+          content: '•';
+          margin: 0 0.5rem;
+          color: var(--text-muted);
+          opacity: 0.5;
+        }
+
+        .landing__footer-bottom p:last-child::after {
+          content: '';
+          margin: 0;
+        }
+
+        /* Footer optimisé sur mobile */
         @media (max-width: 768px) {
           .landing__footer-bottom {
-            flex-direction: row;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 0.25rem;
-            font-size: 0.75rem;
+            gap: 0.35rem;
+            padding: 1.5rem 0.5rem 1rem;
           }
           
           .landing__footer-bottom p {
-            font-size: 0.75rem;
-            display: inline;
+            font-size: 0.8rem;
           }
           
           .landing__footer-bottom p::after {
-            content: ' • ';
-            margin: 0 0.25rem;
-          }
-          
-          .landing__footer-bottom p:last-child::after {
-            content: '';
+            margin: 0 0.35rem;
           }
         }
 
