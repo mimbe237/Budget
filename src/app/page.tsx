@@ -3,8 +3,10 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { initializeFirebase } from "@/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import {
   ArrowRight,
   BarChart3,
@@ -305,10 +307,29 @@ function renderAction(action: CallToAction) {
 
 // === COMPOSANT PRINCIPAL ===
 export default function LandingPage() {
+  const router = useRouter();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { firestore } = initializeFirebase();
   const [homeContent, setHomeContent] = useState<HomeContent | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Redirection automatique vers /login pour les utilisateurs non connectés (mobile app)
+  useEffect(() => {
+    const auth = getAuth();
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  (window.navigator as any).standalone === true;
+    
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsCheckingAuth(false);
+      // Si c'est une PWA/app mobile et l'utilisateur n'est pas connecté, rediriger vers /login
+      if (isPWA && !user) {
+        router.push('/login');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   // Effets
   useEffect(() => {
@@ -406,20 +427,26 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className={classNames("landing__mobile-nav", isMenuOpen && "is-open")} id="mobile-nav">
-            <a href="#features" onClick={() => setMenuOpen(false)}>Fonctionnalités</a>
-            <a href="#how" onClick={() => setMenuOpen(false)}>Comment ça marche</a>
-            <a href="#pricing" onClick={() => setMenuOpen(false)}>Tarifs</a>
-            <Link href="/affiliates" onClick={() => setMenuOpen(false)}>Affiliation</Link>
-            <a href="#faq" onClick={() => setMenuOpen(false)}>FAQ</a>
+          <div
+            className={classNames("landing__mobile-nav", isMenuOpen && "is-open")}
+            id="mobile-nav"
+            role="menu"
+            aria-label="Navigation mobile"
+          >
+            <a href="#features" role="menuitem" onClick={() => setMenuOpen(false)}>Fonctionnalités</a>
+            <a href="#how" role="menuitem" onClick={() => setMenuOpen(false)}>Comment ça marche</a>
+            <a href="#pricing" role="menuitem" onClick={() => setMenuOpen(false)}>Tarifs</a>
+            <Link href="/affiliates" role="menuitem" onClick={() => setMenuOpen(false)}>Affiliation</Link>
+            <a href="#faq" role="menuitem" onClick={() => setMenuOpen(false)}>FAQ</a>
             <a className="landing__btn landing__btn--ghost" data-login href={LOGIN_URL}>Se connecter</a>
             <a className="landing__btn landing__btn--secondary" data-signup href={SIGNUP_URL}>Créer un compte</a>
           </div>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="landing__section landing__section--hero">
+      <main className="landing__content" role="main" id="main-content">
+        {/* HERO */}
+        <section className="landing__section landing__section--hero">
         <div className="landing__container landing__hero-grid">
           <div className="landing__hero-content">
             <div className="landing__kicker">
@@ -559,6 +586,8 @@ export default function LandingPage() {
           src={SUITE_ILLUSTRATION}
           alt=""
           className="landing__bg-illustration"
+          aria-hidden="true"
+          loading="lazy"
           style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
         />
       </section>
@@ -586,7 +615,7 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" className="landing__section landing__section--accent" style={{ position: "relative" }}>
+      <section id="pricing" className="landing__section landing__section--accent landing__section--pricing" style={{ position: "relative" }}>
         <div className="landing__container" style={{ position: "relative", zIndex: 2 }}>
           <h2 className="text-center">Tarification transparente</h2>
           <p className="landing__section-lead text-center">Un seul prix, toutes les fonctionnalités incluses.</p>
@@ -612,6 +641,8 @@ export default function LandingPage() {
           src={PRICING_ILLUSTRATION}
           alt=""
           className="landing__bg-illustration"
+          aria-hidden="true"
+          loading="lazy"
           style={{ top: "50%", right: "0", transform: "translateY(-50%)" }}
         />
       </section>
@@ -638,6 +669,8 @@ export default function LandingPage() {
           src={TESTIMONIALS_ILLUSTRATION}
           alt=""
           className="landing__bg-illustration"
+          aria-hidden="true"
+          loading="lazy"
           style={{ bottom: "0", left: "50%", transform: "translateX(-50%)" }}
         />
       </section>
@@ -646,9 +679,9 @@ export default function LandingPage() {
       <section id="faq" className="landing__section landing__section--light" style={{ position: "relative" }}>
         <div className="landing__container" style={{ position: "relative", zIndex: 2 }}>
           <h2 className="text-center">Questions fréquentes</h2>
-          <div className="landing__faq-grid">
+          <div className="landing__faq-grid" role="list">
             {FAQ_ITEMS.map((item) => (
-              <details key={item.question} className="landing__faq-item">
+              <details key={item.question} className="landing__faq-item" role="listitem">
                 <summary>{item.question}</summary>
                 <p>{item.answer}</p>
               </details>
@@ -659,6 +692,8 @@ export default function LandingPage() {
           src={FAQ_ILLUSTRATION}
           alt=""
           className="landing__bg-illustration"
+          aria-hidden="true"
+          loading="lazy"
           style={{ top: "20%", right: "10%" }}
         />
       </section>
@@ -686,9 +721,13 @@ export default function LandingPage() {
           src={CTA_ILLUSTRATION}
           alt=""
           className="landing__bg-illustration"
+          aria-hidden="true"
+          loading="lazy"
           style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
         />
       </section>
+
+      </main>
 
       {/* FOOTER */}
       <footer className="landing__footer" style={{ position: "relative" }}>
@@ -766,13 +805,6 @@ export default function LandingPage() {
             padding-left: 0.5rem;
             padding-right: 0.5rem;
           }
-          .landing__footer-inner {
-            flex-direction: column;
-            gap: 2.5rem;
-          }
-          .landing__footer-columns {
-            width: 100%;
-          }
           .landing__section {
             padding: 2.5rem 0;
           }
@@ -843,6 +875,7 @@ export default function LandingPage() {
           font-family: var(--font-body);
           color: var(--text-primary);
           line-height: 1.6;
+          overflow-x: hidden;
         }
 
         .landing {
@@ -850,6 +883,13 @@ export default function LandingPage() {
           background: var(--bg);
           color: var(--text-primary);
           font-family: var(--font-body);
+          overflow-x: hidden;
+        }
+
+        .landing__content {
+          display: flex;
+          flex-direction: column;
+          gap: clamp(2.5rem, 4vw, 4rem);
         }
 
         a {
@@ -938,6 +978,8 @@ export default function LandingPage() {
         .landing__container {
           width: min(1120px, 92vw);
           margin: 0 auto;
+          padding-left: clamp(1rem, 3vw, 2.2rem);
+          padding-right: clamp(1rem, 3vw, 2.2rem);
         }
 
         .landing__nav-bar {
@@ -1174,6 +1216,19 @@ export default function LandingPage() {
           background:
             linear-gradient(135deg, rgba(15, 23, 42, 0.08) 0%, rgba(37, 99, 235, 0.12) 100%);
           color: var(--text-primary);
+        }
+
+        .landing__section--accent {
+          background:
+            radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.15) 0%, transparent 55%),
+            radial-gradient(circle at 90% 5%, rgba(14, 165, 233, 0.18) 0%, transparent 55%),
+            linear-gradient(135deg, rgba(15, 23, 42, 0.08) 0%, rgba(255, 255, 255, 0.95) 100%);
+          color: var(--text-primary);
+        }
+
+        .landing__section--light {
+          background:
+            linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.88));
         }
 
         .landing__section--cta {
@@ -2224,140 +2279,6 @@ export default function LandingPage() {
           width: 2rem;
         }
 
-        /* Footer structuré OLD (keep for compatibility) */
-        .landing__footer {
-          margin-top: var(--section-spacing);
-          padding: 4.5rem 0 2.8rem;
-          background: linear-gradient(135deg, rgba(224, 231, 255, 0.65) 0%, rgba(248, 250, 252, 0.98) 55%, rgba(240, 253, 250, 0.65) 100%);
-          border-top: 1px solid var(--border-medium);
-        }
-
-        .landing__footer-inner {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 3.5rem;
-          align-items: flex-start;
-          justify-content: space-between;
-        }
-
-        .landing__footer-brand {
-          max-width: 360px;
-        }
-
-        .landing__footer-logo {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.6rem;
-          font-family: var(--font-heading);
-          font-size: clamp(1.3rem, 2vw, 1.45rem);
-          font-weight: 700;
-          color: var(--neutral-dark);
-          margin-bottom: 1.15rem;
-        }
-
-        .landing__footer-brand p {
-          margin: 0;
-          color: var(--text-secondary);
-          font-size: clamp(0.96rem, 1.5vw, 1.02rem);
-          line-height: 1.75;
-        }
-
-        .landing__footer-columns {
-          display: grid;
-          gap: 2rem;
-          flex: 1;
-          min-width: 280px;
-          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        }
-
-        .landing__footer-heading {
-          display: block;
-          font-family: var(--font-heading);
-          font-weight: 600;
-          font-size: clamp(1rem, 1.6vw, 1.08rem);
-          color: var(--text-primary);
-          margin-bottom: 1.15rem;
-          letter-spacing: -0.01em;
-        }
-
-        .landing__footer-column ul {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          display: grid;
-          gap: 0.75rem;
-        }
-
-        .landing__footer-column a {
-          color: var(--text-secondary);
-          font-size: clamp(0.92rem, 1.4vw, 0.98rem);
-          padding: 0.3rem 0.45rem;
-          border-radius: 7px;
-          transition: all 0.25s ease;
-          display: inline-block;
-        }
-
-        .landing__footer-column a:hover {
-          color: var(--brand-primary);
-          background: rgba(37, 99, 235, 0.1);
-          padding-left: 0.75rem;
-          transform: translateX(4px);
-        }
-
-        .landing__footer-column a:focus-visible {
-          outline: none;
-          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
-        }
-
-        .landing__footer-meta {
-          margin-top: 3rem;
-          padding-top: 1.75rem;
-          border-top: 1px solid var(--border-light);
-          display: flex;
-          flex-wrap: wrap;
-          gap: 1rem;
-          justify-content: space-between;
-          align-items: center;
-          color: var(--text-muted);
-          font-size: 0.875rem;
-        }
-
-        .landing__footer-meta-links {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 1.25rem;
-        }
-
-        .landing__footer-meta-links a {
-          color: var(--text-secondary);
-          font-size: 0.875rem;
-        }
-
-        .landing__footer-meta-links a:hover,
-        .landing__footer-meta-links a:focus-visible {
-          color: var(--brand);
-          text-decoration: underline;
-        }
-
-        .landing__footer-meta-links a:focus-visible {
-          outline: none;
-          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-        }
-
-        @media (max-width: 768px) {
-          .landing__footer-inner {
-            gap: 2.5rem;
-          }
-          .landing__footer-meta {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-          }
-          .landing__footer-meta-links {
-            gap: 0.85rem;
-          }
-        }
-
         .sr-only {
           position: absolute;
           width: 1px;
@@ -2424,6 +2345,10 @@ export default function LandingPage() {
           .landing__mobile-toggle {
             display: inline-flex;
           }
+  
+          .landing__plan-card.is-featured {
+            transform: none;
+          }
         }
 
         @media (max-width: 640px) {
@@ -2456,10 +2381,6 @@ export default function LandingPage() {
             flex-direction: column;
             align-items: flex-start;
             padding: 0.75rem 1rem;
-          }
-
-          .landing__footer-inner {
-            gap: 2rem;
           }
 
           .landing__section-lead {
