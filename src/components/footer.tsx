@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useUser } from "@/firebase";
 import { ContactDialog } from "./contact-dialog";
+import "./footer.css";
 
 export function Footer() {
   const { userProfile } = useUser();
@@ -13,31 +14,31 @@ export function Footer() {
   return (
     <>
       <ContactDialog open={contactOpen} onOpenChange={setContactOpen} />
-      <footer className="w-full border-t border-border bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-wrap items-center justify-center gap-1 text-center text-xs text-muted-foreground/70 sm:text-sm">
+      <footer className="footer">
+        <div className="footer-inner">
+          <div className="footer-left">
             <span>{isFrench ? "Propulsé par" : "Powered by"}</span>
             <a
               href="https://www.beonweb.cm"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-muted-foreground/90 transition-colors hover:text-primary hover:underline"
+              className="footer-link footer-brand"
             >
               BEONWEB
             </a>
+            <span className="footer-dot">•</span>
             <span>© {currentYear}</span>
-            <span className="mx-1 text-muted-foreground/50">•</span>
-            <a
-              href="/"
-              className="transition-colors hover:text-primary hover:underline"
-            >
+          </div>
+
+          <div className="footer-right">
+            <a href="/" className="footer-link">
               {isFrench ? "Présentation" : "About"}
             </a>
-            <span className="mx-1 text-muted-foreground/50">•</span>
+            <span className="footer-dot">•</span>
             <button
               type="button"
               onClick={() => setContactOpen(true)}
-              className="transition-colors hover:text-primary hover:underline"
+              className="footer-link"
             >
               {isFrench ? "Contactez-nous" : "Contact us"}
             </button>

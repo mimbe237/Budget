@@ -1,54 +1,51 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { SocialAuthButtons } from '@/components/auth/social-auth-buttons';
-import { useAuth, useUser } from '@/firebase';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { Logo } from '@/components/logo';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { useTranslation } from '@/lib/i18n';
-import { AlertCircle } from 'lucide-react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { FirebaseError } from 'firebase/app';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
+import { useAuth, useUser } from "@/firebase";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Logo } from "@/components/logo";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { AlertCircle } from "lucide-react";
+import { FirebaseError, signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
   const auth = useAuth();
   const { user, userProfile, userError, isUserLoading, isUserProfileLoading } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const accountDeletedFlag = searchParams?.get('accountDeleted');
-  const isFrench = userProfile?.locale === 'fr-CM';
-  const { t } = useTranslation();
-
+  const accountDeletedFlag = searchParams?.get("accountDeleted");
+  const isFrench = userProfile?.locale === "fr-CM";
   useEffect(() => {
-    if (!isUserLoading && !isUserProfileLoading && user && userProfile?.status !== 'suspended') {
-      router.push('/dashboard');
+    if (!isUserLoading && !isUserProfileLoading && user && userProfile?.status !== "suspended") {
+      router.push("/dashboard");
     }
   }, [user, userProfile?.status, isUserLoading, isUserProfileLoading, router]);
 
   const suspendedMessage = useMemo(() => {
-    if (userProfile?.status === 'suspended' || userError?.message === 'account-suspended') {
+    if (userProfile?.status === "suspended" || userError?.message === "account-suspended") {
       return "Votre compte est suspendu. Contactez l'assistance pour le réactiver.";
     }
     return null;
   }, [userProfile?.status, userError?.message]);
 
-  const deletedMessage = accountDeletedFlag === '1'
-    ? (isFrench
-      ? 'Ce compte a été supprimé définitivement. Vous ne pouvez plus vous connecter.'
-      : 'This account has been deleted permanently. You cannot sign in anymore.')
-    : null;
+  const deletedMessage =
+    accountDeletedFlag === "1"
+      ? isFrench
+        ? "Ce compte a été supprimé définitivement. Vous ne pouvez plus vous connecter."
+        : "This account has been deleted permanently. You cannot sign in anymore."
+      : null;
 
   useEffect(() => {
     if (loginError) {
-      setLoginError('');
+      setLoginError("");
     }
   }, [email, password]);
 
@@ -56,26 +53,30 @@ export default function LoginPage() {
     event.preventDefault();
     if (!auth) return;
     if (!email || !password) {
-      setLoginError('Email et mot de passe sont requis.');
+      setLoginError("Email et mot de passe sont requis.");
       return;
     }
-    setLoginError('');
+    setLoginError("");
     setIsSubmittingLogin(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
       if (err instanceof FirebaseError) {
-        if (err.code === 'auth/user-not-found') {
-          setLoginError("Ce compte n'existe pas. Créez-en un ou vérifiez votre email.");
-        } else if (err.code === 'auth/wrong-password') {
-          setLoginError('Mot de passe incorrect. Réessayez ou réinitialisez-le.');
-        } else if (err.code === 'auth/too-many-requests') {
-          setLoginError('Trop de tentatives. Réessayez dans quelques minutes.');
-        } else {
-          setLoginError('Impossible de se connecter pour le moment, réessayez.');
+        switch (err.code) {
+          case "auth/user-not-found":
+            setLoginError("Ce compte n'existe pas. Créez-en un ou vérifiez votre email.");
+            break;
+          case "auth/wrong-password":
+            setLoginError("Mot de passe incorrect. Réessayez ou réinitialisez-le.");
+            break;
+          case "auth/too-many-requests":
+            setLoginError("Trop de tentatives. Réessayez dans quelques minutes.");
+            break;
+          default:
+            setLoginError("Impossible de se connecter pour le moment, réessayez.");
         }
       } else {
-        setLoginError('Impossible de se connecter pour le moment, réessayez.');
+        setLoginError("Impossible de se connecter pour le moment, réessayez.");
       }
     } finally {
       setIsSubmittingLogin(false);
@@ -116,6 +117,7 @@ export default function LoginPage() {
               <p>{suspendedMessage}</p>
             </div>
           )}
+
           {deletedMessage && (
             <div className="login-alert">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
@@ -140,7 +142,7 @@ export default function LoginPage() {
                   type="email"
                   placeholder="vous@exemple.com"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   autoComplete="username"
                   className="login-input"
                   required
@@ -159,7 +161,7 @@ export default function LoginPage() {
                   type="password"
                   placeholder="••••••••"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   className="login-input"
                   required
@@ -167,7 +169,7 @@ export default function LoginPage() {
               </div>
 
               <Button type="submit" className="login-btn-primary" disabled={isSubmittingLogin}>
-                Se connecter
+                {isSubmittingLogin ? "Connexion…" : "Se connecter"}
               </Button>
             </form>
 
@@ -180,13 +182,13 @@ export default function LoginPage() {
             </div>
 
             <p className="login-terms">
-              En vous connectant, vous acceptez nos{' '}
-              <Link href="/legal/terms">Conditions d&apos;utilisation</Link> et notre{' '}
+              En vous connectant, vous acceptez nos{" "}
+              <Link href="/legal/terms">Conditions d&apos;utilisation</Link> et notre{" "}
               <Link href="/legal/privacy">Politique de confidentialité</Link>.
             </p>
 
             <p className="login-signup">
-              Pas encore de compte ?{' '}
+              Pas encore de compte ?{" "}
               <Link href="/signup">Créer un compte gratuitement</Link>
             </p>
           </div>
@@ -200,7 +202,7 @@ export default function LoginPage() {
       </div>
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+        @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap");
 
         :root {
           color-scheme: light;
@@ -215,7 +217,7 @@ export default function LoginPage() {
             radial-gradient(circle at 15% -20%, rgba(16, 185, 129, 0.15), transparent 40%),
             linear-gradient(180deg, #ecf1ff 0%, #f6fbff 100%);
           padding: 3rem 1rem;
-          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          font-family: "Inter", system-ui, -apple-system, sans-serif;
         }
 
         .login-container {
@@ -276,21 +278,17 @@ export default function LoginPage() {
           margin: 1.5rem 2rem;
           padding: 1rem 1.25rem;
           border-radius: 18px;
-          background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(220, 38, 38, 0.08));
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.08));
           border: 1.5px solid rgba(239, 68, 68, 0.3);
           color: #991b1b;
           font-size: 0.9rem;
           font-weight: 500;
         }
 
-        .login-error {
+        .login-alert.login-error {
           background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(59, 130, 246, 0.08));
           border-color: rgba(37, 99, 235, 0.35);
           color: #1d4ed8;
-        }
-
-        .login-error svg {
-          color: #2563eb;
         }
 
         .login-alert svg {
@@ -298,8 +296,8 @@ export default function LoginPage() {
           color: #dc2626;
         }
 
-        .login-alert p {
-          margin: 0;
+        .login-alert.login-error svg {
+          color: #2563eb;
         }
 
         .login-content {
@@ -307,7 +305,7 @@ export default function LoginPage() {
         }
 
         .login-content h1 {
-          font-family: 'Poppins', sans-serif;
+          font-family: "Poppins", sans-serif;
           font-size: 1.9rem;
           font-weight: 700;
           color: #0f172a;
@@ -337,7 +335,7 @@ export default function LoginPage() {
         }
 
         .login-field label {
-          font-family: 'Inter', sans-serif;
+          font-family: "Inter", sans-serif;
           font-size: 0.9rem;
           font-weight: 600;
           color: #111827;
@@ -388,7 +386,7 @@ export default function LoginPage() {
           border-radius: 999px;
           background: linear-gradient(120deg, #2563eb 0%, #1d4ed8 60%, #0ea5e9 100%);
           color: #ffffff;
-          font-family: 'Inter', sans-serif;
+          font-family: "Inter", sans-serif;
           font-size: 1rem;
           font-weight: 600;
           border: none;
@@ -413,7 +411,7 @@ export default function LoginPage() {
 
         .login-divider::before,
         .login-divider::after {
-          content: '';
+          content: "";
           flex: 1;
           height: 1px;
           background: linear-gradient(90deg, transparent, rgba(15, 23, 42, 0.15), transparent);
@@ -438,11 +436,6 @@ export default function LoginPage() {
         .login-terms a {
           color: #2563eb;
           font-weight: 500;
-        }
-
-        .login-terms a:hover {
-          color: #1d4ed8;
-          text-decoration: underline;
         }
 
         .login-signup {

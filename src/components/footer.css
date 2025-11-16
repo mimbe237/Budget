@@ -1,0 +1,92 @@
+.footer {
+  width: 100%;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+  background: hsl(var(--background) / 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+
+  /* Correction principale : espace entre les blocs */
+  justify-content: space-between;
+
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground) / 0.7);
+  line-height: 1.5;
+}
+
+/* Bloc gauche (branding + année) */
+.footer-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Bloc droit (liens) */
+.footer-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-brand {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground) / 0.9);
+}
+
+.footer-dot {
+  opacity: 0.5;
+  margin: 0 0.25rem;
+}
+
+.footer-link {
+  text-decoration: none;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.footer-link:hover {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+
+/* Mobile: tout centrer proprement */
+@media (max-width: 640px) {
+  .footer-inner {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .footer-left,
+  .footer-right {
+    justify-content: center;
+  }
+
+  .footer-inner {
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .footer-dot {
+    margin: 0 0.15rem;
+  }
+}
