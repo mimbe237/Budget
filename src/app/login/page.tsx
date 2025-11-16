@@ -3,17 +3,22 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SocialAuthButtons } from '@/components/auth/social-auth-buttons';
-import { useAuth, useUser, initiateEmailSignIn } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from '@/lib/i18n';
+import { AlertCircle } from 'lucide-react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
   const auth = useAuth();
   const { user, userProfile, userError, isUserLoading, isUserProfileLoading } = useUser();
   const router = useRouter();
@@ -41,10 +46,40 @@ export default function LoginPage() {
       : 'This account has been deleted permanently. You cannot sign in anymore.')
     : null;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (loginError) {
+      setLoginError('');
+    }
+  }, [email, password]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!auth) return;
-    initiateEmailSignIn(auth, email, password);
+    if (!email || !password) {
+      setLoginError('Email et mot de passe sont requis.');
+      return;
+    }
+    setLoginError('');
+    setIsSubmittingLogin(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      if (err instanceof FirebaseError) {
+        if (err.code === 'auth/user-not-found') {
+          setLoginError("Ce compte n'existe pas. Créez-en un ou vérifiez votre email.");
+        } else if (err.code === 'auth/wrong-password') {
+          setLoginError('Mot de passe incorrect. Réessayez ou réinitialisez-le.');
+        } else if (err.code === 'auth/too-many-requests') {
+          setLoginError('Trop de tentatives. Réessayez dans quelques minutes.');
+        } else {
+          setLoginError('Impossible de se connecter pour le moment, réessayez.');
+        }
+      } else {
+        setLoginError('Impossible de se connecter pour le moment, réessayez.');
+      }
+    } finally {
+      setIsSubmittingLogin(false);
+    }
   };
 
   return (
@@ -64,6 +99,13 @@ export default function LoginPage() {
           <div className="login-logo">
             <Logo />
           </div>
+
+          {loginError && (
+            <div className="login-alert login-error">
+              <AlertCircle className="h-5 w-5" />
+              <p>{loginError}</p>
+            </div>
+          )}
 
           {suspendedMessage && (
             <div className="login-alert">
@@ -124,7 +166,7 @@ export default function LoginPage() {
                 />
               </div>
 
-              <Button type="submit" className="login-btn-primary">
+              <Button type="submit" className="login-btn-primary" disabled={isSubmittingLogin}>
                 Se connecter
               </Button>
             </form>
@@ -160,64 +202,66 @@ export default function LoginPage() {
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
 
+        :root {
+          color-scheme: light;
+        }
+
         .login-page {
           min-height: 100vh;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 55%, #f0fdfa 100%);
-          padding: 2rem 1rem;
+          background: radial-gradient(circle at top right, rgba(59, 174, 255, 0.25), transparent 45%),
+            radial-gradient(circle at 15% -20%, rgba(16, 185, 129, 0.15), transparent 40%),
+            linear-gradient(180deg, #ecf1ff 0%, #f6fbff 100%);
+          padding: 3rem 1rem;
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
         .login-container {
-          width: 100%;
-          max-width: 480px;
-          animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+          width: min(520px, 100%);
+          animation: fadeInUp 0.65s ease;
         }
 
         .login-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 2rem;
+          margin-bottom: 1.75rem;
         }
 
         .login-back-btn {
           display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          border-radius: 12px;
-          font-size: 0.95rem;
+          gap: 0.6rem;
+          padding: 0.6rem 1.4rem;
+          border-radius: 999px;
+          font-size: 0.9rem;
           font-weight: 500;
           color: #475467;
-          background: rgba(255, 255, 255, 0.8);
+          background: rgba(255, 255, 255, 0.85);
           border: 1px solid rgba(15, 23, 42, 0.08);
-          transition: all 0.2s ease;
+          box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .login-back-btn:hover {
-          color: #2563eb;
-          background: #ffffff;
-          border-color: rgba(37, 99, 235, 0.2);
-          transform: translateX(-2px);
+          transform: translateY(-2px);
+          box-shadow: 0 22px 50px rgba(15, 23, 42, 0.12);
         }
 
         .login-card {
-          background: rgba(255, 255, 255, 0.95);
-          border-radius: 24px;
-          border: 1px solid rgba(15, 23, 42, 0.08);
-          box-shadow: 0 24px 60px rgba(37, 99, 235, 0.12);
-          backdrop-filter: blur(12px);
-          overflow: hidden;
+          background: linear-gradient(180deg, #ffffff 0%, #e9f1ff 50%, #fdf8ff 100%);
+          border-radius: 32px;
+          padding: 2.75rem 2.25rem;
+          box-shadow: 0 30px 80px rgba(15, 23, 42, 0.18);
+          border: 1px solid rgba(148, 163, 184, 0.25);
         }
 
         .login-logo {
           display: flex;
           justify-content: center;
-          padding: 2.5rem 2rem 1.5rem;
-          border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+          margin-bottom: 1.25rem;
         }
 
         .login-logo > * {
@@ -231,12 +275,22 @@ export default function LoginPage() {
           gap: 0.75rem;
           margin: 1.5rem 2rem;
           padding: 1rem 1.25rem;
-          border-radius: 16px;
-          background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.08));
+          border-radius: 18px;
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(220, 38, 38, 0.08));
           border: 1.5px solid rgba(239, 68, 68, 0.3);
           color: #991b1b;
           font-size: 0.9rem;
           font-weight: 500;
+        }
+
+        .login-error {
+          background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(59, 130, 246, 0.08));
+          border-color: rgba(37, 99, 235, 0.35);
+          color: #1d4ed8;
+        }
+
+        .login-error svg {
+          color: #2563eb;
         }
 
         .login-alert svg {
@@ -254,36 +308,32 @@ export default function LoginPage() {
 
         .login-content h1 {
           font-family: 'Poppins', sans-serif;
-          font-size: 1.75rem;
+          font-size: 1.9rem;
           font-weight: 700;
           color: #0f172a;
           margin: 0 0 0.5rem;
           letter-spacing: -0.01em;
+          text-align: center;
         }
 
         .login-subtitle {
           font-size: 0.95rem;
           color: #475467;
           line-height: 1.6;
-          margin: 0 0 2rem;
+          margin: 0 0 1.75rem;
+          text-align: center;
         }
 
         .login-form {
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 1.35rem;
         }
 
         .login-field {
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
-        }
-
-        .login-field-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
         }
 
         .login-field label {
@@ -293,9 +343,15 @@ export default function LoginPage() {
           color: #111827;
         }
 
+        .login-field-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
         .login-forgot {
           font-size: 0.85rem;
-          font-weight: 500;
+          font-weight: 600;
           color: #2563eb;
           transition: all 0.2s ease;
         }
@@ -308,18 +364,18 @@ export default function LoginPage() {
         .login-input {
           height: 48px;
           padding: 0 1rem;
-          border-radius: 12px;
+          border-radius: 16px;
           border: 1.5px solid rgba(15, 23, 42, 0.12);
           background: #ffffff;
           font-size: 0.95rem;
           color: #111827;
-          transition: all 0.2s ease;
+          transition: border 0.2s ease, box-shadow 0.2s ease;
         }
 
         .login-input:focus {
           outline: none;
           border-color: #2563eb;
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
         }
 
         .login-input::placeholder {
@@ -327,36 +383,29 @@ export default function LoginPage() {
         }
 
         .login-btn-primary {
-          height: 48px;
+          height: 52px;
           width: 100%;
-          margin-top: 0.5rem;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+          border-radius: 999px;
+          background: linear-gradient(120deg, #2563eb 0%, #1d4ed8 60%, #0ea5e9 100%);
           color: #ffffff;
           font-family: 'Inter', sans-serif;
           font-size: 1rem;
           font-weight: 600;
           border: none;
-          box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-          cursor: pointer;
+          box-shadow: 0 25px 40px rgba(37, 99, 235, 0.4), inset 0 -3px 8px rgba(0, 0, 0, 0.15);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .login-btn-primary:hover {
-          background: linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%);
-          box-shadow: 0 8px 28px rgba(37, 99, 235, 0.35);
-          transform: translateY(-2px);
-        }
-
-        .login-btn-primary:active {
-          transform: translateY(0);
+          transform: translateY(-1px);
+          box-shadow: 0 30px 45px rgba(37, 99, 235, 0.45), inset 0 -3px 8px rgba(0, 0, 0, 0.25);
         }
 
         .login-divider {
           display: flex;
           align-items: center;
           gap: 1rem;
-          margin: 2rem 0 1.5rem;
+          margin: 1.75rem 0 1.25rem;
           color: #94a3b8;
           font-size: 0.85rem;
           font-weight: 500;
@@ -367,11 +416,13 @@ export default function LoginPage() {
           content: '';
           flex: 1;
           height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(15, 23, 42, 0.1), transparent);
+          background: linear-gradient(90deg, transparent, rgba(15, 23, 42, 0.15), transparent);
         }
 
         .login-social {
-          margin-bottom: 1.5rem;
+          margin-bottom: 1.35rem;
+          display: flex;
+          justify-content: center;
         }
 
         .login-terms {
@@ -379,7 +430,7 @@ export default function LoginPage() {
           padding: 1.5rem 0 0;
           border-top: 1px solid rgba(15, 23, 42, 0.06);
           text-align: center;
-          font-size: 0.8rem;
+          font-size: 0.85rem;
           color: #667085;
           line-height: 1.6;
         }
@@ -387,7 +438,6 @@ export default function LoginPage() {
         .login-terms a {
           color: #2563eb;
           font-weight: 500;
-          transition: color 0.2s ease;
         }
 
         .login-terms a:hover {
@@ -396,7 +446,7 @@ export default function LoginPage() {
         }
 
         .login-signup {
-          margin: 1.25rem 0 0;
+          margin: 1rem 0 0;
           text-align: center;
           font-size: 0.95rem;
           color: #475467;
@@ -405,12 +455,6 @@ export default function LoginPage() {
         .login-signup a {
           color: #2563eb;
           font-weight: 600;
-          transition: all 0.2s ease;
-        }
-
-        .login-signup a:hover {
-          color: #1d4ed8;
-          text-decoration: underline;
         }
 
         .login-loading {
@@ -419,7 +463,7 @@ export default function LoginPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(15, 23, 42, 0.4);
+          background: rgba(15, 23, 42, 0.45);
           backdrop-filter: blur(4px);
           z-index: 100;
           animation: fadeIn 0.2s ease;
@@ -462,7 +506,7 @@ export default function LoginPage() {
 
         @media (max-width: 640px) {
           .login-page {
-            padding: 1rem 0.75rem;
+            padding: 1.2rem 0.75rem;
           }
 
           .login-header {
@@ -482,15 +526,15 @@ export default function LoginPage() {
           }
         }
 
-        /* Dark mode support */
         @media (prefers-color-scheme: dark) {
           .login-page {
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0f172a 100%);
           }
 
           .login-card {
-            background: rgba(30, 41, 59, 0.95);
+            background: rgba(30, 41, 59, 0.85);
             border-color: rgba(148, 163, 184, 0.1);
+            box-shadow: 0 30px 80px rgba(2, 6, 23, 0.6);
           }
 
           .login-back-btn {
@@ -502,10 +546,11 @@ export default function LoginPage() {
           .login-back-btn:hover {
             background: rgba(30, 41, 59, 1);
             border-color: rgba(37, 99, 235, 0.3);
+            color: #f8fafc;
           }
 
           .login-content h1 {
-            color: #f1f5f9;
+            color: #f8fafc;
           }
 
           .login-subtitle {
@@ -513,23 +558,22 @@ export default function LoginPage() {
           }
 
           .login-field label {
-            color: #f1f5f9;
+            color: #f8fafc;
           }
 
           .login-input {
             background: rgba(15, 23, 42, 0.6);
             border-color: rgba(148, 163, 184, 0.2);
-            color: #f1f5f9;
+            color: #f8fafc;
           }
 
-          .login-input:focus {
-            background: rgba(15, 23, 42, 0.8);
-            border-color: #2563eb;
+          .login-input::placeholder {
+            color: rgba(248, 250, 252, 0.7);
           }
 
           .login-terms {
             border-color: rgba(148, 163, 184, 0.1);
-            color: #94a3b8;
+            color: #cbd5e1;
           }
 
           .login-signup {
