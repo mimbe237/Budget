@@ -772,7 +772,7 @@ export default function LandingPage() {
             <p className="text-xs opacity-60 mt-2">
               Powered by{' '}
               <a 
-                href="http://beonweb.cm" 
+                href="https://www.beonweb.cm" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="hover:opacity-100 hover:underline transition-opacity"

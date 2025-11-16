@@ -14,7 +14,7 @@ export function Footer() {
           <p className="text-xs text-muted-foreground/70 sm:text-sm">
             {isFrench ? 'Propulsé par' : 'Powered by'}{' '}
             <a
-              href="http://beonweb.cm"
+              href="https://www.beonweb.cm"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-muted-foreground/90 transition-colors hover:text-primary hover:underline"
