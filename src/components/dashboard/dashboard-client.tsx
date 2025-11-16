@@ -98,18 +98,17 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="relative flex min-h-screen w-full bg-background lg:grid lg:grid-cols-[260px_1fr]">
         <aside
           id="main-navigation"
-          className="hidden lg:block border-r border-border/60 bg-sidebar backdrop-blur-xl"
+          className="hidden lg:fixed lg:inset-y-0 lg:z-20 lg:flex lg:w-[260px] lg:flex-col border-r border-border/60 bg-sidebar backdrop-blur-xl"
           aria-label={isFrench ? 'Navigation principale' : 'Main navigation'}
         >
-          <div className="flex h-full max-h-screen flex-col gap-2">
-            <div className="flex h-20 items-center border-b border-border/60 px-6">
-              <Logo className="h-10 w-auto" />
-            </div>
-            <div className="flex-1 overflow-y-auto pt-4">
-              <nav
-                className="grid items-start gap-2 px-4 text-base font-semibold"
-                aria-label={isFrench ? 'Menu principal' : 'Main menu'}
-              >
+          <div className="flex h-20 shrink-0 items-center border-b border-border/60 px-6">
+            <Logo className="h-10 w-auto" />
+          </div>
+          <div className="flex flex-1 flex-col gap-2 overflow-y-auto pt-4 pb-6">
+            <nav
+              className="grid items-start gap-2 px-4 text-base font-semibold"
+              aria-label={isFrench ? 'Menu principal' : 'Main menu'}
+            >
                 {navItems.map((item) => (
                   <Link
                     key={item.label}
@@ -126,9 +125,11 @@ export function AppLayout({ children }: AppLayoutProps) {
                   </Link>
                 ))}
               </nav>
-            </div>
           </div>
         </aside>
+
+        {/* Spacer pour compenser la sidebar fixe sur desktop */}
+        <div className="hidden lg:block lg:w-[260px] shrink-0" aria-hidden="true"></div>
 
         <div className="flex min-h-screen flex-col">
           <header
