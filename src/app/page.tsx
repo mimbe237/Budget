@@ -765,7 +765,7 @@ export default function LandingPage() {
                 </span>
                 Budget Pro
               </Link>
-              <p className="mt-2 text-sm opacity-80">Votre copilote financier intelligent.</p>
+              <p className="mt-2 text-sm opacity-80">Votre copilote financier intelligent. Maîtrisez vos dépenses, atteignez vos objectifs.</p>
             </div>
             <nav>
               <strong>Produit</strong>
@@ -782,30 +782,31 @@ export default function LandingPage() {
             </nav>
             <nav>
               <strong>Légal</strong>
-              <a href="/privacy">Confidentialité</a>
-              <a href="/terms">Conditions de service</a>
-              <a href="/data-deletion">Suppression des données</a>
-              <a href="/security">Sécurité</a>
+              <a href="/legal/privacy">Confidentialité</a>
+              <a href="/legal/terms">Conditions de service</a>
+              <a href="/legal/data-deletion">Suppression des données</a>
+              <a href="/legal/security">Sécurité</a>
             </nav>
           </div>
           <div className="landing__footer-bottom">
             <p>© <span id="landing-year"></span> Budget Pro. Tous droits réservés.</p>
-            <p className="text-sm opacity-70">Fait avec <span className="text-red-500">♥</span> en Afrique</p>
-            <p className="text-xs opacity-60 mt-2 flex flex-wrap items-center justify-center gap-1">
+            <p>Fait avec <span className="text-red-500">♥</span> en Afrique</p>
+            <p>
               Powered by{' '}
               <a
                 href="https://www.beonweb.cm"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:opacity-100 hover:underline transition-opacity"
+                className="hover:text-blue-600 hover:underline transition-all"
               >
                 BEONWEB
               </a>
-              •
+            </p>
+            <p>
               <button
                 type="button"
                 onClick={() => setContactOpen(true)}
-                className="text-xs text-current underline hover:text-primary hover:opacity-80 transition-opacity"
+                className="hover:text-blue-600 hover:underline transition-all"
               >
                 contact@budgetpro.net
               </button>
