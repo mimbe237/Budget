@@ -1,0 +1,1029 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../models/models.dart';
+import '../../services/mock_data_service.dart';
+import '../../constants/app_design.dart';
+import 'package:intl/intl.dart';
+
+/// Écran de suivi des dettes (je dois) et créances (on me doit)
+class IOUTrackingScreen extends StatefulWidget {
+  const IOUTrackingScreen({super.key});
+
+  @override
+  State<IOUTrackingScreen> createState() => _IOUTrackingScreenState();
+}
+
+class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
+  final MockDataService _mockService = MockDataService();
+  List<IOU> _ious = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadIOUs();
+  }
+
+  void _loadIOUs() {
+    // Créer des données factices
+    final now = DateTime.now();
+    setState(() {
+      _ious = [
+        // Créances (On me doit)
+        IOU(
+          iouId: 'iou_1',
+          userId: 'user_1',
+          personName: 'Jean Dupont',
+          type: IOUType.receivable,
+          status: IOUStatus.active,
+          amount: 500.0,
+          paidAmount: 300.0,
+          dueDate: now.add(const Duration(days: 30)),
+          description: 'Prêt personnel',
+          createdAt: now.subtract(const Duration(days: 30)),
+          updatedAt: now,
+        ),
+        IOU(
+          iouId: 'iou_2',
+          userId: 'user_1',
+          personName: 'Marie Martin',
+          type: IOUType.receivable,
+          status: IOUStatus.active,
+          amount: 150.0,
+          paidAmount: 0.0,
+          dueDate: now.add(const Duration(days: 15)),
+          description: 'Remboursement restaurant',
+          createdAt: now.subtract(const Duration(days: 15)),
+          updatedAt: now,
+        ),
+        IOU(
+          iouId: 'iou_3',
+          userId: 'user_1',
+          personName: 'Pierre Durand',
+          type: IOUType.receivable,
+          status: IOUStatus.completed,
+          amount: 300.0,
+          paidAmount: 300.0,
+          dueDate: now.subtract(const Duration(days: 30)),
+          description: 'Prêt remboursé',
+          createdAt: now.subtract(const Duration(days: 60)),
+          updatedAt: now.subtract(const Duration(days: 5)),
+        ),
+        
+        // Dettes (Je dois)
+        IOU(
+          iouId: 'iou_4',
+          userId: 'user_1',
+          personName: 'Sophie Bernard',
+          type: IOUType.payable,
+          status: IOUStatus.active,
+          amount: 800.0,
+          paidAmount: 400.0,
+          dueDate: now.add(const Duration(days: 45)),
+          description: 'Prêt à rembourser',
+          createdAt: now.subtract(const Duration(days: 45)),
+          updatedAt: now,
+        ),
+        IOU(
+          iouId: 'iou_5',
+          userId: 'user_1',
+          personName: 'Lucas Petit',
+          type: IOUType.payable,
+          status: IOUStatus.active,
+          amount: 250.0,
+          paidAmount: 0.0,
+          dueDate: now.add(const Duration(days: 20)),
+          description: 'Dette cadeau commun',
+          createdAt: now.subtract(const Duration(days: 10)),
+          updatedAt: now,
+        ),
+      ];
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final debts = _ious.where((iou) => iou.type == IOUType.payable).toList();
+    final receivables = _ious.where((iou) => iou.type == IOUType.receivable).toList();
+    
+    final totalDebt = debts.fold(0.0, (sum, iou) => 
+      iou.status == IOUStatus.active ? sum + iou.currentBalance : sum);
+    final totalReceivable = receivables.fold(0.0, (sum, iou) => 
+      iou.status == IOUStatus.active ? sum + iou.currentBalance : sum);
+
+    return Scaffold(
+      backgroundColor: AppDesign.backgroundGrey,
+      appBar: AppBar(
+        title: const Text(
+          'Suivi Dettes & Créances',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppDesign.primaryIndigo,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(AppDesign.paddingMedium),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSummaryCards(totalDebt, totalReceivable),
+              const SizedBox(height: AppDesign.spacingLarge),
+              
+              // Section Créances (On me doit)
+              _buildSectionHeader(
+                'On me doit',
+                Icons.arrow_downward,
+                AppDesign.incomeColor,
+                receivables.where((iou) => iou.status == IOUStatus.active).length,
+              ),
+              const SizedBox(height: AppDesign.spacingSmall),
+              ...receivables.map((iou) => _buildIOUCard(iou)).toList(),
+              
+              const SizedBox(height: AppDesign.spacingLarge),
+              
+              // Section Dettes (Je dois)
+              _buildSectionHeader(
+                'Je dois',
+                Icons.arrow_upward,
+                AppDesign.expenseColor,
+                debts.where((iou) => iou.status == IOUStatus.active).length,
+              ),
+              const SizedBox(height: AppDesign.spacingSmall),
+              ...debts.map((iou) => _buildIOUCard(iou)).toList(),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddIOUModal(),
+        backgroundColor: AppDesign.primaryIndigo,
+        icon: const Icon(Icons.add),
+        label: const Text('Nouveau IOU'),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCards(double totalDebt, double totalReceivable) {
+    final netBalance = totalReceivable - totalDebt;
+    
+    return Row(
+      children: [
+        Expanded(
+          child: Card(
+            elevation: 4,
+            color: AppDesign.expenseColor.withOpacity(0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+              side: const BorderSide(color: AppDesign.expenseColor, width: 2),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppDesign.paddingMedium),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.trending_up,
+                    color: AppDesign.expenseColor,
+                    size: 32,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Je dois',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppDesign.expenseColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${totalDebt.toStringAsFixed(2)} €',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      color: AppDesign.expenseColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: AppDesign.spacingMedium),
+        Expanded(
+          child: Card(
+            elevation: 4,
+            color: AppDesign.incomeColor.withOpacity(0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+              side: const BorderSide(color: AppDesign.incomeColor, width: 2),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppDesign.paddingMedium),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.trending_down,
+                    color: AppDesign.incomeColor,
+                    size: 32,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'On me doit',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppDesign.incomeColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${totalReceivable.toStringAsFixed(2)} €',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      color: AppDesign.incomeColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon, Color color, int count) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            '$count actif${count > 1 ? 's' : ''}',
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIOUCard(IOU iou) {
+    final isReceivable = iou.type == IOUType.receivable;
+    final color = isReceivable ? AppDesign.incomeColor : AppDesign.expenseColor;
+    final progress = iou.originalAmount > 0 
+        ? 1 - (iou.currentBalance / iou.originalAmount) 
+        : 0.0;
+    final isCompleted = iou.status == IOUStatus.completed;
+    final isOverdue = iou.dueDate != null && 
+                     iou.dueDate!.isBefore(DateTime.now()) && 
+                     !isCompleted;
+
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: AppDesign.spacingMedium),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+        side: BorderSide(
+          color: isCompleted ? Colors.grey : color,
+          width: 2,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+        onTap: isCompleted ? null : () => _showRecordPaymentModal(iou),
+        child: Padding(
+          padding: const EdgeInsets.all(AppDesign.paddingMedium),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // En-tête
+              Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: Center(
+                      child: Text(
+                        iou.partyName[0].toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          iou.partyName,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (iou.description != null)
+                          Text(
+                            iou.description!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (isCompleted)
+                    const Icon(Icons.check_circle, color: Colors.green, size: 28)
+                  else if (isOverdue)
+                    const Icon(Icons.warning_amber, color: Colors.orange, size: 28),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              // Montants
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Montant initial',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      Text(
+                        '${iou.originalAmount.toStringAsFixed(2)} €',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        isCompleted ? 'Soldé' : 'Reste',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      Text(
+                        '${iou.currentBalance.toStringAsFixed(2)} €',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: isCompleted ? Colors.green : color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              // Barre de progression
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isCompleted ? Colors.green : color,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              // Info complémentaire
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Remboursé: ${(progress * 100).toStringAsFixed(0)}%',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  if (iou.dueDate != null)
+                    Text(
+                      'Échéance: ${DateFormat('dd/MM/yyyy').format(iou.dueDate!)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isOverdue ? Colors.orange : Colors.grey[600],
+                        fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                ],
+              ),
+              
+              // Bouton d'action
+              if (!isCompleted) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showRecordPaymentModal(iou),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: Icon(isReceivable ? Icons.account_balance_wallet : Icons.payment),
+                    label: Text(isReceivable ? 'Recevoir paiement' : 'Enregistrer paiement'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddIOUModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => AddIOUModal(
+        onIOUAdded: (newIOU) {
+          setState(() {
+            _ious.add(newIOU);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('IOU ajouté avec succès !')),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showRecordPaymentModal(IOU iou) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => RecordPaymentModal(
+        iou: iou,
+        onPaymentRecorded: (updatedIOU) {
+          setState(() {
+            final index = _ious.indexWhere((i) => i.iouId == updatedIOU.iouId);
+            if (index != -1) {
+              _ious[index] = updatedIOU;
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                updatedIOU.type == IOUType.receivable
+                    ? 'Paiement reçu enregistré !'
+                    : 'Paiement enregistré !',
+              ),
+              backgroundColor: AppDesign.incomeColor,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Modal pour ajouter un nouvel IOU
+class AddIOUModal extends StatefulWidget {
+  final Function(IOU) onIOUAdded;
+
+  const AddIOUModal({super.key, required this.onIOUAdded});
+
+  @override
+  State<AddIOUModal> createState() => _AddIOUModalState();
+}
+
+class _AddIOUModalState extends State<AddIOUModal> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _amountController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  
+  IOUType _selectedType = IOUType.receivable;
+  DateTime? _dueDate;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _amountController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isReceivable = _selectedType == IOUType.receivable;
+    final color = isReceivable ? AppDesign.incomeColor : AppDesign.expenseColor;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Nouveau IOU',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Toggle Switch Type
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildTypeButton(
+                          'On me doit',
+                          Icons.arrow_downward,
+                          AppDesign.incomeColor,
+                          IOUType.receivable,
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildTypeButton(
+                          'Je dois',
+                          Icons.arrow_upward,
+                          AppDesign.expenseColor,
+                          IOUType.payable,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Nom de la personne
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: isReceivable ? 'Nom du débiteur' : 'Nom du créancier',
+                    prefixIcon: const Icon(Icons.person),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez entrer un nom';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Montant
+                TextFormField(
+                  controller: _amountController,
+                  decoration: InputDecoration(
+                    labelText: 'Montant',
+                    prefixIcon: Icon(Icons.euro, color: color),
+                    suffixText: '€',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                  ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez entrer un montant';
+                    }
+                    if (double.tryParse(value) == null || double.parse(value) <= 0) {
+                      return 'Montant invalide';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Description
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (optionnel)',
+                    prefixIcon: Icon(Icons.note),
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                
+                // Date d'échéance
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(
+                    _dueDate == null
+                        ? 'Date d\'échéance (optionnel)'
+                        : 'Échéance: ${DateFormat('dd/MM/yyyy').format(_dueDate!)}',
+                  ),
+                  trailing: _dueDate != null
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            setState(() {
+                              _dueDate = null;
+                            });
+                          },
+                        )
+                      : null,
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now().add(const Duration(days: 30)),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        _dueDate = date;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 24),
+                
+                // Bouton d'ajout
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _saveIOU,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: Text(
+                      'Ajouter ${isReceivable ? 'la créance' : 'la dette'}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTypeButton(String label, IconData icon, Color color, IOUType type) {
+    final isSelected = _selectedType == type;
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedType = type;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.grey,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _saveIOU() {
+    if (_formKey.currentState!.validate()) {
+      final amount = double.parse(_amountController.text);
+      final now = DateTime.now();
+      
+      final newIOU = IOU(
+        iouId: 'iou_${now.millisecondsSinceEpoch}',
+        userId: 'user_1',
+        personName: _nameController.text,
+        type: _selectedType,
+        status: IOUStatus.active,
+        amount: amount,
+        paidAmount: 0.0,
+        dueDate: _dueDate ?? now.add(const Duration(days: 30)),
+        description: _descriptionController.text.isNotEmpty 
+            ? _descriptionController.text 
+            : null,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      widget.onIOUAdded(newIOU);
+      Navigator.pop(context);
+    }
+  }
+}
+
+/// Modal pour enregistrer un paiement/remboursement
+class RecordPaymentModal extends StatefulWidget {
+  final IOU iou;
+  final Function(IOU) onPaymentRecorded;
+
+  const RecordPaymentModal({
+    super.key,
+    required this.iou,
+    required this.onPaymentRecorded,
+  });
+
+  @override
+  State<RecordPaymentModal> createState() => _RecordPaymentModalState();
+}
+
+class _RecordPaymentModalState extends State<RecordPaymentModal> {
+  final _formKey = GlobalKey<FormState>();
+  final _amountController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isReceivable = widget.iou.type == IOUType.receivable;
+    final color = isReceivable ? AppDesign.incomeColor : AppDesign.expenseColor;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        isReceivable ? Icons.account_balance_wallet : Icons.payment,
+                        color: color,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isReceivable ? 'Recevoir un paiement' : 'Enregistrer un paiement',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            widget.iou.partyName,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // Info sur le solde restant
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: color.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Solde restant',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          Text(
+                            '${widget.iou.currentBalance.toStringAsFixed(2)} €',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: color,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: widget.iou.originalAmount > 0
+                            ? 1 - (widget.iou.currentBalance / widget.iou.originalAmount)
+                            : 0.0,
+                        minHeight: 6,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: AlwaysStoppedAnimation<Color>(color),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Montant du paiement
+                TextFormField(
+                  controller: _amountController,
+                  decoration: InputDecoration(
+                    labelText: 'Montant du paiement',
+                    prefixIcon: Icon(Icons.euro, color: color),
+                    suffixText: '€',
+                    helperText: 'Maximum: ${widget.iou.currentBalance.toStringAsFixed(2)} €',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                  ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez entrer un montant';
+                    }
+                    final amount = double.tryParse(value);
+                    if (amount == null) {
+                      return 'Montant invalide';
+                    }
+                    if (amount <= 0) {
+                      return 'Le montant doit être positif';
+                    }
+                    if (amount > widget.iou.currentBalance) {
+                      return 'Le montant dépasse le solde restant';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Boutons rapides
+                const Text(
+                  'Montants rapides',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildQuickAmountButton('25%', widget.iou.currentBalance * 0.25),
+                    _buildQuickAmountButton('50%', widget.iou.currentBalance * 0.50),
+                    _buildQuickAmountButton('75%', widget.iou.currentBalance * 0.75),
+                    _buildQuickAmountButton('Tout', widget.iou.currentBalance),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // Bouton d'enregistrement
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _recordPayment,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            isReceivable ? 'Recevoir le paiement' : 'Enregistrer le paiement',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickAmountButton(String label, double amount) {
+    return ActionChip(
+      label: Text(label),
+      onPressed: () {
+        setState(() {
+          _amountController.text = amount.toStringAsFixed(2);
+        });
+      },
+    );
+  }
+
+  void _recordPayment() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Simulation d'un délai réseau
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      final paymentAmount = double.parse(_amountController.text);
+      final newPaidAmount = widget.iou.paidAmount + paymentAmount;
+      
+      final updatedIOU = widget.iou.copyWith(
+        paidAmount: newPaidAmount,
+        status: newPaidAmount >= widget.iou.amount - 0.01 ? IOUStatus.completed : IOUStatus.active,
+        updatedAt: DateTime.now(),
+      );
+
+      widget.onPaymentRecorded(updatedIOU);
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    }
+  }
+}
