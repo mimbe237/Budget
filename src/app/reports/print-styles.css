@@ -1,0 +1,275 @@
+/* Styles spécifiques pour l'impression des rapports */
+
+@media print {
+  /* Configuration générale de la page */
+  @page {
+    margin: 1.5cm;
+    size: A4 portrait;
+    
+    @top-left {
+      content: "Rapport Financier";
+      font-size: 10pt;
+      color: #666;
+    }
+    
+    @top-right {
+      content: counter(page) " / " counter(pages);
+      font-size: 10pt;
+      color: #666;
+    }
+  }
+
+  /* Reset des styles pour l'impression */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Masquer les éléments non imprimables */
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  /* Layout spécifique impression */
+  .print\\:p-0 {
+    padding: 0 !important;
+  }
+
+  .print\\:m-0 {
+    margin: 0 !important;
+  }
+
+  .print\\:mt-8 {
+    margin-top: 2rem !important;
+  }
+
+  .print\\:space-y-4 > * + * {
+    margin-top: 1rem !important;
+  }
+
+  .print\\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  /* Styles pour les cartes en impression */
+  .print .card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 1rem;
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* Styles pour les graphiques */
+  .recharts-wrapper {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Styles pour les tableaux */
+  table {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Amélioration de la lisibilité */
+  body {
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    color: #000 !important;
+    background: white !important;
+  }
+
+  h1 {
+    font-size: 18pt !important;
+    margin-bottom: 0.5rem !important;
+    color: #000 !important;
+  }
+
+  h2, h3 {
+    font-size: 14pt !important;
+    margin-bottom: 0.25rem !important;
+    color: #000 !important;
+  }
+
+  h4 {
+    font-size: 12pt !important;
+    margin-bottom: 0.25rem !important;
+    color: #000 !important;
+  }
+
+  /* Espacement des sections */
+  .print-section {
+    margin-bottom: 1.5rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Éviter les coupures dans les éléments importants */
+  .kpi-cards,
+  .chart-container,
+  .table-container {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Styles pour les couleurs en impression */
+  .text-green-600,
+  .text-green-700 {
+    color: #059669 !important;
+  }
+
+  .text-red-600,
+  .text-red-700 {
+    color: #dc2626 !important;
+  }
+
+  .text-blue-600,
+  .text-blue-700 {
+    color: #2563eb !important;
+  }
+
+  .text-orange-600,
+  .text-orange-700 {
+    color: #ea580c !important;
+  }
+
+  /* Styles pour les arrière-plans */
+  .bg-green-100 {
+    background-color: #dcfce7 !important;
+  }
+
+  .bg-red-100 {
+    background-color: #fee2e2 !important;
+  }
+
+  .bg-orange-100 {
+    background-color: #fed7aa !important;
+  }
+
+  .bg-blue-100 {
+    background-color: #dbeafe !important;
+  }
+
+  /* Styles pour les bordures */
+  .border-l-green-500 {
+    border-left-color: #10b981 !important;
+  }
+
+  .border-l-red-500 {
+    border-left-color: #ef4444 !important;
+  }
+
+  .border-l-blue-500 {
+    border-left-color: #3b82f6 !important;
+  }
+
+  .border-l-orange-500 {
+    border-left-color: #f97316 !important;
+  }
+
+  /* Optimisation pour les graphiques Recharts */
+  .recharts-surface {
+    background: white !important;
+  }
+
+  .recharts-cartesian-grid line {
+    stroke: #e5e7eb !important;
+  }
+
+  .recharts-text {
+    fill: #374151 !important;
+    font-size: 10pt !important;
+  }
+
+  /* Amélioration des contrastes pour l'impression */
+  .text-gray-500,
+  .text-gray-600 {
+    color: #4b5563 !important;
+  }
+
+  .text-gray-700 {
+    color: #374151 !important;
+  }
+
+  .text-gray-900 {
+    color: #111827 !important;
+  }
+
+  /* Éviter les coupures de page dans les sections importantes */
+  .financial-summary,
+  .budget-table,
+  .category-breakdown,
+  .savings-goals,
+  .ai-summary {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Espacement vertical pour une meilleure lisibilité */
+  .grid {
+    gap: 1rem !important;
+  }
+
+  /* Styles pour les badges et pills */
+  .badge,
+  .pill {
+    border: 1px solid #d1d5db !important;
+    background: white !important;
+    color: #374151 !important;
+  }
+
+  /* Amélioration des tableaux pour l'impression */
+  table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f3f4f6 !important; /* gris clair */
+    border-bottom: 2px solid #cbd5e1 !important;
+    font-weight: 700 !important;
+    z-index: 1;
+  }
+
+  table td {
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+
+  /* Fond alterné léger pour lignes données */
+  tr:nth-child(even) td {
+    background-color: #fff7ed !important; /* orange-50 */
+  }
+
+  /* Styles pour le footer */
+  .report-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    padding: 0.5rem;
+    font-size: 9pt;
+    color: #6b7280;
+  }
+
+  /* Deux colonnes équilibrées pour sections jumelles si besoin */
+  .two-columns {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1.25rem !important;
+  }
+
+  /* Titres de section orange soutenus */
+  .section-title-orange {
+    color: #f97316 !important; /* orange-500 */
+    border-bottom: 3px solid #f97316 !important;
+    padding-bottom: 0.25rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+}
