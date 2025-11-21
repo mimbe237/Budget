@@ -15,13 +15,19 @@ import 'package:flutter/foundation.dart'
 /// );
 /// ```
 class DefaultFirebaseOptions {
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyB1TtBmWvMUSlMLweCjQOrsxUermQM7TcU',
+    appId: '1:830482913404:web:354d9ea847bd83526d51f9',
+    messagingSenderId: '830482913404',
+    projectId: 'budget-pro-8e46f',
+    authDomain: 'budget-pro-8e46f.firebaseapp.com',
+    storageBucket: 'budget-pro-8e46f.firebasestorage.app',
+    measurementId: 'G-M387Q04KK0',
+  );
+
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      // TODO: Replace with your Web Firebase options
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
