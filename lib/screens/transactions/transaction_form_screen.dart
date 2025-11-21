@@ -3,8 +3,10 @@ import '../../models/account.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../models/category.dart';
 import '../../services/mock_data_service.dart';
-// import '../../services/firestore_service.dart'; // Décommenter pour Firebase
+import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
+import '../auth/auth_screen.dart';
+import '../accounts/account_management_screen.dart';
 
 /// Formulaire pour ajouter une transaction (dépense ou revenu)
 /// Type déterminé par le paramètre transactionType: 'expense' ou 'income'
@@ -23,7 +25,7 @@ class TransactionFormScreen extends StatefulWidget {
 class _TransactionFormScreenState extends State<TransactionFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _mockService = MockDataService();
-  // final _firestoreService = FirestoreService(); // Décommenter pour Firebase
+  final _firestoreService = FirestoreService();
 
   // Variables du formulaire
   double _amount = 0.0;
@@ -44,21 +46,36 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     _loadData();
   }
 
-  void _loadData() {
-    // Charger les données mockées (remplacer par des streams Firebase)
-    _accounts = _mockService.getMockAccounts();
-    _categories = _mockService.getMockCategories()
-        .where((cat) => cat.type == _getCategoryTypeFromTransaction())
-        .toList();
-    
-    if (_accounts.isNotEmpty) {
-      _selectedAccountId = _accounts.first.accountId;
+  Future<void> _loadData() async {
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      // Fallback sur mock si pas connecté (pour dev)
+      _accounts = _mockService.getMockAccounts();
+      _categories = _mockService.getMockCategories()
+          .where((cat) => cat.type == _getCategoryTypeFromTransaction())
+          .toList();
+    } else {
+      try {
+        _accounts = await _firestoreService.getAccounts(userId);
+        _categories = await _firestoreService.getCategories(
+          userId, 
+          type: _getCategoryTypeFromTransaction()
+        );
+      } catch (e) {
+        debugPrint('Erreur chargement données: $e');
+      }
     }
-    if (_categories.isNotEmpty) {
-      _selectedCategoryId = _categories.first.categoryId;
-    }
     
-    setState(() {});
+    if (mounted) {
+      setState(() {
+        if (_accounts.isNotEmpty && _selectedAccountId == null) {
+          _selectedAccountId = _accounts.first.accountId;
+        }
+        if (_categories.isNotEmpty && _selectedCategoryId == null) {
+          _selectedCategoryId = _categories.first.categoryId;
+        }
+      });
+    }
   }
 
   CategoryType _getCategoryTypeFromTransaction() {
@@ -90,9 +107,17 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Future<void> _saveTransaction() async {
     if (!_formKey.currentState!.validate()) return;
     
-    if (_selectedAccountId == null) {
+    if (_accounts.isEmpty || _selectedAccountId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez sélectionner un compte')),
+        const SnackBar(content: Text('Veuillez créer ou sélectionner un compte avant d\'enregistrer.')),
+      );
+      return;
+    }
+
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vous devez être connecté pour ajouter une transaction.')),
       );
       return;
     }
@@ -107,12 +132,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
 
     try {
-      // MODE MOCK (pour développement sans Firebase)
-      await Future.delayed(const Duration(milliseconds: 800)); // Simuler le délai réseau
-      
-      /* MODE FIREBASE (décommenter quand prêt)
+      // MODE FIREBASE uniquement (on a validé userId plus haut)
       await _firestoreService.addTransaction(
-        userId: _mockService.mockUserId,
+        userId: userId,
         accountId: _selectedAccountId!,
         categoryId: _selectedCategoryId,
         type: widget.transactionType,
@@ -122,7 +144,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         date: _selectedDate,
         tags: _tags.isEmpty ? null : _tags,
       );
-      */
       
       if (mounted) {
         Navigator.of(context).pop(); // Fermer le loader
@@ -164,6 +185,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isLoggedIn = _firestoreService.currentUserId != null;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -182,6 +204,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(24.0),
           children: [
+            if (!isLoggedIn)
+              _buildAuthBanner(context),
+            if (!isLoggedIn)
+              const SizedBox(height: 16),
             // Montant (Champ principal)
             _buildAmountField(),
             const SizedBox(height: 24),
@@ -212,6 +238,47 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
             // Bouton de Sauvegarde
             _buildSaveButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAuthBanner(BuildContext context) {
+    return Card(
+      color: Colors.orange[50],
+      shape: RoundedRectangleBorder(borderRadius: AppDesign.mediumRadius),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.lock_open, color: Colors.orange),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Connexion requise',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Connectez-vous pour enregistrer des revenus ou dépenses.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                );
+              },
+              child: const Text('Se connecter'),
+            ),
           ],
         ),
       ),
@@ -277,11 +344,32 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     if (_accounts.isEmpty) {
       return Card(
         color: Colors.red[50],
-        child: const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'Aucun compte disponible. Créez-en un d\'abord.',
-            style: TextStyle(color: Colors.red),
+        shape: RoundedRectangleBorder(borderRadius: AppDesign.mediumRadius),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Aucun compte disponible. Créez-en un d\'abord.',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AccountManagementScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add_circle_outline, color: Colors.red),
+                label: const Text('Créer', style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
         ),
       );

@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_design.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../auth/auth_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../accounts/account_management_screen.dart';
 import '../budget/budget_planner_screen.dart';
 import '../transactions/transaction_form_screen.dart';
-import '../goals/goal_funding_screen.dart';
-import '../ious/iou_tracking_screen.dart';
+import '../goals/goal_funding_screen.dart' show CreateGoalModal;
+import '../ious/iou_tracking_screen.dart' show AddIOUModal;
 import '../settings/notification_settings_screen.dart';
 import '../ai_analysis/ai_analysis_screen.dart';
-import '../profile/profile_settings_screen.dart';
 import '../../models/transaction.dart' as app_transaction;
 
 /// Shell de navigation principal avec BottomNavigationBar et menu d'actions rapides
@@ -20,33 +21,33 @@ class MainNavigationShell extends StatefulWidget {
 }
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
-  int _currentIndex = 0;
+  int _selectedNavIndex = 0;
 
-  // Liste des écrans principaux (5 onglets)
-  final List<Widget> _screens = [
-    const DashboardScreen(),           // 0: Accueil
-    const AccountManagementScreen(),   // 1: Comptes
-    const BudgetPlannerScreen(),       // 2: Budget
-    const AIAnalysisScreen(),          // 3: Analyse IA
-    const ProfileSettingsScreen(),     // 4: Profil
+  // Aligne exactement les index avec la BottomNavigationBar (5 items, slot 2 réservé au FAB)
+  final List<Widget> _stackScreens = const [
+    DashboardScreen(),               // 0 Accueil
+    AccountManagementScreen(),       // 1 Comptes
+    SizedBox.shrink(),               // 2 emplacement FAB (non utilisé)
+    BudgetPlannerScreen(),           // 3 Budget
+    AIAnalysisScreen(),              // 4 Analyse IA
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+        index: _selectedNavIndex,
+        children: _stackScreens,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
+        currentIndex: _selectedNavIndex,
         onTap: (index) {
           // Gérer le clic sur les items (skip l'index 2 car c'est le FAB)
           if (index == 2) {
             _showQuickActionsMenu(context);
           } else {
             setState(() {
-              _currentIndex = index;
+              _selectedNavIndex = index;
             });
           }
         },
@@ -78,8 +79,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             label: 'Budget',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.auto_graph_outlined),
-            activeIcon: Icon(Icons.auto_graph_rounded),
+            icon: Icon(Icons.smart_toy_outlined),
+            activeIcon: Icon(Icons.smart_toy_rounded),
             label: 'Analyse IA',
           ),
         ],
@@ -151,148 +152,182 @@ class QuickActionsMenu extends StatelessWidget {
         ],
       ),
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar (poignée pour glisser)
-            Container(
-              margin: const EdgeInsets.only(top: 14),
-              width: 48,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-            
-            // En-tête
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: MediaQuery.of(context).viewInsets,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar (poignée pour glisser)
+                Container(
+                  margin: const EdgeInsets.only(top: 14),
+                  width: 48,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                
+                // En-tête
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Actions Rapides',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.5,
-                        ),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Actions Rapides',
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Que souhaitez-vous faire ?',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Que souhaitez-vous faire ?',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w500,
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: () => Navigator.pop(context),
+                          color: Colors.grey[700],
                         ),
                       ),
                     ],
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      shape: BoxShape.circle,
+                ),
+                
+                // Liste des actions
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                  child: Column(
+                    children: [
+                      _buildActionCard(
+                        context: context,
+                        icon: Icons.trending_up_rounded,
+                        iconColor: AppDesign.incomeColor,
+                        iconBackgroundColor: AppDesign.incomeColor.withOpacity(0.12),
+                        title: 'Revenu',
+                        description: 'Enregistrez un nouveau revenu...',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.microtask(() {
+                            Navigator.of(context, rootNavigator: true).push(
+                              MaterialPageRoute(
+                                builder: (ctx) => const TransactionFormScreen(
+                                  transactionType: app_transaction.TransactionType.income,
+                                ),
+                              ),
+                            );
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      _buildActionCard(
+                        context: context,
+                        icon: Icons.trending_down_rounded,
+                        iconColor: AppDesign.expenseColor,
+                        iconBackgroundColor: AppDesign.expenseColor.withOpacity(0.12),
+                        title: 'Dépense',
+                        description: 'Suivez instantanément une dépense...',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.microtask(() {
+                            Navigator.of(context, rootNavigator: true).push(
+                              MaterialPageRoute(
+                                builder: (ctx) => const TransactionFormScreen(
+                                  transactionType: app_transaction.TransactionType.expense,
+                                ),
+                              ),
+                            );
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      _buildActionCard(
+                        context: context,
+                        icon: Icons.flag_rounded,
+                        iconColor: AppDesign.primaryPurple,
+                        iconBackgroundColor: AppDesign.primaryPurple.withOpacity(0.12),
+                        title: 'Objectif',
+                        description: 'Définissez un objectif d\'épargne...',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.microtask(() {
+                            showModalBottomSheet(
+                              context: context,
+                              useRootNavigator: true,
+                              isScrollControlled: true,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                              ),
+                              builder: (modalCtx) => CreateGoalModal(
+                                onGoalCreated: (_) {
+                                  Navigator.pop(modalCtx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Objectif créé avec succès')),
+                                  );
+                                },
+                              ),
+                            );
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      _buildActionCard(
+                        context: context,
+                        icon: Icons.handshake_rounded,
+                        iconColor: const Color(0xFFFB8C00),
+                        iconBackgroundColor: const Color(0xFFFB8C00).withOpacity(0.12),
+                        title: 'Dettes',
+                        description: 'Enregistrez un nouvel emprunt...',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.microtask(() {
+                            showModalBottomSheet(
+                              context: context,
+                              useRootNavigator: true,
+                              isScrollControlled: true,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                              ),
+                              builder: (modalCtx) => AddIOUModal(
+                                onIOUAdded: (_) {
+                                  Navigator.pop(modalCtx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Dette/Créance enregistrée')),
+                                  );
+                                },
+                              ),
+                          );
+                        });
+                      },
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      onPressed: () => Navigator.pop(context),
-                      color: Colors.grey[700],
-                    ),
+                      const SizedBox(height: 14),
+                      _buildLogoutButton(context),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 24),
+              ],
             ),
-            
-            // Liste des actions
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-              child: Column(
-                children: [
-                  _buildActionCard(
-                    context: context,
-                    icon: Icons.trending_up_rounded,
-                    iconColor: AppDesign.incomeColor,
-                    iconBackgroundColor: AppDesign.incomeColor.withOpacity(0.12),
-                    title: 'Revenu',
-                    description: 'Enregistrez un nouveau revenu...',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TransactionFormScreen(
-                            transactionType: app_transaction.TransactionType.income,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  _buildActionCard(
-                    context: context,
-                    icon: Icons.trending_down_rounded,
-                    iconColor: AppDesign.expenseColor,
-                    iconBackgroundColor: AppDesign.expenseColor.withOpacity(0.12),
-                    title: 'Dépense',
-                    description: 'Suivez instantanément une dépense...',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TransactionFormScreen(
-                            transactionType: app_transaction.TransactionType.expense,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  _buildActionCard(
-                    context: context,
-                    icon: Icons.flag_rounded,
-                    iconColor: AppDesign.primaryPurple,
-                    iconBackgroundColor: AppDesign.primaryPurple.withOpacity(0.12),
-                    title: 'Objectif',
-                    description: 'Définissez un objectif d\'épargne...',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const GoalFundingScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  _buildActionCard(
-                    context: context,
-                    icon: Icons.handshake_rounded,
-                    iconColor: const Color(0xFFFF9800),
-                    iconBackgroundColor: const Color(0xFFFF9800).withOpacity(0.12),
-                    title: 'Dettes',
-                    description: 'Enregistrez un nouvel emprunt...',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const IOUTrackingScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
+          ),
         ),
       ),
     );
@@ -380,6 +415,92 @@ class QuickActionsMenu extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.logout, color: AppDesign.expenseColor),
+        label: const Text(
+          'Se déconnecter',
+          style: TextStyle(
+            color: AppDesign.expenseColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: const BorderSide(color: AppDesign.expenseColor),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        onPressed: () async {
+          Navigator.pop(context);
+          await FirebaseAuth.instance.signOut();
+          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const AuthScreen()),
+            (route) => false,
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Placeholder simple pour l'onglet Profil (à remplacer par un futur écran dédié)
+class ProfilePlaceholderScreen extends StatelessWidget {
+  const ProfilePlaceholderScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppDesign.backgroundGrey,
+      appBar: AppBar(
+        title: const Text(
+          'Profil',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppDesign.primaryIndigo,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Center(
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.person_outline_rounded, size: 48, color: AppDesign.primaryIndigo),
+              SizedBox(height: 12),
+              Text(
+                'Profil à venir',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Cet écran sera bientôt personnalisé pour vous.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
           ),
         ),
       ),

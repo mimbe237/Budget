@@ -68,6 +68,15 @@ class FirestoreService {
     }
   }
 
+  /// Variante: crée un profil à partir d'un modèle UserProfile complet
+  Future<void> createUserProfileFromModel(UserProfile user) async {
+    try {
+      await _usersCollection.doc(user.userId).set(user.toMap());
+    } catch (e) {
+      throw Exception('Erreur lors de la création du profil utilisateur: $e');
+    }
+  }
+
   /// Obtenir le profil utilisateur
   Future<UserProfile?> getUserProfile(String userId) async {
     try {
@@ -233,6 +242,25 @@ class FirestoreService {
     }
   }
 
+  /// Met à jour le solde d'un compte (incrément ou décrément)
+  Future<void> updateAccountBalance(String userId, String accountId, double amount) async {
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final accountRef = _accountsCollection(userId).doc(accountId);
+        final snapshot = await transaction.get(accountRef);
+        if (!snapshot.exists) {
+          throw Exception('Compte introuvable');
+        }
+        transaction.update(accountRef, {
+          'balance': FieldValue.increment(amount),
+          'updatedAt': Timestamp.fromDate(DateTime.now()),
+        });
+      });
+    } catch (e) {
+      throw Exception('Erreur lors de la mise à jour du solde: $e');
+    }
+  }
+
   /// Supprimer (désactiver) un compte
   Future<void> deleteAccount(String userId, String accountId) async {
     try {
@@ -395,6 +423,29 @@ class FirestoreService {
         );
       }).toList();
     });
+  }
+
+  /// Wrapper: transactions récentes pour le dashboard
+  Stream<List<app_transaction.Transaction>> getRecentTransactionsStream(
+    String userId, {
+    int limit = 10,
+  }) {
+    return getTransactionsStream(userId, limit: limit);
+  }
+
+  /// Wrapper: transactions du mois courant (pour budget)
+  Stream<List<app_transaction.Transaction>> getMonthlyTransactionsStream(
+    String userId, {
+    int limit = 500,
+  }) {
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    return getTransactionsStream(
+      userId,
+      startDate: startOfMonth,
+      endDate: now,
+      limit: limit,
+    );
   }
 
   /// Obtenir les transactions (fetch ponctuel, filtrable)
@@ -1194,21 +1245,21 @@ class FirestoreService {
       final goals = await getGoals(userId);
       final ious = await getIOUsStream(userId).first;
 
-      final totalBalance = accounts.fold(0.0, (sum, acc) => sum + acc.balance);
+      final totalBalance = accounts.fold(0.0, (currentSum, acc) => currentSum + acc.balance);
       
       final totalIncome = transactions
           .where((t) => t.type == app_transaction.TransactionType.income)
-          .fold(0.0, (sum, t) => sum + t.amount);
+          .fold(0.0, (currentSum, t) => currentSum + t.amount);
       
       final totalExpenses = transactions
           .where((t) => t.type == app_transaction.TransactionType.expense)
-          .fold(0.0, (sum, t) => sum + t.amount);
+          .fold(0.0, (currentSum, t) => currentSum + t.amount);
 
-      final totalGoalsAmount = goals.fold(0.0, (sum, g) => sum + g.currentAmount);
+      final totalGoalsAmount = goals.fold(0.0, (currentSum, g) => currentSum + g.currentAmount);
       
       final totalDebt = ious
           .where((iou) => iou.type == IOUType.payable)
-          .fold(0.0, (sum, iou) => sum + (iou.amount - iou.paidAmount));
+          .fold(0.0, (currentSum, iou) => currentSum + (iou.amount - iou.paidAmount));
 
       return {
         'totalBalance': totalBalance,

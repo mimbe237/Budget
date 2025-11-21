@@ -5,6 +5,7 @@ import '../../services/mock_data_service.dart';
 import '../../models/user_profile.dart';
 import '../settings/notification_settings_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
+import '../onboarding/onboarding_wizard_screen.dart';
 
 /// Écran de profil et paramètres utilisateur
 /// Affiche les informations du profil et permet de gérer les préférences
@@ -310,7 +311,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               style: TextStyle(fontSize: 13),
             ),
             value: _dailyReminderEnabled,
-            activeColor: AppDesign.primaryIndigo,
+            activeTrackColor: AppDesign.primaryIndigo,
+            activeThumbColor: AppDesign.primaryIndigo,
             onChanged: (value) async {
               setState(() {
                 _dailyReminderEnabled = value;
@@ -364,7 +366,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               style: TextStyle(fontSize: 13),
             ),
             value: _budgetAlertsEnabled,
-            activeColor: AppDesign.primaryIndigo,
+            activeTrackColor: AppDesign.primaryIndigo,
+            activeThumbColor: AppDesign.primaryIndigo,
             onChanged: (value) async {
               setState(() {
                 _budgetAlertsEnabled = value;
@@ -416,7 +419,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               style: TextStyle(fontSize: 13),
             ),
             value: _goalAlertsEnabled,
-            activeColor: AppDesign.primaryIndigo,
+            activeTrackColor: AppDesign.primaryIndigo,
+            activeThumbColor: AppDesign.primaryIndigo,
             onChanged: (value) async {
               setState(() {
                 _goalAlertsEnabled = value;
@@ -707,64 +711,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
   }
 
-  /// Section admin (conditionnelle) - OLD VERSION TO REMOVE
-  Widget _buildAdminSectionOLD() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppDesign.expenseColor.withOpacity(0.3), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: AppDesign.expenseColor.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppDesign.expenseColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Icon(
-            Icons.admin_panel_settings,
-            color: AppDesign.expenseColor,
-            size: 24,
-          ),
-        ),
-        title: const Text(
-          'Admin Panel OLD',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: AppDesign.expenseColor,
-          ),
-        ),
-        subtitle: const Text(
-          'Accès au tableau de bord administrateur',
-          style: TextStyle(fontSize: 13),
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: AppDesign.expenseColor,
-        ),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('🔧 AdminDashboardScreen à venir (Module 7)'),
-              backgroundColor: AppDesign.expenseColor,
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   /// Bouton de déconnexion
   Widget _buildLogoutButton() {
     return Container(
@@ -994,25 +940,17 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       ),
     );
 
-    if (confirmed == true && mounted) {
+    if (confirmed == true) {
       // Annuler toutes les notifications
       await _notificationService.cancelAllNotifications();
       
-      // TODO: Naviguer vers OnboardingWizardScreen (Module 1)
-      // Pour l'instant, afficher un message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Déconnexion réussie. Retour au login...'),
-          backgroundColor: AppDesign.primaryIndigo,
-          duration: Duration(seconds: 2),
-        ),
+      if (!mounted) return;
+
+      // Naviguer vers OnboardingWizardScreen (Module 1)
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const OnboardingWizardScreen()),
+        (route) => false,
       );
-      
-      // En production, faire :
-      // Navigator.of(context).pushAndRemoveUntil(
-      //   MaterialPageRoute(builder: (context) => const OnboardingWizardScreen()),
-      //   (route) => false,
-      // );
     }
   }
 }

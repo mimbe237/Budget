@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../../constants/app_design.dart';
 import '../../models/models.dart';
 import '../../services/firestore_service.dart';
-import '../../services/mock_data_service.dart';
 import '../accounts/account_management_screen.dart';
 import '../budget/budget_planner_screen.dart';
 import '../goals/goal_funding_screen.dart';
@@ -16,14 +15,13 @@ class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   static final FirestoreService _firestoreService = FirestoreService();
-  static final MockDataService _mockDataService = MockDataService();
   static final NumberFormat _currencyFormat =
       NumberFormat.currency(locale: 'fr_FR', symbol: '€', decimalDigits: 2);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppDesign.backgroundGrey,
+      backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
         title: const Text(
           'Accueil & Dashboard',
@@ -74,7 +72,7 @@ class DashboardScreen extends StatelessWidget {
           if (!isWide) {
             return SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(AppDesign.paddingMedium),
+                padding: const EdgeInsets.all(AppDesign.spacingLarge),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: _buildMobileSections(context),
@@ -84,7 +82,7 @@ class DashboardScreen extends StatelessWidget {
           }
 
           return Padding(
-            padding: const EdgeInsets.all(AppDesign.paddingMedium),
+            padding: const EdgeInsets.all(AppDesign.spacingLarge),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -201,47 +199,80 @@ class DashboardScreen extends StatelessWidget {
 
   /// Carte affichant le solde total de tous les comptes
   Widget _buildTotalBalanceCard() {
-    final accounts = _mockDataService.getMockAccounts();
-    final totalBalance = _mockDataService.getTotalBalance();
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      return _placeholderCard(
+        title: 'Total Net',
+        message: 'Connectez-vous pour voir vos comptes.',
+      );
+    }
 
-    return Card(
-      color: AppDesign.primaryIndigo,
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppDesign.paddingLarge),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Total Net',
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${totalBalance.toStringAsFixed(2)} €',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 36,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${accounts.length} compte(s)',
-                  style: const TextStyle(color: Colors.white60, fontSize: 14),
-                ),
-              ],
+    return StreamBuilder<List<Account>>(
+      stream: _firestoreService.getAccountsStream(userId),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _placeholderCard(
+            title: 'Total Net',
+            message: 'Erreur lors du chargement des comptes.',
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final accounts = snapshot.data!;
+        final totalBalance = accounts.fold<double>(0.0, (sum, acc) => sum + acc.balance);
+
+        return Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF5E35B1), Color(0xFF3D4DB7)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            const Icon(Icons.show_chart, color: Colors.white, size: 50),
-          ],
-        ),
-      ),
+            borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+            boxShadow: AppDesign.mediumShadow,
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Total Net',
+                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '${totalBalance.toStringAsFixed(2)} €',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 38,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '${accounts.length} compte(s)',
+                    style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.show_chart, color: Colors.white, size: 44),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -253,7 +284,7 @@ class DashboardScreen extends StatelessWidget {
           return Card(
             elevation: 4,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+              borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
             ),
             child: const Padding(
               padding: EdgeInsets.all(AppDesign.paddingLarge),
@@ -266,7 +297,7 @@ class DashboardScreen extends StatelessWidget {
           return Card(
             elevation: 4,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+              borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
             ),
             child: const Padding(
               padding: EdgeInsets.all(AppDesign.paddingLarge),
@@ -283,56 +314,56 @@ class DashboardScreen extends StatelessWidget {
         final color = isPositive ? AppDesign.incomeColor : AppDesign.expenseColor;
         final icon = isPositive ? Icons.trending_up : Icons.trending_down;
 
-        return Card(
-          elevation: 6,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+            boxShadow: AppDesign.mediumShadow,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(AppDesign.paddingMedium),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: color),
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Projection du solde net (fin de mois)',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Projection du solde net (fin de mois)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        _currencyFormat.format(
-                            projection.estimatedEndOfMonthBalance),
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _currencyFormat.format(
+                          projection.estimatedEndOfMonthBalance),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Charges fixes restantes : ${_currencyFormat.format(projection.upcomingFixedExpensesTotal)}',
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Charges fixes restantes : ${_currencyFormat.format(projection.upcomingFixedExpensesTotal)}',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
                 ),
-                Icon(Icons.chevron_right, color: color.withOpacity(0.6)),
-              ],
-            ),
+              ),
+              Icon(Icons.chevron_right, color: color.withOpacity(0.6)),
+            ],
           ),
         );
       },
@@ -344,185 +375,220 @@ class DashboardScreen extends StatelessWidget {
     if (userId != null) {
       return _firestoreService.predictEndOfMonthBalance(userId: userId);
     }
-    return _mockDataService.getMockProjection();
+    return const ProjectionResult(
+      estimatedEndOfMonthBalance: 0,
+      upcomingFixedExpensesTotal: 0,
+      exceptionalTransactions: [],
+    );
   }
 
   /// Grille des indicateurs mensuels (revenus, dépenses, reste, objectifs)
   Widget _buildMonthlyInsightCards(BuildContext context) {
-    final mockService = _mockDataService;
-    final transactions = mockService.getMockTransactions();
-    
-    // Calcul des totaux du mois en cours
     final now = DateTime.now();
-    final thisMonth = transactions.where((tx) => 
-      tx.date.month == now.month && tx.date.year == now.year
-    );
-    
-    double income = 0.0;
-    double expense = 0.0;
-    
-    for (var tx in thisMonth) {
-      if (tx.type == TransactionType.income) {
-        income += tx.amount;
-      } else if (tx.type == TransactionType.expense) {
-        expense += tx.amount;
-      }
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final userId = _firestoreService.currentUserId;
+
+    if (userId == null) {
+      return _placeholderCard(
+        title: 'Performance mensuelle',
+        message: 'Connectez-vous pour voir vos statistiques.',
+      );
     }
-    
-    final remaining = income - expense;
-    final targetAmount = 2500.0; // TODO: Récupérer de la config utilisateur
+
+    return StreamBuilder<List<Transaction>>(
+      stream: _firestoreService.getTransactionsStream(
+        userId,
+        startDate: startOfMonth,
+        endDate: now,
+        limit: 300,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _placeholderCard(
+            title: 'Performance mensuelle',
+            message: 'Erreur de chargement des transactions.',
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        double income = 0.0;
+        double expense = 0.0;
+
+        for (final tx in snapshot.data!) {
+          if (tx.type == TransactionType.income) {
+            income += tx.amount;
+          } else if (tx.type == TransactionType.expense) {
+            expense += tx.amount;
+          }
+        }
+
+        final remaining = income - expense;
+        const targetAmount = 2500.0; // TODO: Récupérer de la config utilisateur
 
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       childAspectRatio: 1.5,
-      mainAxisSpacing: AppDesign.spacingSmall,
-      crossAxisSpacing: AppDesign.spacingSmall,
+      mainAxisSpacing: AppDesign.spacingMedium,
+      crossAxisSpacing: AppDesign.spacingMedium,
       children: [
         _InsightCard(
           title: 'Revenu',
           amount: income,
           icon: Icons.add_circle_outline,
-          color: AppDesign.incomeColor,
-        ),
-        _InsightCard(
-          title: 'Dépense',
-          amount: expense,
-          icon: Icons.remove_circle_outline,
-          color: AppDesign.expenseColor,
-        ),
-        _InsightCard(
-          title: 'Reste à budgétiser',
-          amount: remaining,
-          icon: remaining >= 0 ? Icons.check_circle_outline : Icons.warning_amber,
-          color: remaining >= 0 ? Colors.blueAccent : Colors.orange,
-        ),
-        InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const GoalFundingScreen(),
+              color: AppDesign.incomeColor,
+            ),
+            _InsightCard(
+              title: 'Dépense',
+              amount: expense,
+              icon: Icons.remove_circle_outline,
+              color: AppDesign.expenseColor,
+            ),
+            _InsightCard(
+              title: 'Reste à budgétiser',
+              amount: remaining,
+              icon: remaining >= 0 ? Icons.check_circle_outline : Icons.warning_amber,
+              color: remaining >= 0 ? Colors.blueAccent : Colors.orange,
+            ),
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const GoalFundingScreen(),
+                  ),
+                );
+              },
+              child: const _InsightCard(
+                title: 'Objectifs financés',
+                amount: targetAmount,
+                icon: Icons.auto_graph,
+                color: AppDesign.primaryPurple,
               ),
-            );
-          },
-          child: _InsightCard(
-            title: 'Objectifs financés',
-            amount: targetAmount,
-            icon: Icons.auto_graph,
-            color: AppDesign.primaryPurple,
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 
   /// Liste des transactions récentes avec icônes et montants colorés
   Widget _buildRecentTransactionsList() {
-    final mockService = _mockDataService;
-    final transactions = mockService.getRecentTransactions(limit: 5);
+    final userId = _firestoreService.currentUserId;
 
-    if (transactions.isEmpty) {
-      return Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
-        ),
-        child: const Padding(
-          padding: EdgeInsets.all(AppDesign.paddingLarge),
-          child: Center(
-            child: Text("Aucune transaction récente. Ajoutez-en une !"),
-          ),
-        ),
+    if (userId == null) {
+      return _placeholderCard(
+        title: 'Transactions récentes',
+        message: 'Connectez-vous pour voir vos transactions.',
       );
     }
 
-    final categories = mockService.getMockCategories();
-    
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+    return StreamBuilder<List<Transaction>>(
+      stream: _firestoreService.getTransactionsStream(
+        userId,
+        limit: 20,
       ),
-      child: Column(
-        children: transactions.map((tx) {
-          final isExpense = tx.type == TransactionType.expense;
-          final isIncome = tx.type == TransactionType.income;
-          
-          // Trouver la catégorie pour l'icône
-          final category = categories.firstWhere(
-            (cat) => cat.categoryId == tx.categoryId,
-            orElse: () => Category(
-              categoryId: 'unknown',
-              userId: '',
-              name: 'Autre',
-              icon: '❓',
-              color: '#9E9E9E',
-              type: CategoryType.expense,
-              isDefault: false,
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            ),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _placeholderCard(
+            title: 'Transactions récentes',
+            message: 'Erreur de chargement.',
           );
-          
-          Color txColor;
-          IconData txIcon;
-          String prefix;
-          
-          if (isIncome) {
-            txColor = AppDesign.incomeColor;
-            txIcon = Icons.arrow_upward;
-            prefix = '+';
-          } else if (tx.type == TransactionType.transfer) {
-            txColor = AppDesign.transferColor;
-            txIcon = Icons.swap_horiz;
-            prefix = '';
-          } else {
-            txColor = AppDesign.expenseColor;
-            txIcon = Icons.arrow_downward;
-            prefix = '-';
-          }
-          
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: txColor.withOpacity(0.1),
-              child: Text(
-                category.icon,
-                style: const TextStyle(fontSize: 20),
-              ),
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final transactions = snapshot.data!;
+        if (transactions.isEmpty) {
+          return Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
             ),
-            title: Text(
-              tx.description ?? '',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Text(
-              '${tx.date.day}/${tx.date.month}/${tx.date.year}',
-              style: const TextStyle(color: Colors.grey),
-            ),
-            trailing: Text(
-              '$prefix ${tx.amount.toStringAsFixed(2)} €',
-              style: TextStyle(
-                color: txColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+            child: const Padding(
+              padding: EdgeInsets.all(AppDesign.paddingLarge),
+              child: Center(
+                child: Text("Aucune transaction récente. Ajoutez-en une !"),
               ),
             ),
           );
-        }).toList(),
-      ),
+        }
+
+        return Card(
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+          ),
+          child: Column(
+            children: transactions.take(5).map((tx) {
+              final isExpense = tx.type == TransactionType.expense;
+              final isIncome = tx.type == TransactionType.income;
+
+              Color txColor;
+              IconData txIcon;
+              String prefix;
+              
+              if (isIncome) {
+                txColor = AppDesign.incomeColor;
+                txIcon = Icons.arrow_upward;
+                prefix = '+';
+              } else if (tx.type == TransactionType.transfer) {
+                txColor = AppDesign.transferColor;
+                txIcon = Icons.swap_horiz;
+                prefix = '';
+              } else {
+                txColor = AppDesign.expenseColor;
+                txIcon = Icons.arrow_downward;
+                prefix = '-';
+              }
+
+              final categoryIcon = tx.category ?? '💳';
+
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: txColor.withOpacity(0.1),
+                  child: Text(
+                    categoryIcon,
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                ),
+                title: Text(
+                  tx.description ?? '',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  '${tx.date.day}/${tx.date.month}/${tx.date.year}',
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                trailing: Text(
+                  '$prefix ${tx.amount.toStringAsFixed(2)} €',
+                  style: TextStyle(
+                    color: txColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      },
     );
   }
 
   /// Placeholder léger pour le graphique de répartition des dépenses
   Widget _buildSpendingChartPlaceholder() {
     return Card(
-      elevation: 4,
+      elevation: 6,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+        borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppDesign.paddingMedium),
+        padding: const EdgeInsets.all(20),
         child: Row(
           children: [
             Container(
@@ -560,14 +626,43 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNotificationsCard() {
+  Card _placeholderCard({required String title, required String message}) {
     return Card(
-      elevation: 4,
+      elevation: 6,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+        borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppDesign.paddingMedium),
+        padding: const EdgeInsets.all(AppDesign.spacingLarge),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationsCard() {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
@@ -609,10 +704,10 @@ class _InsightCard extends StatelessWidget {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+        borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppDesign.paddingMedium),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,

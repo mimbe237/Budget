@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/user_profile.dart';
 import '../../models/account.dart';
-import '../../services/mock_data_service.dart';
-// import '../services/firestore_service.dart'; // Décommenter quand Firebase est prêt
+import '../../services/firestore_service.dart';
 
 /// Écran d'onboarding wizard en 3 étapes
 /// Étape 1: Profil utilisateur (nom + devise)
@@ -19,9 +17,8 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   
-  // Service (basculer entre Mock et Firestore)
-  final _mockService = MockDataService();
-  // final _firestoreService = FirestoreService(); // Décommenter pour Firebase
+  // Service Firestore (Module 11)
+  final _firestoreService = FirestoreService();
   
   final _formKeyStep1 = GlobalKey<FormState>();
   final _formKeyStep3 = GlobalKey<FormState>();
@@ -32,19 +29,21 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   double _monthlyIncome = 0.0;
   
   // Liste des comptes initiaux
-  List<_AccountInput> _initialAccounts = [
+  final List<_AccountInput> _initialAccounts = [
     _AccountInput(name: 'Compte Courant', balance: 0.0, type: AccountType.checking, icon: '💳', color: '#4CAF50')
   ];
   
   // Allocation budgétaire (total doit faire 100%)
-  Map<String, double> _budgetAllocation = {
+  final Map<String, double> _budgetAllocation = {
     '🏠 Logement': 0.30,
     '🛒 Nourriture': 0.15,
     '🚘 Transport': 0.10,
-    '🎉 Loisirs': 0.10,
-    '🪙 Épargne': 0.10,
+    '📄 Factures/Abo': 0.05,
+    '💊 Santé': 0.05,
+    '🛡️ Épargne Sécurité': 0.10,
     '💡 Investissements': 0.10,
-    '🚨 Autres': 0.15
+    '🎉 Loisirs': 0.10,
+    '👨‍👩‍👧 Famille/Dons': 0.05,
   };
 
   void _nextPage() {
@@ -95,18 +94,8 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     );
 
     try {
-      // MODE MOCK (pour développement sans Firebase)
-      // En production, utiliser FirestoreService à la place
-      
-      // Simuler un délai de sauvegarde
-      await Future.delayed(const Duration(seconds: 1));
-      
-      /* MODE FIREBASE (décommenter quand prêt)
       // 1. Connexion anonyme
       final userId = await _firestoreService.signInAnonymously();
-      if (userId == null) {
-        throw Exception('Erreur de connexion');
-      }
       
       // 2. Créer le profil
       await _firestoreService.createUserProfile(
@@ -128,9 +117,12 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         );
       }
       
-      // 4. Sauvegarder le budget (à implémenter dans FirestoreService)
-      // await _firestoreService.saveBudgetPlan(userId, _monthlyIncome, _budgetAllocation);
-      */
+      // 4. Sauvegarder le budget (Module 5)
+      await _firestoreService.saveBudgetPlan(
+        userId: userId,
+        totalBudget: _monthlyIncome,
+        categoryAllocations: _budgetAllocation,
+      );
       
       // 5. Redirection vers l'app principale
       if (mounted) {
@@ -150,24 +142,32 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   }
 
   void _updateAllocation(String category, double newPercentage) {
-    // Logique Smart 100% : ajuste automatiquement "Autres"
+    // Logique Smart 100% : ajuste automatiquement "Loisirs" comme tampon
+    // Si on modifie "Loisirs", on ajuste "Investissements" ou un autre
+    
+    String bufferCategory = '🎉 Loisirs';
+    if (category == bufferCategory) {
+      bufferCategory = '💡 Investissements'; // Fallback si on modifie le tampon principal
+    }
+
     double oldPercentage = _budgetAllocation[category] ?? 0.0;
     double difference = newPercentage - oldPercentage;
     
-    String adjustKey = '🚨 Autres';
-    if (category == adjustKey) {
-      setState(() => _budgetAllocation[category] = newPercentage);
-      return;
+    double bufferValue = _budgetAllocation[bufferCategory]!;
+    double newBufferValue = bufferValue - difference;
+
+    // Ne pas autoriser si ça met le tampon en négatif
+    // On autorise une petite marge d'erreur pour les float
+    if (newBufferValue < -0.001) {
+      // Si on ne peut pas ajuster le tampon, on bloque ou on sature
+      // Ici on sature : on ne change que ce qui est possible
+      // Mais pour une UX fluide avec Slider, mieux vaut bloquer ou limiter
+      return; 
     }
-
-    double adjustValue = _budgetAllocation[adjustKey]! - difference;
-
-    // Ne pas autoriser si ça met "Autres" en négatif
-    if (adjustValue < 0 || adjustValue > 1.0) return;
 
     setState(() {
       _budgetAllocation[category] = newPercentage;
-      _budgetAllocation[adjustKey] = adjustValue;
+      _budgetAllocation[bufferCategory] = newBufferValue;
     });
   }
 
@@ -602,7 +602,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                   ),
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),

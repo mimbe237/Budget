@@ -190,7 +190,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 children: [
                   IconButton(
                     tooltip: 'Gérer le partage',
-                    icon: const Text('👥', style: TextStyle(fontSize: 20)),
+                    icon: const Icon(Icons.people, color: Colors.grey),
                     onPressed: () => _showShareAccountModal(account),
                   ),
                   IconButton(

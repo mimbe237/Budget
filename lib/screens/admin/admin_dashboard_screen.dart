@@ -1000,16 +1000,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       // Mettre à jour le statut dans la liste
       final index = _allUsers.indexWhere((u) => u.userId == user.userId);
       if (index != -1) {
-        _allUsers[index] = UserProfile(
-          userId: user.userId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          displayName: user.displayName,
-          currency: user.currency,
-          role: user.role,
+        _allUsers[index] = user.copyWith(
           status: newStatus,
-          createdAt: user.createdAt,
           updatedAt: DateTime.now(),
         );
       }

@@ -441,9 +441,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               activeColor: isOverBudget ? AppDesign.expenseColor : AppDesign.primaryIndigo,
               onChanged: (value) {
                 setState(() {
-                  _allocations[categoryKey] = value;
-                  _percentageControllers[categoryKey]!.text = (value * 100).toStringAsFixed(1);
-                  _amountControllers[categoryKey]!.text = (_totalIncome * value).toStringAsFixed(2);
+                  _adjustAllocations(categoryKey, value);
                 });
               },
             ),
@@ -464,7 +462,14 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,1}')),
                     ],
-                    onChanged: (value) => _onPercentageChanged(categoryKey, value),
+                    onChanged: (value) {
+                      final newPercentage = double.tryParse(value);
+                      if (newPercentage != null) {
+                        setState(() {
+                          _adjustAllocations(categoryKey, newPercentage / 100.0);
+                        });
+                      }
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -481,7 +486,14 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                     ],
-                    onChanged: (value) => _onAmountChanged(categoryKey, value),
+                    onChanged: (value) {
+                      final newAmount = double.tryParse(value);
+                      if (newAmount != null && _totalIncome > 0) {
+                        setState(() {
+                          _adjustAllocations(categoryKey, newAmount / _totalIncome);
+                        });
+                      }
+                    },
                   ),
                 ),
               ],
@@ -516,26 +528,58 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     );
   }
 
-  void _onPercentageChanged(String categoryKey, String value) {
-    final newPercentage = double.tryParse(value);
-    if (newPercentage != null) {
-      final percentageDecimal = newPercentage / 100.0;
-      setState(() {
-        _allocations[categoryKey] = percentageDecimal;
-        _amountControllers[categoryKey]!.text = (_totalIncome * percentageDecimal).toStringAsFixed(2);
-      });
+  void _adjustAllocations(String changedKey, double newValue) {
+    // 1. Calculer la différence
+    final oldValue = _allocations[changedKey] ?? 0.0;
+    final diff = newValue - oldValue;
+    
+    // Si pas de changement, on sort
+    if (diff.abs() < 0.0001) return;
+
+    // 2. Mettre à jour la valeur modifiée
+    _allocations[changedKey] = newValue;
+    _updateController(changedKey, newValue);
+
+    // 3. Calculer le reste à distribuer (pour que total = 1.0)
+    // On veut réduire les autres catégories de 'diff'
+    // Ex: Si on augmente de +0.10, on doit retirer 0.10 aux autres
+    
+    final otherKeys = _allocations.keys.where((k) => k != changedKey).toList();
+    if (otherKeys.isEmpty) return;
+
+    // Calculer le total des autres catégories
+    double othersTotal = 0.0;
+    for (var key in otherKeys) {
+      othersTotal += _allocations[key]!;
     }
+
+    // Si les autres sont à 0, on ne peut rien retirer -> on force le dépassement (ou on tape dans une catégorie tampon si on en avait une)
+    // Ici, on va essayer de répartir proportionnellement
+    
+    if (othersTotal > 0) {
+      for (var key in otherKeys) {
+        final currentVal = _allocations[key]!;
+        // Part de cette catégorie dans le total des "autres"
+        final share = currentVal / othersTotal;
+        
+        // On retire proportionnellement la différence
+        // Si diff est positif (augmentation), on retire. Si négatif (baisse), on ajoute.
+        double newVal = currentVal - (diff * share);
+        
+        // Protection contre les valeurs négatives
+        if (newVal < 0) newVal = 0;
+        
+        _allocations[key] = newVal;
+        _updateController(key, newVal);
+      }
+    }
+    
+    // Petit fix final pour les erreurs d'arrondi si besoin (optionnel)
   }
 
-  void _onAmountChanged(String categoryKey, String value) {
-    final newAmount = double.tryParse(value);
-    if (newAmount != null && _totalIncome > 0) {
-      final percentageDecimal = newAmount / _totalIncome;
-      setState(() {
-        _allocations[categoryKey] = percentageDecimal;
-        _percentageControllers[categoryKey]!.text = (percentageDecimal * 100).toStringAsFixed(1);
-      });
-    }
+  void _updateController(String key, double value) {
+    _percentageControllers[key]!.text = (value * 100).toStringAsFixed(1);
+    _amountControllers[key]!.text = (_totalIncome * value).toStringAsFixed(2);
   }
 
   void _updateAmountsFromPercentages() {
