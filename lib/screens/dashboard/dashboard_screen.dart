@@ -4,36 +4,44 @@ import 'package:intl/intl.dart';
 import '../../constants/app_design.dart';
 import '../../models/models.dart';
 import '../../services/firestore_service.dart';
+import '../../widgets/revolutionary_logo.dart';
 import '../accounts/account_management_screen.dart';
 import '../budget/budget_planner_screen.dart';
+import '../categories/category_management_screen.dart';
 import '../goals/goal_funding_screen.dart';
 import '../ious/iou_tracking_screen.dart';
+import '../transactions/transaction_form_screen.dart';
+import '../transactions/transactions_list_screen.dart';
 
 /// Dashboard principal affichant le solde global, les performances mensuelles
 /// et l'historique récent des transactions en temps réel
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
-  static final FirestoreService _firestoreService = FirestoreService();
-  static final NumberFormat _currencyFormat =
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final FirestoreService _firestoreService = FirestoreService();
+  final NumberFormat _currencyFormat =
       NumberFormat.currency(locale: 'fr_FR', symbol: '€', decimalDigits: 2);
+  final Color _brandTeal = const Color(0xFF00796B);
+  String _currentLang = 'fr';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
-        title: const Text(
-          'Accueil & Dashboard',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppDesign.primaryIndigo,
-          ),
-        ),
+        toolbarHeight: 68,
+        title: const RevolutionaryLogo(withText: true),
+        centerTitle: false,
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
+            tooltip: 'Comptes',
             icon: const Icon(Icons.account_balance_wallet, color: AppDesign.primaryIndigo),
             onPressed: () {
               Navigator.push(
@@ -45,6 +53,7 @@ class DashboardScreen extends StatelessWidget {
             },
           ),
           IconButton(
+            tooltip: 'Dettes / créances',
             icon: const Icon(Icons.handshake, color: AppDesign.primaryIndigo),
             onPressed: () {
               Navigator.push(
@@ -56,13 +65,76 @@ class DashboardScreen extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.notifications_none, color: AppDesign.primaryIndigo),
+            tooltip: 'Objectifs',
+            icon: const Icon(Icons.flag_outlined, color: AppDesign.primaryIndigo),
             onPressed: () {
-              // TODO: Navigation vers la page des notifications
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Notifications à venir')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const GoalFundingScreen(),
+                ),
               );
             },
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _currentLang = _currentLang == 'fr' ? 'en' : 'fr';
+              });
+              final selectedLabel = _currentLang == 'fr' ? 'Français' : 'English';
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Langue sélectionnée : $selectedLabel')),
+              );
+            },
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              minimumSize: const Size(44, 44),
+            ),
+            child: Text(
+              _currentLang == 'fr' ? 'EN 🇬🇧' : 'FR 🇫🇷',
+              style: const TextStyle(
+                color: AppDesign.primaryIndigo,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12, top: 4, bottom: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_none, color: AppDesign.primaryIndigo),
+                  tooltip: 'Notifications',
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Notifications à venir')),
+                    );
+                  },
+                ),
+                const SizedBox(width: 10),
+                PopupMenuButton<int>(
+                  tooltip: 'Profil',
+                  offset: const Offset(0, 42),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  itemBuilder: (context) => const [
+                    PopupMenuItem<int>(
+                      value: 0,
+                      child: Text('Profil'),
+                    ),
+                    PopupMenuItem<int>(
+                      value: 1,
+                      child: Text('Paramètres'),
+                    ),
+                  ],
+                  onSelected: (_) {},
+                  child: CircleAvatar(
+                    backgroundColor: AppDesign.primaryIndigo.withOpacity(0.1),
+                    child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -101,7 +173,7 @@ class DashboardScreen extends StatelessWidget {
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: _buildRightDesktopSections(),
+                      children: _buildRightDesktopSections(context),
                     ),
                   ),
                 ),
@@ -115,6 +187,8 @@ class DashboardScreen extends StatelessWidget {
 
   List<Widget> _buildMobileSections(BuildContext context) {
     return [
+      _buildQuickAccess(context),
+      const SizedBox(height: AppDesign.spacingLarge),
       const Text(
         "Solde Global Actuel",
         style: TextStyle(fontSize: 18, color: Colors.grey),
@@ -122,7 +196,7 @@ class DashboardScreen extends StatelessWidget {
       const SizedBox(height: AppDesign.spacingSmall),
       _buildTotalBalanceCard(),
       const SizedBox(height: AppDesign.spacingMedium),
-      _buildNetProjectionSnippet(),
+      _buildBudgetExcellenceCard(),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildPerformanceHeader(context),
       const SizedBox(height: AppDesign.spacingSmall),
@@ -130,10 +204,7 @@ class DashboardScreen extends StatelessWidget {
       const SizedBox(height: AppDesign.spacingSmall),
       _buildMonthlyInsightCards(context),
       const SizedBox(height: AppDesign.spacingLarge),
-      const Text(
-        "Historique Récent",
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
+      _buildRecentHistoryHeader(context),
       const SizedBox(height: AppDesign.spacingSmall),
       _buildRecentTransactionsList(),
       const SizedBox(height: AppDesign.spacingMedium),
@@ -143,6 +214,8 @@ class DashboardScreen extends StatelessWidget {
 
   List<Widget> _buildLeftDesktopSections(BuildContext context) {
     return [
+      _buildQuickAccess(context),
+      const SizedBox(height: AppDesign.spacingLarge),
       const Text(
         "Solde Global Actuel",
         style: TextStyle(fontSize: 18, color: Colors.grey),
@@ -150,7 +223,7 @@ class DashboardScreen extends StatelessWidget {
       const SizedBox(height: AppDesign.spacingSmall),
       _buildTotalBalanceCard(),
       const SizedBox(height: AppDesign.spacingMedium),
-      _buildNetProjectionSnippet(),
+      _buildBudgetExcellenceCard(),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildPerformanceHeader(context),
       const SizedBox(height: AppDesign.spacingSmall),
@@ -160,17 +233,138 @@ class DashboardScreen extends StatelessWidget {
     ];
   }
 
-  List<Widget> _buildRightDesktopSections() {
+  List<Widget> _buildRightDesktopSections(BuildContext context) {
     return [
-      const Text(
-        "Historique Récent",
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
+      _buildRecentHistoryHeader(context),
       const SizedBox(height: AppDesign.spacingSmall),
       _buildRecentTransactionsList(),
       const SizedBox(height: AppDesign.spacingMedium),
       _buildNotificationsCard(),
     ];
+  }
+
+  Row _buildRecentHistoryHeader(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          "Historique Récent",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        TextButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TransactionsListScreen()),
+            );
+          },
+          icon: const Icon(Icons.history_toggle_off_outlined),
+          label: const Text('Voir tout'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickAccess(BuildContext context) {
+    final shortcuts = [
+      _ShortcutAction(
+        label: 'Ajouter dépense',
+        subtitle: 'Achats, factures et sorties',
+        icon: Icons.remove_circle_outline,
+        color: AppDesign.expenseColor,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const TransactionFormScreen(transactionType: TransactionType.expense),
+          ),
+        ),
+      ),
+      _ShortcutAction(
+        label: 'Ajouter revenu',
+        subtitle: 'Salaires, primes et entrées',
+        icon: Icons.add_circle_outline,
+        color: AppDesign.incomeColor,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const TransactionFormScreen(transactionType: TransactionType.income),
+          ),
+        ),
+      ),
+      _ShortcutAction(
+        label: 'Gérer budget',
+        subtitle: 'Suivi des poches et limites',
+        icon: Icons.pie_chart_outline_rounded,
+        color: _brandTeal,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const BudgetPlannerScreen()),
+        ),
+      ),
+      _ShortcutAction(
+        label: 'Gérer comptes',
+        subtitle: 'Soldes et transferts gérés.',
+        icon: Icons.account_balance_wallet_outlined,
+        color: AppDesign.primaryIndigo,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AccountManagementScreen()),
+        ),
+      ),
+      _ShortcutAction(
+        label: 'Suivre objectifs',
+        subtitle: 'Épargne et projets d\'avenir',
+        icon: Icons.flag_outlined,
+        color: AppDesign.primaryPurple,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const GoalFundingScreen()),
+        ),
+      ),
+      _ShortcutAction(
+        label: 'Gérer dettes',
+        subtitle: 'Emprunts et crédits réglés.',
+        icon: Icons.handshake_outlined,
+        color: Colors.deepOrange,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const IOUTrackingScreen()),
+        ),
+      ),
+      _ShortcutAction(
+        label: 'Catégories',
+        subtitle: 'Gérer vos catégories',
+        icon: Icons.category_outlined,
+        color: Colors.teal,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const CategoryManagementScreen()),
+        ),
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Accès rapides',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: shortcuts
+              .map(
+                (s) => SizedBox(
+                      height: 120,
+                      child: _ShortcutCard(action: s),
+                    ),
+              )
+              .toList(),
+        ),
+      ],
+    );
   }
 
   Row _buildPerformanceHeader(BuildContext context) {
@@ -225,8 +419,8 @@ class DashboardScreen extends StatelessWidget {
 
         return Container(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF5E35B1), Color(0xFF3D4DB7)],
+            gradient: LinearGradient(
+              colors: [_brandTeal, _brandTeal.withOpacity(0.85)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -276,109 +470,129 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNetProjectionSnippet() {
-    return FutureBuilder<ProjectionResult>(
-      future: _fetchProjectionResult(),
+  Widget _buildBudgetExcellenceCard() {
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      return _placeholderCard(
+        title: 'Thermomètre budgétaire',
+        message: 'Connectez-vous pour voir votre rythme de dépenses.',
+      );
+    }
+
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final daysElapsed = now.day;
+    final idealRatio = daysElapsed / daysInMonth;
+
+    return StreamBuilder<List<Transaction>>(
+      stream: _firestoreService.getTransactionsStream(
+        userId,
+        startDate: startOfMonth,
+        endDate: now,
+        limit: 500,
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(AppDesign.paddingLarge),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
-        if (!snapshot.hasData || snapshot.hasError) {
-          return Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(AppDesign.paddingLarge),
-              child: Text(
-                'Projection du solde net indisponible.',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          );
+        final txs = snapshot.data ?? [];
+        double income = 0;
+        double expense = 0;
+        for (final tx in txs) {
+          if (tx.type == TransactionType.income) {
+            income += tx.amount;
+          } else if (tx.type == TransactionType.expense) {
+            expense += tx.amount;
+          }
         }
 
-        final projection = snapshot.data!;
-        final isPositive = projection.estimatedEndOfMonthBalance >= 0;
-        final color = isPositive ? AppDesign.incomeColor : AppDesign.expenseColor;
-        final icon = isPositive ? Icons.trending_up : Icons.trending_down;
+        final budgetConsumed = income > 0 ? (expense / income).clamp(0.0, 2.0) : 0.0;
+        final isSafe = budgetConsumed <= idealRatio;
+        final diffPercent = ((budgetConsumed - idealRatio).abs() * 100).toStringAsFixed(1);
+        final gaugeColor = isSafe ? const Color(0xFF4CAF50) : const Color(0xFFEF5350);
+        final label = 'Épuisement Budgétaire : ${(budgetConsumed * 100).toStringAsFixed(1)}%';
+        final insight = isSafe
+            ? 'Vous êtes en avance de $diffPercent % sur votre rythme idéal.'
+            : 'Vous dépensez $diffPercent % plus vite que prévu ce mois-ci.';
 
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
+        return Card(
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
-            boxShadow: AppDesign.mediumShadow,
           ),
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Projection du solde net (fin de mois)',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                SizedBox(
+                  height: 92,
+                  width: 92,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CircularProgressIndicator(
+                        value: budgetConsumed > 1 ? 1 : budgetConsumed,
+                        strokeWidth: 10,
+                        backgroundColor: gaugeColor.withOpacity(0.12),
+                        valueColor: AlwaysStoppedAnimation<Color>(gaugeColor),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _currencyFormat.format(
-                          projection.estimatedEndOfMonthBalance),
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
+                      Center(
+                        child: Text(
+                          '${(budgetConsumed * 100).toStringAsFixed(0)}%',
+                          style: TextStyle(
+                            color: gaugeColor,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Charges fixes restantes : ${_currencyFormat.format(projection.upcomingFixedExpensesTotal)}',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Icon(Icons.chevron_right, color: color.withOpacity(0.6)),
-            ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Thermomètre Budgétaire',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                          color: _brandTeal,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Jours écoulés : ${(idealRatio * 100).toStringAsFixed(1)}% • Dépenses : ${(budgetConsumed * 100).toStringAsFixed(1)}%',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        insight,
+                        style: TextStyle(
+                          color: gaugeColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
-    );
-  }
-
-  Future<ProjectionResult> _fetchProjectionResult() async {
-    final userId = _firestoreService.currentUserId;
-    if (userId != null) {
-      return _firestoreService.predictEndOfMonthBalance(userId: userId);
-    }
-    return const ProjectionResult(
-      estimatedEndOfMonthBalance: 0,
-      upcomingFixedExpensesTotal: 0,
-      exceptionalTransactions: [],
     );
   }
 
@@ -415,43 +629,52 @@ class DashboardScreen extends StatelessWidget {
 
         double income = 0.0;
         double expense = 0.0;
+        double debtAmount = 0.0;
+        final debtKeywords = ['dette', 'prêt', 'loan', 'debt'];
 
         for (final tx in snapshot.data!) {
           if (tx.type == TransactionType.income) {
             income += tx.amount;
           } else if (tx.type == TransactionType.expense) {
             expense += tx.amount;
+            if (tx.category != null &&
+                debtKeywords.any((k) => tx.category!.toLowerCase().contains(k))) {
+              debtAmount += tx.amount;
+            }
           }
         }
 
         final remaining = income - expense;
         const targetAmount = 2500.0; // TODO: Récupérer de la config utilisateur
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.5,
-      mainAxisSpacing: AppDesign.spacingMedium,
-      crossAxisSpacing: AppDesign.spacingMedium,
-      children: [
-        _InsightCard(
-          title: 'Revenu',
-          amount: income,
-          icon: Icons.add_circle_outline,
+        return GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 1.35,
+          mainAxisSpacing: AppDesign.spacingMedium,
+          crossAxisSpacing: AppDesign.spacingMedium,
+          children: [
+            _InsightCard(
+              title: 'Revenu du mois',
+              amount: income,
+              emoji: '💰',
               color: AppDesign.incomeColor,
+              subtitle: 'Total encaissé',
             ),
             _InsightCard(
-              title: 'Dépense',
+              title: 'Dépenses du mois',
               amount: expense,
-              icon: Icons.remove_circle_outline,
+              emoji: '💸',
               color: AppDesign.expenseColor,
+              subtitle: 'Total déboursé',
             ),
             _InsightCard(
-              title: 'Reste à budgétiser',
-              amount: remaining,
-              icon: remaining >= 0 ? Icons.check_circle_outline : Icons.warning_amber,
-              color: remaining >= 0 ? Colors.blueAccent : Colors.orange,
+              title: 'Dettes du mois',
+              amount: debtAmount,
+              emoji: '💳',
+              color: AppDesign.expenseColor,
+              subtitle: 'Remboursements & échéances',
             ),
             InkWell(
               onTap: () {
@@ -462,11 +685,12 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 );
               },
-              child: const _InsightCard(
+              child: _InsightCard(
                 title: 'Objectifs financés',
                 amount: targetAmount,
-                icon: Icons.auto_graph,
+                emoji: '🎯',
                 color: AppDesign.primaryPurple,
+                subtitle: 'Progression',
               ),
             ),
           ],
@@ -527,41 +751,45 @@ class DashboardScreen extends StatelessWidget {
             children: transactions.take(5).map((tx) {
               final isExpense = tx.type == TransactionType.expense;
               final isIncome = tx.type == TransactionType.income;
+              final isTransfer = tx.type == TransactionType.transfer;
 
               Color txColor;
               IconData txIcon;
               String prefix;
-              
+
               if (isIncome) {
                 txColor = AppDesign.incomeColor;
-                txIcon = Icons.arrow_upward;
+                txIcon = Icons.call_received_rounded;
                 prefix = '+';
-              } else if (tx.type == TransactionType.transfer) {
+              } else if (isTransfer) {
                 txColor = AppDesign.transferColor;
-                txIcon = Icons.swap_horiz;
+                txIcon = Icons.swap_horiz_rounded;
                 prefix = '';
               } else {
                 txColor = AppDesign.expenseColor;
-                txIcon = Icons.arrow_downward;
+                txIcon = Icons.call_made_rounded;
                 prefix = '-';
               }
 
-              final categoryIcon = tx.category ?? '💳';
+              final categoryLabel = tx.category?.isNotEmpty == true ? tx.category! : 'Sans catégorie';
+              final formattedDate = DateFormat('dd/MM/yyyy').format(tx.date);
 
               return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: txColor.withOpacity(0.1),
-                  child: Text(
-                    categoryIcon,
-                    style: const TextStyle(fontSize: 20),
+                leading: Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: txColor.withOpacity(0.12),
+                    shape: BoxShape.circle,
                   ),
+                  child: Icon(txIcon, color: txColor),
                 ),
                 title: Text(
                   tx.description ?? '',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(
-                  '${tx.date.day}/${tx.date.month}/${tx.date.year}',
+                  '$formattedDate · $categoryLabel',
                   style: const TextStyle(color: Colors.grey),
                 ),
                 trailing: Text(
@@ -689,55 +917,179 @@ class DashboardScreen extends StatelessWidget {
 class _InsightCard extends StatelessWidget {
   final String title;
   final double amount;
-  final IconData icon;
+  final String emoji;
   final Color color;
+  final String subtitle;
 
   const _InsightCard({
     required this.title,
     required this.amount,
-    required this.icon,
     required this.color,
+    required this.emoji,
+    this.subtitle = '',
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            color.withOpacity(0.18),
+            Colors.white,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  emoji,
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (subtitle.isNotEmpty)
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${amount.toStringAsFixed(2)} €',
+            style: TextStyle(
+              color: color,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShortcutAction {
+  final String label;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  _ShortcutAction({
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+}
+
+class _ShortcutCard extends StatelessWidget {
+  final _ShortcutAction action;
+
+  const _ShortcutCard({required this.action});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: action.onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 210,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: action.color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: action.color.withOpacity(0.18)),
+          boxShadow: [
+            BoxShadow(
+              color: action.color.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(
-                    title,
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: action.color.withOpacity(0.16),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(action.icon, color: action.color, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    action.label,
                     style: const TextStyle(
-                      color: Colors.grey,
+                      fontWeight: FontWeight.w800,
                       fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    action.subtitle,
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 12,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.start,
                   ),
-                ),
-                Icon(icon, color: color, size: 24),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${amount.toStringAsFixed(2)} €',
-              style: TextStyle(
-                color: color,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+                ],
               ),
             ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.black38),
           ],
         ),
       ),

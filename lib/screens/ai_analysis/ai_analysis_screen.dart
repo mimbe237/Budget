@@ -8,6 +8,7 @@ import '../../models/projection_result.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
 import '../../services/mock_data_service.dart';
+import '../../widgets/revolutionary_logo.dart';
 
 /// Écran d'analyse intelligente des finances personnelles
 /// Fournit des insights, détection d'anomalies et recommandations
@@ -393,12 +394,18 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: AppBar(
-        title: const Text(
-          'Analyses IA',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppDesign.primaryIndigo,
-          ),
+        title: Row(
+          children: [
+            const RevolutionaryLogo(size: 32),
+            const SizedBox(width: 12),
+            const Text(
+              'Analyses IA',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppDesign.primaryIndigo,
+              ),
+            ),
+          ],
         ),
         backgroundColor: Colors.white,
         elevation: 0,

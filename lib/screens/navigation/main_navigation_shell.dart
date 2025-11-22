@@ -9,8 +9,10 @@ import '../transactions/transaction_form_screen.dart';
 import '../goals/goal_funding_screen.dart' show CreateGoalModal;
 import '../ious/iou_tracking_screen.dart' show AddIOUModal;
 import '../settings/notification_settings_screen.dart';
-import '../ai_analysis/ai_analysis_screen.dart';
+import '../reports/analysis_hub_screen.dart';
 import '../../models/transaction.dart' as app_transaction;
+import '../../services/firestore_service.dart';
+import '../profile/profile_settings_screen.dart';
 
 /// Shell de navigation principal avec BottomNavigationBar et menu d'actions rapides
 class MainNavigationShell extends StatefulWidget {
@@ -23,21 +25,53 @@ class MainNavigationShell extends StatefulWidget {
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int _selectedNavIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    // Vérifier si la session démo a expiré
+    FirestoreService().checkDemoExpiration();
+  }
+
   // Aligne exactement les index avec la BottomNavigationBar (5 items, slot 2 réservé au FAB)
   final List<Widget> _stackScreens = const [
-    DashboardScreen(),               // 0 Accueil
-    AccountManagementScreen(),       // 1 Comptes
-    SizedBox.shrink(),               // 2 emplacement FAB (non utilisé)
-    BudgetPlannerScreen(),           // 3 Budget
-    AIAnalysisScreen(),              // 4 Analyse IA
+    DashboardScreen(),                 // 0 Accueil
+    AccountManagementScreen(),         // 1 Comptes
+    SizedBox.shrink(),                 // 2 emplacement FAB (non utilisé)
+    BudgetPlannerScreen(),             // 3 Budget
+    AnalysisHubScreen(),               // 4 Analyses & Rapports
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedNavIndex,
-        children: _stackScreens,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _selectedNavIndex,
+            children: _stackScreens,
+          ),
+          // Bouton profil global en haut à droite
+          Positioned(
+            right: 12,
+            top: MediaQuery.of(context).padding.top + 10,
+            child: SafeArea(
+              child: Material(
+                color: Colors.white,
+                shape: const CircleBorder(),
+                elevation: 4,
+                child: IconButton(
+                  icon: const Icon(Icons.person_outline_rounded, color: AppDesign.primaryIndigo),
+                  tooltip: 'Compte & paramètres',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedNavIndex,
@@ -79,9 +113,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             label: 'Budget',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.smart_toy_outlined),
-            activeIcon: Icon(Icons.smart_toy_rounded),
-            label: 'Analyse IA',
+            icon: Icon(Icons.bar_chart_rounded),
+            activeIcon: Icon(Icons.bar_chart),
+            label: 'Analyses',
           ),
         ],
       ),
@@ -315,10 +349,10 @@ class QuickActionsMenu extends StatelessWidget {
                                   );
                                 },
                               ),
-                          );
-                        });
-                      },
-                    ),
+                            );
+                          });
+                        },
+                      ),
                       const SizedBox(height: 14),
                       _buildLogoutButton(context),
                     ],
@@ -440,6 +474,7 @@ class QuickActionsMenu extends StatelessWidget {
         ),
         onPressed: () async {
           Navigator.pop(context);
+          await FirestoreService().cleanupDemoDataOnLogout();
           await FirebaseAuth.instance.signOut();
           Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const AuthScreen()),
@@ -615,12 +650,18 @@ class _ProfileScreen extends StatelessWidget {
                   title: 'Analyses IA',
                   trailing: const Icon(Icons.stars, size: 16, color: AppDesign.primaryPurple),
                   onTap: () {
+                    // Placeholder pour l'écran d'analyse IA
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Module IA bientôt disponible')),
+                    );
+                    /*
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const AIAnalysisScreen(),
                       ),
                     );
+                    */
                   },
                 ),
               ],

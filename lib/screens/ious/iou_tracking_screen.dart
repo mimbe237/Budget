@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/mock_data_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
+import '../../widgets/modern_page_app_bar.dart';
 
 /// Écran de suivi des dettes (je dois) et créances (on me doit)
 class IOUTrackingScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class IOUTrackingScreen extends StatefulWidget {
 class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
   final MockDataService _mockService = MockDataService();
   List<IOU> _ious = [];
+  String? _selectedIOUForHistory;
 
   @override
   void initState() {
@@ -112,16 +114,10 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
 
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
-      appBar: AppBar(
-        title: const Text(
-          'Suivi Dettes & Créances',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppDesign.primaryIndigo,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
+      appBar: const ModernPageAppBar(
+        title: 'Suivi Dettes & Créances',
+        subtitle: 'Ce que je dois et ce qu’on me doit',
+        icon: Icons.handshake_rounded,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -160,8 +156,15 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddIOUModal(),
         backgroundColor: AppDesign.primaryIndigo,
+        foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('Nouveau IOU'),
+        label: const Text(
+          'Nouvelle dette / créance',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }
@@ -173,18 +176,18 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
       children: [
         Expanded(
           child: Card(
-            elevation: 4,
-            color: AppDesign.expenseColor.withOpacity(0.1),
+            elevation: 2,
+            color: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
-              side: const BorderSide(color: AppDesign.expenseColor, width: 2),
+              side: BorderSide(color: AppDesign.expenseColor.withOpacity(0.15), width: 1.2),
             ),
             child: Padding(
               padding: const EdgeInsets.all(AppDesign.paddingMedium),
               child: Column(
                 children: [
                   const Icon(
-                    Icons.trending_up,
+                    Icons.trending_up_rounded,
                     color: AppDesign.expenseColor,
                     size: 32,
                   ),
@@ -214,18 +217,18 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
         const SizedBox(width: AppDesign.spacingMedium),
         Expanded(
           child: Card(
-            elevation: 4,
-            color: AppDesign.incomeColor.withOpacity(0.1),
+            elevation: 2,
+            color: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
-              side: const BorderSide(color: AppDesign.incomeColor, width: 2),
+              side: BorderSide(color: AppDesign.incomeColor.withOpacity(0.15), width: 1.2),
             ),
             child: Padding(
               padding: const EdgeInsets.all(AppDesign.paddingMedium),
               child: Column(
                 children: [
                   const Icon(
-                    Icons.trending_down,
+                    Icons.trending_down_rounded,
                     color: AppDesign.incomeColor,
                     size: 32,
                   ),
@@ -259,29 +262,29 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
   Widget _buildSectionHeader(String title, IconData icon, Color color, int count) {
     return Row(
       children: [
-        Icon(icon, color: color, size: 24),
+        Icon(icon, color: color.withOpacity(0.8), size: 22),
         const SizedBox(width: 8),
         Text(
           title,
           style: TextStyle(
             fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
+            fontWeight: FontWeight.w700,
+            color: Colors.black87,
           ),
         ),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             '$count actif${count > 1 ? 's' : ''}',
             style: TextStyle(
               fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.bold,
+              color: color.withOpacity(0.9),
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -301,13 +304,13 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                      !isCompleted;
 
     return Card(
-      elevation: 2,
+      elevation: 1,
       margin: const EdgeInsets.only(bottom: AppDesign.spacingMedium),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
         side: BorderSide(
-          color: isCompleted ? Colors.grey : color,
-          width: 2,
+          color: color.withOpacity(isCompleted ? 0.15 : 0.25),
+          width: 1.3,
         ),
       ),
       child: InkWell(
@@ -325,7 +328,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: color.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: Center(
@@ -348,7 +351,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                           iou.partyName,
                           style: const TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         if (iou.description != null)
@@ -363,9 +366,22 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     ),
                   ),
                   if (isCompleted)
-                    const Icon(Icons.check_circle, color: Colors.green, size: 28)
+                    Icon(Icons.check_circle, color: Colors.green.withOpacity(0.8), size: 24)
                   else if (isOverdue)
-                    const Icon(Icons.warning_amber, color: Colors.orange, size: 28),
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange.withOpacity(0.9), size: 24),
+                  IconButton(
+                    icon: const Icon(Icons.receipt_long_outlined, color: Colors.grey),
+                    tooltip: 'Historique',
+                    onPressed: () {
+                      setState(() {
+                        if (_selectedIOUForHistory == iou.iouId) {
+                          _selectedIOUForHistory = null;
+                        } else {
+                          _selectedIOUForHistory = iou.iouId;
+                        }
+                      });
+                    },
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -417,9 +433,9 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                 child: LinearProgressIndicator(
                   value: progress,
                   minHeight: 8,
-                  backgroundColor: Colors.grey[300],
+                  backgroundColor: Colors.grey[200],
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isCompleted ? Colors.green : color,
+                    isCompleted ? Colors.green : color.withOpacity(0.9),
                   ),
                 ),
               ),
@@ -444,6 +460,12 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     ),
                 ],
               ),
+              const SizedBox(height: 12),
+              if (_selectedIOUForHistory == iou.iouId)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildIOUHistory(iou),
+                ),
               
               // Bouton d'action
               if (!isCompleted) ...[
@@ -468,6 +490,81 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
     );
   }
 
+  Widget _buildIOUHistory(IOU iou) {
+    final entries = [
+      _IouTx(label: 'Paiement partiel', amount: 100, date: DateTime.now().subtract(const Duration(days: 7))),
+      _IouTx(label: 'Paiement partiel', amount: 150, date: DateTime.now().subtract(const Duration(days: 20))),
+      _IouTx(label: 'Initial', amount: iou.originalAmount, date: iou.createdAt),
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Historique des mouvements',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          ...entries.map((e) {
+            final isPayment = e.label.toLowerCase().contains('paiement');
+            final color = isPayment ? AppDesign.incomeColor : AppDesign.expenseColor;
+            final prefix = isPayment ? '- ' : '+ ';
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isPayment ? Icons.payments_outlined : Icons.request_page,
+                      color: color,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          e.label,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                        ),
+                        Text(
+                          '${e.date.day}/${e.date.month}/${e.date.year}',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '$prefix${e.amount.toStringAsFixed(2)} €',
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   void _showAddIOUModal() {
     showModalBottomSheet(
       context: context,
@@ -481,7 +578,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
             _ious.add(newIOU);
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('IOU ajouté avec succès !')),
+            const SnackBar(content: Text('Ajout enregistré avec succès !')),
           );
         },
       ),
@@ -520,7 +617,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
   }
 }
 
-/// Modal pour ajouter un nouvel IOU
+/// Modal pour ajouter une dette ou créance
 class AddIOUModal extends StatefulWidget {
   final Function(IOU) onIOUAdded;
 
@@ -566,7 +663,7 @@ class _AddIOUModalState extends State<AddIOUModal> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Nouveau IOU',
+                  'Nouvelle dette ou créance',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -1026,4 +1123,11 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
       }
     }
   }
+}
+
+class _IouTx {
+  final String label;
+  final double amount;
+  final DateTime date;
+  _IouTx({required this.label, required this.amount, required this.date});
 }

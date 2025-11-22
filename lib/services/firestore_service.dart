@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -18,14 +19,371 @@ class FirestoreService {
   factory FirestoreService() => _instance;
   FirestoreService._internal();
 
+  // Compte démo partagé
+  static const String demoEmail = 'demo123@budgetpro.net';
+  static const String demoPassword = 'demo123';
+  static const Duration demoTtl = Duration(hours: 2);
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  Timer? _demoCleanupTimer;
 
   // Getters pour les collections principales
   CollectionReference get _usersCollection => _firestore.collection('users');
 
   /// Obtenir l'ID de l'utilisateur connecté
   String? get currentUserId => _auth.currentUser?.uid;
+  bool get isCurrentUserDemo =>
+      _auth.currentUser?.email?.toLowerCase() == demoEmail;
+
+  // ===================================
+  // I. FONCTION CRITIQUE DE RÉINITIALISATION
+  // ===================================
+
+  Future<void> resetAllUserData() async {
+    if (currentUserId == null) {
+      throw Exception("Utilisateur non connecté. Impossible de réinitialiser.");
+    }
+    
+    // Référence au document utilisateur
+    final userRef = _usersCollection.doc(currentUserId);
+    
+    // Liste des sous-collections à supprimer (celles que nous avons définies)
+    const collectionsToDelete = [
+      'accounts',
+      'transactions',
+      'budgets',
+      'goals',
+      'ious',
+      'categories' // Si vous avez des catégories utilisateur stockées ici
+    ];
+    
+    // AVERTISSEMENT : La suppression de sous-collections dans Firestore nécessite 
+    // de supprimer tous les documents à l'intérieur de la sous-collection, 
+    // Firestore n'a pas de fonction `deleteCollection` native côté client.
+    
+    for (final collectionName in collectionsToDelete) {
+      final collectionRef = userRef.collection(collectionName);
+      
+      // Récupérer tous les documents de la sous-collection
+      final snapshot = await collectionRef.get();
+      
+      // Utiliser un batch pour supprimer tous les documents efficacement
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      await batch.commit();
+      print("Collection $collectionName réinitialisée pour l'utilisateur.");
+    }
+
+    // Supprimer et recréer le profil utilisateur pour effacer les métadonnées
+    await userRef.delete();
+    
+    // Redémarrer l'application ou forcer une déconnexion pour relancer l'onboarding
+    await _auth.signOut(); 
+    print("Réinitialisation complète des données de l'utilisateur effectuée.");
+  }
+
+  // ===================================
+  // II. Autres méthodes (Logout, etc.)
+  // ===================================
+  
+  Future<void> logout() async {
+    await _auth.signOut();
+  }
+
+  /// Purge et regarnit les données du compte démo (appelé après login démo)
+  Future<void> ensureDemoDataset({Duration ttl = demoTtl}) async {
+    final user = _auth.currentUser;
+    if (!_isDemoUser(user)) return;
+
+    final userId = user!.uid;
+    final now = DateTime.now();
+    final expiresAt = now.add(ttl);
+
+    // Nettoyer les sous-collections pour repartir d'un état sain
+    await _wipeUserCollections(userId);
+
+    // Profil minimal pour le mode démo
+    await _usersCollection.doc(userId).set({
+      'userId': userId,
+      'displayName': 'Compte Démo',
+      'email': user.email,
+      'currency': 'EUR',
+      'isDemo': true,
+      'demoExpiresAt': Timestamp.fromDate(expiresAt),
+      'updatedAt': Timestamp.fromDate(now),
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // Créer les catégories par défaut
+    await createDefaultCategories(userId);
+
+    // Comptes et transactions exemples
+    await _seedDemoAccountsAndTransactions(userId);
+
+    // Planifier un nettoyage auto après TTL (déconnexion incluse)
+    _startDemoTimer(ttl);
+  }
+
+  void _startDemoTimer(Duration ttl) {
+    _demoCleanupTimer?.cancel();
+    _demoCleanupTimer = Timer(ttl, () async {
+      print("Session démo expirée. Nettoyage...");
+      await cleanupDemoDataOnLogout();
+      await _auth.signOut();
+    });
+  }
+
+  /// Vérifie si la session démo a expiré (à appeler au démarrage)
+  Future<void> checkDemoExpiration() async {
+    final user = _auth.currentUser;
+    if (!_isDemoUser(user)) return;
+    
+    try {
+      final doc = await _usersCollection.doc(user!.uid).get();
+      if (!doc.exists) return;
+      
+      final data = doc.data() as Map<String, dynamic>;
+      final expiresAt = (data['demoExpiresAt'] as Timestamp?)?.toDate();
+      
+      if (expiresAt != null) {
+        if (DateTime.now().isAfter(expiresAt)) {
+           print("Session démo expirée détectée au démarrage.");
+           await cleanupDemoDataOnLogout();
+           await _auth.signOut();
+        } else {
+           // Reprendre le timer
+           final remaining = expiresAt.difference(DateTime.now());
+           _startDemoTimer(remaining);
+        }
+      }
+    } catch (e) {
+      print("Erreur lors de la vérification de l'expiration démo: $e");
+    }
+  }
+
+  /// Nettoyage des données démo lors de la déconnexion
+  Future<void> cleanupDemoDataOnLogout() async {
+    _demoCleanupTimer?.cancel();
+    final user = _auth.currentUser;
+    if (!_isDemoUser(user)) return;
+    final userId = user!.uid;
+    
+    // 1. Tout effacer (données utilisateur)
+    await _wipeUserCollections(userId);
+    
+    // 2. Restaurer les données par défaut (pour que le compte reste "propre" mais rempli)
+    await createDefaultCategories(userId);
+    await _seedDemoAccountsAndTransactions(userId);
+
+    // 3. Marquer comme nettoyé
+    await _usersCollection.doc(userId).set({
+      'isDemo': true,
+      'demoLastCleanup': FieldValue.serverTimestamp(),
+      'demoExpiresAt': FieldValue.delete(), // Plus d'expiration active
+    }, SetOptions(merge: true));
+  }
+
+  bool _isDemoUser(User? user) =>
+      user?.email?.toLowerCase() == demoEmail.toLowerCase();
+
+  Future<void> _wipeUserCollections(String userId) async {
+    const collectionsToDelete = [
+      'accounts',
+      'transactions',
+      'budgets',
+      'goals',
+      'ious',
+      'categories',
+    ];
+
+    final userRef = _usersCollection.doc(userId);
+    for (final collectionName in collectionsToDelete) {
+      final colRef = userRef.collection(collectionName);
+      final snapshot = await colRef.get();
+      for (final doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+    }
+  }
+
+  Future<void> _seedDemoAccountsAndTransactions(String userId) async {
+    // 1. Création des comptes
+    final mainAccountId = await addAccount(
+      userId: userId,
+      name: 'Compte courant',
+      type: AccountType.checking,
+      balance: 0,
+      icon: '💳',
+      color: '#5E35B1',
+    );
+
+    final savingsAccountId = await addAccount(
+      userId: userId,
+      name: 'Épargne',
+      type: AccountType.savings,
+      balance: 0,
+      icon: '🐷',
+      color: '#4CAF50',
+    );
+
+    final cashAccountId = await addAccount(
+      userId: userId,
+      name: 'Espèces',
+      type: AccountType.cash,
+      balance: 0,
+      icon: '💵',
+      color: '#FF9800',
+    );
+
+    // Récupération des catégories pour lier les transactions
+    final categories = await getCategories(userId);
+    String? getCatId(String name) {
+      try {
+        return categories.firstWhere((c) => c.name == name).categoryId;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    final salaryCat = getCatId('Salaire');
+    final housingCat = getCatId('Logement');
+    final foodCat = getCatId('Alimentation');
+    final transportCat = getCatId('Transport');
+    final leisureCat = getCatId('Loisirs');
+    final billsCat = getCatId('Factures');
+
+    // 2. Création des transactions (Historique sur 2 mois)
+    final now = DateTime.now();
+    final lastMonth = now.subtract(const Duration(days: 30));
+
+    // --- MOIS PRÉCÉDENT ---
+    await addTransaction(
+      userId: userId,
+      accountId: mainAccountId,
+      categoryId: salaryCat,
+      type: app_transaction.TransactionType.income,
+      amount: 3200,
+      description: 'Salaire Octobre',
+      date: lastMonth.subtract(const Duration(days: 2)),
+      note: 'Virement reçu',
+    );
+
+    await addTransaction(
+      userId: userId,
+      accountId: mainAccountId,
+      categoryId: housingCat,
+      type: app_transaction.TransactionType.expense,
+      amount: 1200,
+      description: 'Loyer Octobre',
+      date: lastMonth,
+      note: 'Prélèvement automatique',
+    );
+
+    // --- MOIS COURANT ---
+    await addTransaction(
+      userId: userId,
+      accountId: mainAccountId,
+      categoryId: salaryCat,
+      type: app_transaction.TransactionType.income,
+      amount: 3200,
+      description: 'Salaire Novembre',
+      date: now.subtract(const Duration(days: 15)),
+      note: 'Entreprise DemoCorp',
+    );
+
+    await addTransaction(
+      userId: userId,
+      accountId: mainAccountId,
+      categoryId: housingCat,
+      type: app_transaction.TransactionType.expense,
+      amount: 1200,
+      description: 'Loyer Novembre',
+      date: now.subtract(const Duration(days: 14)),
+      note: 'Appartement centre-ville',
+    );
+
+    await addTransaction(
+      userId: userId,
+      accountId: mainAccountId,
+      categoryId: foodCat,
+      type: app_transaction.TransactionType.expense,
+      amount: 150,
+      description: 'Courses Semaine 1',
+      date: now.subtract(const Duration(days: 12)),
+      note: 'Supermarché',
+    );
+
+    await addTransaction(
+      userId: userId,
+      accountId: mainAccountId,
+      categoryId: billsCat,
+      type: app_transaction.TransactionType.expense,
+      amount: 45.99,
+      description: 'Internet & TV',
+      date: now.subtract(const Duration(days: 10)),
+      note: 'Facture mensuelle',
+    );
+
+    await addTransaction(
+      userId: userId,
+      accountId: mainAccountId,
+      categoryId: null, // Transfert interne
+      type: app_transaction.TransactionType.transfer,
+      amount: 500,
+      description: 'Épargne mensuelle',
+      toAccountId: savingsAccountId,
+      date: now.subtract(const Duration(days: 8)),
+      note: 'Objectif vacances',
+    );
+
+    await addTransaction(
+      userId: userId,
+      accountId: cashAccountId,
+      categoryId: transportCat,
+      type: app_transaction.TransactionType.expense,
+      amount: 50,
+      description: 'Essence',
+      date: now.subtract(const Duration(days: 5)),
+      note: 'Plein voiture',
+    );
+
+    await addTransaction(
+      userId: userId,
+      accountId: mainAccountId,
+      categoryId: leisureCat,
+      type: app_transaction.TransactionType.expense,
+      amount: 85,
+      description: 'Restaurant',
+      date: now.subtract(const Duration(days: 2)),
+      note: 'Sortie entre amis',
+    );
+    
+    // 3. Création d'un objectif
+    await addGoal(
+      userId: userId,
+      name: 'Vacances Été',
+      targetAmount: 2000,
+      targetDate: now.add(const Duration(days: 180)),
+      icon: '✈️',
+      color: '#0ea5e9',
+    );
+    
+    // 4. Création d'un budget
+    await saveBudgetPlan(
+      userId: userId,
+      totalBudget: 2500,
+      categoryAllocations: {
+        if (housingCat != null) housingCat: 1200,
+        if (foodCat != null) foodCat: 600,
+        if (transportCat != null) transportCat: 200,
+        if (leisureCat != null) leisureCat: 300,
+      },
+    );
+  }
 
   // ============================================================================
   // AUTHENTIFICATION & PROFIL UTILISATEUR
@@ -117,6 +475,100 @@ class FirestoreService {
   /// Référence à la sous-collection accounts
   CollectionReference _accountsCollection(String userId) =>
       _usersCollection.doc(userId).collection('accounts');
+
+  /// Crée les comptes par défaut pour un nouvel utilisateur (Courant, Épargne, Espèces)
+  Future<void> createDefaultAccounts(String userId) async {
+    try {
+      final accounts = await getAccounts(userId);
+      if (accounts.isNotEmpty) return; // L'utilisateur a déjà des comptes
+
+      // Création en parallèle pour la rapidité
+      await Future.wait([
+        addAccount(
+          userId: userId,
+          name: 'Compte Courant',
+          type: AccountType.checking,
+          icon: '💳',
+          color: '#6366F1', // Indigo
+          balance: 0.0,
+        ),
+        addAccount(
+          userId: userId,
+          name: 'Épargne',
+          type: AccountType.savings,
+          icon: '🐷',
+          color: '#4CAF50', // Green
+          balance: 0.0,
+        ),
+        addAccount(
+          userId: userId,
+          name: 'Espèces',
+          type: AccountType.cash,
+          icon: '💵',
+          color: '#FF9800', // Orange
+          balance: 0.0,
+        ),
+        addAccount(
+          userId: userId,
+          name: 'Mobile Money',
+          type: AccountType.mobileWallet,
+          icon: '📱',
+          color: '#9C27B0', // Purple
+          balance: 0.0,
+        ),
+      ]);
+    } catch (e) {
+      print('Erreur lors de la création des comptes par défaut: $e');
+      // On ne lance pas d'exception pour ne pas bloquer le flux principal
+    }
+  }
+
+  /// Crée des catégories par défaut si aucune n'existe encore pour l'utilisateur
+  Future<void> createDefaultCategories(String userId) async {
+    try {
+      final categories = await getCategories(userId);
+      
+      // Vérifier si on a des catégories pour chaque type
+      final hasIncome = categories.any((c) => c.type == CategoryType.income);
+      final hasExpense = categories.any((c) => c.type == CategoryType.expense);
+
+      final defaults = <Map<String, dynamic>>[];
+
+      if (!hasIncome) {
+        defaults.addAll([
+          {'name': 'Salaire', 'type': CategoryType.income, 'icon': '💼', 'color': '#22c55e'},
+          {'name': 'Prime', 'type': CategoryType.income, 'icon': '🎁', 'color': '#16a34a'},
+          {'name': 'Investissements', 'type': CategoryType.income, 'icon': '📈', 'color': '#0ea5e9'},
+        ]);
+      }
+
+      if (!hasExpense) {
+        defaults.addAll([
+          {'name': 'Logement', 'type': CategoryType.expense, 'icon': '🏠', 'color': '#f97316'},
+          {'name': 'Transport', 'type': CategoryType.expense, 'icon': '🚌', 'color': '#f59e0b'},
+          {'name': 'Alimentation', 'type': CategoryType.expense, 'icon': '🛒', 'color': '#ef4444'},
+          {'name': 'Santé', 'type': CategoryType.expense, 'icon': '🩺', 'color': '#22c55e'},
+          {'name': 'Loisirs', 'type': CategoryType.expense, 'icon': '🎬', 'color': '#a855f7'},
+          {'name': 'Factures', 'type': CategoryType.expense, 'icon': '💡', 'color': '#6366f1'},
+        ]);
+      }
+
+      if (defaults.isEmpty) return;
+
+      await Future.wait(defaults.map((cat) {
+        return addCategory(
+          userId: userId,
+          name: cat['name'] as String,
+          type: cat['type'] as CategoryType,
+          icon: cat['icon'] as String,
+          color: cat['color'] as String,
+          isDefault: true,
+        );
+      }));
+    } catch (e) {
+      print('Erreur lors de la création des catégories par défaut: $e');
+    }
+  }
 
   /// Ajouter un nouveau compte
   Future<String> addAccount({
@@ -511,6 +963,32 @@ class FirestoreService {
     }
   }
 
+  /// Mise à jour simple d'une transaction (sans recalcul des soldes)
+  Future<void> updateTransactionBasic({
+    required String userId,
+    required String transactionId,
+    double? amount,
+    String? description,
+    String? categoryId,
+    DateTime? date,
+    String? note,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      };
+      if (amount != null) updates['amount'] = amount;
+      if (description != null) updates['description'] = description;
+      if (categoryId != null) updates['categoryId'] = categoryId;
+      if (date != null) updates['date'] = Timestamp.fromDate(date);
+      if (note != null) updates['note'] = note;
+
+      await _transactionsCollection(userId).doc(transactionId).update(updates);
+    } catch (e) {
+      throw Exception('Erreur lors de la mise à jour de la transaction: $e');
+    }
+  }
+
   /// Supprimer une transaction avec mise à jour atomique du solde
   Future<void> deleteTransaction(String userId, String transactionId) async {
     try {
@@ -628,21 +1106,53 @@ class FirestoreService {
     }
   }
 
+  /// Mettre à jour une catégorie existante
+  Future<void> updateCategory({
+    required String userId,
+    required String categoryId,
+    String? name,
+    CategoryType? type,
+    String? icon,
+    String? color,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      };
+      if (name != null) updates['name'] = name;
+      if (type != null) updates['type'] = type.name;
+      if (icon != null) updates['icon'] = icon;
+      if (color != null) updates['color'] = color;
+
+      await _categoriesCollection(userId).doc(categoryId).update(updates);
+    } catch (e) {
+      throw Exception('Erreur lors de la mise à jour de la catégorie: $e');
+    }
+  }
+
   /// Obtenir toutes les catégories (Stream)
   Stream<List<Category>> getCategoriesStream(
     String userId, {
     CategoryType? type,
   }) {
+    // Note: L'index composite (isActive ASC, name ASC) est requis pour cette requête
+    // MODIFICATION: Suppression de orderBy('name') pour éviter l'erreur d'index manquant
+    // Le tri sera fait côté client (Dart)
     Query query = _categoriesCollection(userId).where('isActive', isEqualTo: true);
 
     if (type != null) {
       query = query.where('type', isEqualTo: type.name);
     }
 
-    return query.orderBy('name').snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
+    return query.snapshots().map((snapshot) {
+      final categories = snapshot.docs.map((doc) {
         return Category.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }).toList();
+      
+      // Tri côté client
+      categories.sort((a, b) => a.name.compareTo(b.name));
+      
+      return categories;
     });
   }
 
@@ -652,6 +1162,7 @@ class FirestoreService {
     CategoryType? type,
   }) async {
     try {
+      // Note: L'index composite (isActive ASC, name ASC) est requis pour cette requête
       Query query = _categoriesCollection(userId).where('isActive', isEqualTo: true);
 
       if (type != null) {
@@ -663,7 +1174,21 @@ class FirestoreService {
           .map((doc) => Category.fromMap(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des catégories: $e');
+      // Fallback si l'index n'est pas encore prêt: on trie côté client
+      print('Index manquant, tri côté client: $e');
+      Query query = _categoriesCollection(userId).where('isActive', isEqualTo: true);
+      
+      if (type != null) {
+        query = query.where('type', isEqualTo: type.name);
+      }
+      
+      final snapshot = await query.get();
+      final categories = snapshot.docs
+          .map((doc) => Category.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
+          
+      categories.sort((a, b) => a.name.compareTo(b.name));
+      return categories;
     }
   }
 

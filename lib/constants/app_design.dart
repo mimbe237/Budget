@@ -48,6 +48,7 @@ class AppDesign {
     'cash': Color(0xFFF59E0B),          // Espèces - Orange
     'creditCard': Color(0xFFEC4899),    // Carte de crédit - Rose
     'investment': Color(0xFF8B5CF6),    // Investissement - Violet
+    'mobileWallet': Color(0xFF9C27B0),  // Portefeuille Mobile - Violet
     'other': Color(0xFF6B7280),         // Autre - Gris
   };
 

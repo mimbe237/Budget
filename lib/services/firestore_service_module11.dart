@@ -65,7 +65,7 @@ class UserProfile {
   }
 }
 
-enum AccountType { checking, savings, cash, creditCard, investment, other }
+enum AccountType { checking, savings, cash, creditCard, investment, mobileWallet, other }
 
 class Account {
   final String accountId;

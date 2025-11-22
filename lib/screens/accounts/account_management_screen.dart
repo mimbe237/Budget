@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/models.dart';
-import '../../services/mock_data_service.dart';
+import '../../models/transaction.dart' as app_transaction;
+import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
+import '../../widgets/revolutionary_logo.dart';
+import '../transactions/transactions_list_screen.dart';
 
 /// Écran de gestion des comptes bancaires avec liste, ajout, édition et transfert
 class AccountManagementScreen extends StatefulWidget {
@@ -13,61 +16,127 @@ class AccountManagementScreen extends StatefulWidget {
 }
 
 class _AccountManagementScreenState extends State<AccountManagementScreen> {
-  final MockDataService _mockService = MockDataService();
-  List<Account> _accounts = [];
+  final FirestoreService _firestoreService = FirestoreService();
+  late Stream<List<Account>> _accountsStream;
+  String? _userId;
+  Account? _selectedAccountForHistory;
+  app_transaction.TransactionType? _historyFilterType;
+  DateTimeRange? _historyRange;
 
   @override
   void initState() {
     super.initState();
-    _loadAccounts();
-  }
-
-  void _loadAccounts() {
-    setState(() {
-      _accounts = _mockService.getMockAccounts();
-    });
+    _userId = _firestoreService.currentUserId;
+    if (_userId != null) {
+      _accountsStream = _firestoreService.getAccountsStream(_userId!);
+    } else {
+      _accountsStream = Stream.value([]);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_userId == null) {
+      return const Scaffold(
+        body: Center(child: Text('Veuillez vous connecter pour gérer vos comptes')),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: AppBar(
-        title: const Text(
-          'Mes Comptes',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppDesign.primaryIndigo,
-          ),
+        title: Row(
+          children: [
+            const RevolutionaryLogo(size: 32),
+            const SizedBox(width: 12),
+            const Text(
+              'Mes Comptes',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppDesign.primaryIndigo,
+              ),
+            ),
+          ],
         ),
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      body: _accounts.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.all(AppDesign.paddingMedium),
-              itemCount: _accounts.length,
-              itemBuilder: (context, index) {
-                return _buildAccountCard(_accounts[index]);
-              },
-            ),
+      body: StreamBuilder<List<Account>>(
+        stream: _accountsStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (snapshot.hasError) {
+            return Center(child: Text('Erreur: ${snapshot.error}'));
+          }
+
+          final accounts = snapshot.data ?? [];
+
+          if (accounts.isEmpty) {
+            return _buildEmptyState();
+          }
+
+          final totalBalance = accounts.fold<double>(0.0, (sum, acc) => sum + acc.balance);
+          final currency = accounts.isNotEmpty ? accounts.first.currency : 'EUR';
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(AppDesign.paddingMedium),
+            itemCount: accounts.length + 1,
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppDesign.spacingMedium),
+                  child: _buildTotalAssetsCard(totalBalance, currency),
+                );
+              }
+              return Column(
+                children: [
+                  _buildAccountCard(accounts[index - 1]),
+                  if (_selectedAccountForHistory?.accountId == accounts[index - 1].accountId)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppDesign.spacingMedium),
+                      child: _buildAccountHistory(accounts[index - 1]),
+                    ),
+                ],
+              );
+            },
+          );
+        },
+      ),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FloatingActionButton(
-            heroTag: 'transfer',
-            onPressed: () => _showTransferModal(),
-            backgroundColor: AppDesign.transferColor,
-            child: const Icon(Icons.swap_horiz),
+          StreamBuilder<List<Account>>(
+            stream: _accountsStream,
+            builder: (context, snapshot) {
+              final accounts = snapshot.data ?? [];
+              if (accounts.length < 2) return const SizedBox.shrink();
+              
+              return FloatingActionButton(
+                heroTag: 'transfer',
+                onPressed: () => _showTransferModal(accounts),
+                backgroundColor: AppDesign.transferColor,
+                foregroundColor: Colors.white,
+                child: const Icon(Icons.swap_horiz),
+              );
+            },
           ),
           const SizedBox(height: 12),
           FloatingActionButton.extended(
             heroTag: 'add',
             onPressed: () => _showAddAccountModal(),
             backgroundColor: AppDesign.primaryIndigo,
+            foregroundColor: Colors.white,
             icon: const Icon(Icons.add),
-            label: const Text('Compte'),
+            label: const Text(
+              'Compte',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -116,7 +185,9 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       child: InkWell(
         borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
         onTap: () {
-          // TODO: Naviguer vers les détails du compte
+          setState(() {
+            _selectedAccountForHistory = account;
+          });
         },
         child: Padding(
           padding: const EdgeInsets.all(AppDesign.paddingMedium),
@@ -198,10 +269,245 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     color: AppDesign.primaryIndigo,
                     onPressed: () => _showEditAccountModal(account),
                   ),
+                  IconButton(
+                    tooltip: 'Historique',
+                    icon: const Icon(Icons.receipt_long_outlined, color: Colors.grey),
+                    onPressed: () {
+                      setState(() {
+                        _selectedAccountForHistory = account;
+                      });
+                    },
+                  ),
                 ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTotalAssetsCard(double total, String currency) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF5E35B1), Color(0xFF3D4DB7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+        boxShadow: AppDesign.mediumShadow,
+      ),
+      padding: const EdgeInsets.all(22),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.16),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.account_balance, color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Avoirs financiers',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${total.toStringAsFixed(2)} $currency',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Total de tous vos comptes',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.78),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 18),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountHistory(Account account) {
+    return StreamBuilder<List<app_transaction.Transaction>>(
+      stream: _firestoreService.getTransactionsStream(
+        _userId!,
+        accountId: account.accountId,
+        type: _historyFilterType,
+        startDate: _historyRange?.start,
+        endDate: _historyRange?.end,
+        limit: 100,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(12),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final txs = snapshot.data ?? [];
+
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Historique du compte',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        _historyChip('Tous', null),
+                        _historyChip('Revenus', app_transaction.TransactionType.income),
+                        _historyChip('Dépenses', app_transaction.TransactionType.expense),
+                        _historyChip('Transferts', app_transaction.TransactionType.transfer),
+                        TextButton(
+                          onPressed: () async {
+                            final now = DateTime.now();
+                            final range = await showDateRangePicker(
+                              context: context,
+                              firstDate: DateTime(now.year - 2),
+                              lastDate: DateTime(now.year + 1),
+                              initialDateRange: _historyRange ??
+                                  DateTimeRange(
+                                    start: DateTime(now.year, now.month, 1),
+                                    end: now,
+                                  ),
+                            );
+                            if (range != null) {
+                              setState(() {
+                                _historyRange = range;
+                              });
+                            }
+                          },
+                          child: Text(
+                            _historyRange == null
+                                ? 'Période'
+                                : '${_historyRange!.start.day}/${_historyRange!.start.month} → ${_historyRange!.end.day}/${_historyRange!.end.month}',
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Exporter CSV',
+                          icon: const Icon(Icons.download),
+                          onPressed: () async {
+                            final buffer = StringBuffer();
+                            buffer.writeln('date,type,description,amount,category');
+                            for (final tx in txs) {
+                              buffer.writeln(
+                                '${tx.date.toIso8601String()},${tx.type.name},${tx.description ?? ''},${tx.amount.toStringAsFixed(2)},${tx.category ?? ''}',
+                              );
+                            }
+                            await Clipboard.setData(ClipboardData(text: buffer.toString()));
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Historique copié (CSV)')),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (txs.isEmpty)
+                  const Text(
+                    'Aucun mouvement pour ce compte.',
+                    style: TextStyle(color: Colors.grey),
+                  )
+                else
+                  ...txs.take(20).map((tx) {
+                    final isIncome = tx.type == app_transaction.TransactionType.income;
+                    final isExpense = tx.type == app_transaction.TransactionType.expense;
+                    final color = isIncome
+                        ? AppDesign.incomeColor
+                        : isExpense
+                            ? AppDesign.expenseColor
+                            : Colors.blueGrey;
+                    final prefix = isIncome ? '+' : isExpense ? '-' : '';
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        backgroundColor: color.withOpacity(0.12),
+                        child: Text(
+                          (tx.category ?? '💳').characters.first,
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                      ),
+                      title: Text(
+                        tx.description ?? 'Transaction',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      subtitle: Text(
+                        '${tx.date.day}/${tx.date.month}/${tx.date.year} · ${tx.category ?? 'Sans catégorie'}',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      trailing: Text(
+                        '$prefix${tx.amount.toStringAsFixed(2)} ${account.currency}',
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _historyChip(String label, app_transaction.TransactionType? type) {
+    final selected = _historyFilterType == type;
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: (_) {
+          setState(() {
+            _historyFilterType = type;
+          });
+        },
+        selectedColor: AppDesign.primaryIndigo.withOpacity(0.15),
+        labelStyle: TextStyle(
+          color: selected ? AppDesign.primaryIndigo : Colors.grey[800],
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
         ),
       ),
     );
@@ -219,6 +525,8 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         return 'Carte de Crédit';
       case AccountType.investment:
         return 'Investissement';
+      case AccountType.mobileWallet:
+        return 'Portefeuille Mobile';
       case AccountType.other:
         return 'Autre';
     }
@@ -236,6 +544,8 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         return AppDesign.expenseColor;
       case AccountType.investment:
         return AppDesign.primaryPurple;
+      case AccountType.mobileWallet:
+        return Colors.teal;
       case AccountType.other:
         return Colors.grey;
     }
@@ -249,13 +559,22 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => AddAccountModal(
-        onAccountAdded: (newAccount) {
-          setState(() {
-            _accounts.add(newAccount);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Compte ajouté avec succès !')),
-          );
+        onAccountAdded: (name, type, balance, icon) async {
+          if (_userId != null) {
+            await _firestoreService.addAccount(
+              userId: _userId!,
+              name: name,
+              type: type,
+              balance: balance,
+              icon: icon,
+              color: '#6366F1', // Default color
+            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Compte ajouté avec succès !')),
+              );
+            }
+          }
         },
       ),
     );
@@ -270,16 +589,33 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       ),
       builder: (context) => EditAccountModal(
         account: account,
-        onAccountUpdated: (updatedAccount) {
-          setState(() {
-            final index = _accounts.indexWhere((a) => a.accountId == updatedAccount.accountId);
-            if (index != -1) {
-              _accounts[index] = updatedAccount;
+        onAccountUpdated: (updatedAccount) async {
+          if (_userId != null) {
+            await _firestoreService.updateAccount(
+              _userId!,
+              updatedAccount.accountId,
+              {
+                'name': updatedAccount.name,
+                'type': updatedAccount.type.name,
+                'icon': updatedAccount.icon,
+              },
+            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Compte modifié avec succès !')),
+              );
             }
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Compte modifié avec succès !')),
-          );
+          }
+        },
+        onAccountDeleted: (account) async {
+          if (_userId != null) {
+            await _firestoreService.deleteAccount(_userId!, account.accountId);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Compte supprimé avec succès !')),
+              );
+            }
+          }
         },
       ),
     );
@@ -294,28 +630,29 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       ),
       builder: (context) => ShareAccountModal(
         account: account,
-        onSharedUpdated: (updatedAccount) {
-          setState(() {
-            final idx = _accounts.indexWhere((a) => a.accountId == updatedAccount.accountId);
-            if (idx != -1) {
-              _accounts[idx] = updatedAccount;
+        onSharedUpdated: (email) async {
+          if (_userId != null) {
+            try {
+              await _firestoreService.addSharedAccess(email, account.accountId);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Invitation envoyée à $email')),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+                );
+              }
             }
-          });
+          }
         },
       ),
     );
   }
 
-  void _showTransferModal() {
-    if (_accounts.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vous devez avoir au moins 2 comptes pour effectuer un transfert'),
-        ),
-      );
-      return;
-    }
-
+  void _showTransferModal(List<Account> accounts) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -323,43 +660,49 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => TransferModal(
-        accounts: _accounts,
-        onTransferCompleted: (sourceId, destId, amount) {
-          _performTransfer(sourceId, destId, amount);
+        accounts: accounts,
+        onTransferCompleted: (sourceId, destId, amount) async {
+          if (_userId != null) {
+            try {
+              await _firestoreService.addTransaction(
+                userId: _userId!,
+                accountId: sourceId,
+                toAccountId: destId,
+                type: app_transaction.TransactionType.transfer,
+                amount: amount,
+                description: 'Transfert',
+                date: DateTime.now(),
+              );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Transfert de ${amount.toStringAsFixed(2)} € effectué avec succès !'),
+                    backgroundColor: AppDesign.incomeColor,
+                  ),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+                );
+              }
+            }
+          }
         },
       ),
     );
   }
 
-  void _performTransfer(String sourceId, String destinationId, double amount) {
-    setState(() {
-      final sourceIndex = _accounts.indexWhere((a) => a.accountId == sourceId);
-      final destIndex = _accounts.indexWhere((a) => a.accountId == destinationId);
-
-      if (sourceIndex != -1 && destIndex != -1) {
-        _accounts[sourceIndex] = _accounts[sourceIndex].copyWith(
-          balance: _accounts[sourceIndex].balance - amount,
-          updatedAt: DateTime.now(),
-        );
-        _accounts[destIndex] = _accounts[destIndex].copyWith(
-          balance: _accounts[destIndex].balance + amount,
-          updatedAt: DateTime.now(),
-        );
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Transfert de ${amount.toStringAsFixed(2)} € effectué avec succès !'),
-        backgroundColor: AppDesign.incomeColor,
-      ),
-    );
+  @override
+  void dispose() {
+    super.dispose();
   }
 }
 
 /// Modal pour ajouter un nouveau compte
 class AddAccountModal extends StatefulWidget {
-  final Function(Account) onAccountAdded;
+  final Function(String name, AccountType type, double balance, String icon) onAccountAdded;
 
   const AddAccountModal({super.key, required this.onAccountAdded});
 
@@ -373,6 +716,7 @@ class _AddAccountModalState extends State<AddAccountModal> {
   final _balanceController = TextEditingController(text: '0');
   AccountType _selectedType = AccountType.checking;
   String _selectedIcon = '💳';
+  bool _isLoading = false;
 
   final List<String> _accountIcons = [
     '💳', '💰', '🏦', '💵', '💶', '💷',
@@ -522,13 +866,15 @@ class _AddAccountModalState extends State<AddAccountModal> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _saveAccount,
+                    onPressed: _isLoading ? null : _saveAccount,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppDesign.primaryIndigo,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text(
+                    child: _isLoading 
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text(
                       'Ajouter le Compte',
                       style: TextStyle(
                         fontSize: 16,
@@ -557,29 +903,27 @@ class _AddAccountModalState extends State<AddAccountModal> {
         return 'Carte de Crédit';
       case AccountType.investment:
         return 'Investissement';
+      case AccountType.mobileWallet:
+        return 'Portefeuille Mobile';
       case AccountType.other:
         return 'Autre';
     }
   }
 
-  void _saveAccount() {
+  Future<void> _saveAccount() async {
     if (_formKey.currentState!.validate()) {
-      final newAccount = Account(
-        accountId: 'acc_${DateTime.now().millisecondsSinceEpoch}',
-        userId: 'user_1',
-        name: _nameController.text,
-        type: _selectedType,
-        balance: double.parse(_balanceController.text),
-        currency: 'EUR',
-        icon: _selectedIcon,
-        color: '#6366F1',
-        isActive: true,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      widget.onAccountAdded(newAccount);
-      Navigator.pop(context);
+      setState(() => _isLoading = true);
+      try {
+        await widget.onAccountAdded(
+          _nameController.text,
+          _selectedType,
+          double.parse(_balanceController.text),
+          _selectedIcon,
+        );
+        if (mounted) Navigator.pop(context);
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 }
@@ -588,11 +932,13 @@ class _AddAccountModalState extends State<AddAccountModal> {
 class EditAccountModal extends StatefulWidget {
   final Account account;
   final Function(Account) onAccountUpdated;
+  final Function(Account) onAccountDeleted;
 
   const EditAccountModal({
     super.key,
     required this.account,
     required this.onAccountUpdated,
+    required this.onAccountDeleted,
   });
 
   @override
@@ -604,6 +950,7 @@ class _EditAccountModalState extends State<EditAccountModal> {
   late TextEditingController _nameController;
   late AccountType _selectedType;
   late String _selectedIcon;
+  bool _isLoading = false;
 
   final List<String> _accountIcons = [
     '💳', '💰', '🏦', '💵', '💶', '💷',
@@ -756,13 +1103,15 @@ class _EditAccountModalState extends State<EditAccountModal> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _updateAccount,
+                        onPressed: _isLoading ? null : _updateAccount,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppDesign.primaryIndigo,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: const Text(
+                        child: _isLoading
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text(
                           'Enregistrer',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
@@ -790,22 +1139,29 @@ class _EditAccountModalState extends State<EditAccountModal> {
         return 'Carte de Crédit';
       case AccountType.investment:
         return 'Investissement';
+      case AccountType.mobileWallet:
+        return 'Portefeuille Mobile';
       case AccountType.other:
         return 'Autre';
     }
   }
 
-  void _updateAccount() {
+  Future<void> _updateAccount() async {
     if (_formKey.currentState!.validate()) {
-      final updatedAccount = widget.account.copyWith(
-        name: _nameController.text,
-        type: _selectedType,
-        icon: _selectedIcon,
-        updatedAt: DateTime.now(),
-      );
+      setState(() => _isLoading = true);
+      try {
+        final updatedAccount = widget.account.copyWith(
+          name: _nameController.text,
+          type: _selectedType,
+          icon: _selectedIcon,
+          updatedAt: DateTime.now(),
+        );
 
-      widget.onAccountUpdated(updatedAccount);
-      Navigator.pop(context);
+        await widget.onAccountUpdated(updatedAccount);
+        if (mounted) Navigator.pop(context);
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -823,15 +1179,9 @@ class _EditAccountModalState extends State<EditAccountModal> {
             child: const Text('Annuler'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // TODO: Implémenter la suppression
-              Navigator.pop(context);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Suppression de compte (à implémenter)'),
-                ),
-              );
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              await widget.onAccountDeleted(widget.account);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppDesign.expenseColor,
@@ -1107,24 +1457,29 @@ class _TransferModalState extends State<TransferModal> {
     );
   }
 
-  void _performTransfer() async {
+  Future<void> _performTransfer() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
-      // Simulation d'un délai réseau
-      await Future.delayed(const Duration(milliseconds: 800));
+      try {
+        final amount = double.parse(_amountController.text);
+        await widget.onTransferCompleted(
+          _sourceAccount!.accountId,
+          _destinationAccount!.accountId,
+          amount,
+        );
 
-      final amount = double.parse(_amountController.text);
-      widget.onTransferCompleted(
-        _sourceAccount!.accountId,
-        _destinationAccount!.accountId,
-        amount,
-      );
-
-      if (mounted) {
-        Navigator.pop(context);
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -1133,7 +1488,7 @@ class _TransferModalState extends State<TransferModal> {
 /// Modal de partage de compte
 class ShareAccountModal extends StatefulWidget {
   final Account account;
-  final ValueChanged<Account> onSharedUpdated;
+  final ValueChanged<String> onSharedUpdated;
 
   const ShareAccountModal({
     super.key,
@@ -1170,27 +1525,20 @@ class _ShareAccountModalState extends State<ShareAccountModal> {
       _isSending = true;
     });
 
-    // Simulation d'appel backend
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    final simulatedUid = 'uid_${email.hashCode.abs()}';
-    if (!_sharedWith.contains(simulatedUid)) {
+    try {
+      widget.onSharedUpdated(email);
+      // Note: onSharedUpdated is async and handles the actual sharing logic
+      // We just clear the field here if successful
       setState(() {
-        _sharedWith.add(simulatedUid);
+        _emailController.clear();
       });
-      final updatedAccount = widget.account.copyWith(sharedWithUIDs: _sharedWith);
-      widget.onSharedUpdated(updatedAccount);
+    } finally {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invitation envoyée à $email')),
-        );
+        setState(() {
+          _isSending = false;
+        });
       }
     }
-
-    setState(() {
-      _isSending = false;
-      _emailController.clear();
-    });
   }
 
   @override

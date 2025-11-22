@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../constants/app_design.dart';
 import '../../models/user_profile.dart';
 import 'package:intl/intl.dart';
+import '../../widgets/revolutionary_logo.dart';
 
 /// Écran d'administration (ADMIN SEULEMENT)
 /// Permet de superviser la plateforme et gérer les utilisateurs
@@ -172,12 +173,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: AppBar(
-        title: const Text(
-          'Administration',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppDesign.expenseColor,
-          ),
+        title: Row(
+          children: [
+            const RevolutionaryLogo(size: 32),
+            const SizedBox(width: 12),
+            const Text(
+              'Administration',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppDesign.expenseColor,
+              ),
+            ),
+          ],
         ),
         backgroundColor: Colors.white,
         elevation: 0,

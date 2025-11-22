@@ -5,11 +5,25 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
   "flutter": {
     "platforms": {
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "studio-3821270625-cd276",
+          "projectId": "budget-pro-8e46f",
           "configurations": {
             "android": "1:961816213503:android:54a67fac830775341419ca",
             "web": "1:961816213503:web:13f880d3a00d50a31419ca"

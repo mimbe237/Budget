@@ -26,6 +26,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _mockService = MockDataService();
   final _firestoreService = FirestoreService();
+  final TextEditingController _amountController = TextEditingController();
 
   // Variables du formulaire
   double _amount = 0.0;
@@ -35,45 +36,42 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   DateTime _selectedDate = DateTime.now();
   String _note = '';
   List<String> _tags = [];
+  String? _selectedTemplate;
   
-  // Listes de données
-  List<Account> _accounts = [];
-  List<Category> _categories = [];
+  // Streams pour les données
+  Stream<List<Account>> _accountsStream = const Stream.empty();
+  Stream<List<Category>> _categoriesStream = const Stream.empty();
+  bool _isInitializing = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initStreams();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _initStreams() async {
     final userId = _firestoreService.currentUserId;
     if (userId == null) {
       // Fallback sur mock si pas connecté (pour dev)
-      _accounts = _mockService.getMockAccounts();
-      _categories = _mockService.getMockCategories()
-          .where((cat) => cat.type == _getCategoryTypeFromTransaction())
-          .toList();
+      setState(() {
+        _accountsStream = Stream.value(_mockService.getMockAccounts());
+        _categoriesStream = Stream.value(_mockService.getMockCategories()
+            .where((cat) => cat.type == _getCategoryTypeFromTransaction())
+            .toList());
+        _isInitializing = false;
+      });
     } else {
-      try {
-        _accounts = await _firestoreService.getAccounts(userId);
-        _categories = await _firestoreService.getCategories(
+      // Initialiser les comptes et catégories par défaut si nécessaire
+      _firestoreService.createDefaultAccounts(userId);
+      _firestoreService.createDefaultCategories(userId);
+      
+      setState(() {
+        _accountsStream = _firestoreService.getAccountsStream(userId);
+        _categoriesStream = _firestoreService.getCategoriesStream(
           userId, 
           type: _getCategoryTypeFromTransaction()
         );
-      } catch (e) {
-        debugPrint('Erreur chargement données: $e');
-      }
-    }
-    
-    if (mounted) {
-      setState(() {
-        if (_accounts.isNotEmpty && _selectedAccountId == null) {
-          _selectedAccountId = _accounts.first.accountId;
-        }
-        if (_categories.isNotEmpty && _selectedCategoryId == null) {
-          _selectedCategoryId = _categories.first.categoryId;
-        }
+        _isInitializing = false;
       });
     }
   }
@@ -107,9 +105,16 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Future<void> _saveTransaction() async {
     if (!_formKey.currentState!.validate()) return;
     
-    if (_accounts.isEmpty || _selectedAccountId == null) {
+    if (_selectedAccountId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez créer ou sélectionner un compte avant d\'enregistrer.')),
+        const SnackBar(content: Text('Veuillez sélectionner un compte.')),
+      );
+      return;
+    }
+
+    if (_selectedCategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez sélectionner une catégorie.')),
       );
       return;
     }
@@ -132,7 +137,65 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
 
     try {
-      // MODE FIREBASE uniquement (on a validé userId plus haut)
+      // --- DISCIPLINE BUDGÉTAIRE STRICTE ---
+      if (widget.transactionType == app_transaction.TransactionType.expense) {
+        // Récupérer le compte à jour depuis Firestore pour avoir le solde réel
+        final currentAccount = await _firestoreService.getAccount(userId, _selectedAccountId!);
+        
+        if (currentAccount != null) {
+          final currentBalance = currentAccount.balance;
+
+          // Règle 1 : Solde proche de zéro ou négatif
+          if (currentBalance <= 0.1) { // Marge de 10 centimes
+            if (mounted) {
+              Navigator.of(context).pop(); // Fermer le loader
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Discipline Budgétaire 🛡️'),
+                  content: const Text(
+                    'Vous devez enregistrer un revenu ou une entrée de fonds avant d\'ajouter une dépense.\n\n'
+                    'Votre solde actuel est insuffisant pour effectuer cette opération.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Compris'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return;
+          }
+
+          // Règle 2 : Dépense supérieure au solde disponible
+          if (_amount > currentBalance) {
+            if (mounted) {
+              Navigator.of(context).pop(); // Fermer le loader
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Solde Insuffisant ⚠️'),
+                  content: Text(
+                    'Cette dépense de ${_amount.toStringAsFixed(2)} € dépasse le solde disponible de ${currentBalance.toStringAsFixed(2)} € sur ce compte.\n\n'
+                    'Veuillez choisir un autre compte ou enregistrer un revenu.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return;
+          }
+        }
+      }
+      // -------------------------------------
+
       await _firestoreService.addTransaction(
         userId: userId,
         accountId: _selectedAccountId!,
@@ -179,13 +242,85 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     return _isExpense ? 'Dépense' : 'Revenu';
   }
 
+  void _applyTemplate(_TxTemplate template, List<Category> categories) {
+    setState(() {
+      _selectedTemplate = template.name;
+      _amount = template.amount;
+      _amountController.text = template.amount.toStringAsFixed(2);
+      _description = template.name;
+      _note = template.note ?? '';
+
+      final match = categories.firstWhere(
+        (c) => c.name.toLowerCase().contains(template.categoryLabel.toLowerCase()),
+        orElse: () => categories.isNotEmpty ? categories.first : Category(
+          categoryId: 'temp',
+          userId: '',
+          name: template.categoryLabel,
+          type: _isExpense ? CategoryType.expense : CategoryType.income,
+          icon: '💳',
+          color: '#808080',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+      _selectedCategoryId = match.categoryId;
+    });
+  }
+
   Color get _accentColor {
     return _isExpense ? AppDesign.expenseColor : AppDesign.incomeColor;
+  }
+
+  List<_TxTemplate> get _templates {
+    if (_isExpense) {
+      return [
+        _TxTemplate(
+          name: 'Loyer',
+          amount: 1200,
+          categoryLabel: 'Logement',
+          note: 'Loyer mensuel',
+        ),
+        _TxTemplate(
+          name: 'Internet',
+          amount: 50,
+          categoryLabel: 'Internet',
+          note: 'Fibre',
+        ),
+        _TxTemplate(
+          name: 'Courses',
+          amount: 150,
+          categoryLabel: 'Alimentation',
+          note: 'Hebdo',
+        ),
+      ];
+    } else {
+      return [
+        _TxTemplate(
+          name: 'Salaire',
+          amount: 3200,
+          categoryLabel: 'Salaire',
+          note: 'Mensuel',
+        ),
+        _TxTemplate(
+          name: 'Prime',
+          amount: 300,
+          categoryLabel: 'Prime',
+          note: 'Exceptionnel',
+        ),
+        _TxTemplate(
+          name: 'Remboursement',
+          amount: 100,
+          categoryLabel: 'Autres revenus',
+          note: 'Remboursement',
+        ),
+      ];
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final bool isLoggedIn = _firestoreService.currentUserId != null;
+    
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -199,47 +334,132 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         iconTheme: IconThemeData(color: _accentColor),
         elevation: 0,
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(24.0),
-          children: [
-            if (!isLoggedIn)
-              _buildAuthBanner(context),
-            if (!isLoggedIn)
-              const SizedBox(height: 16),
-            // Montant (Champ principal)
-            _buildAmountField(),
-            const SizedBox(height: 24),
+      body: _isInitializing
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<List<Account>>(
+        stream: _accountsStream,
+        builder: (context, accountSnapshot) {
+          if (accountSnapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (accountSnapshot.hasError) {
+            return Center(child: Text('Erreur chargement comptes: ${accountSnapshot.error}'));
+          }
 
-            // Sélecteur de Compte
-            _buildAccountSelector(),
-            const SizedBox(height: 20),
+          final accounts = accountSnapshot.data ?? [];
+          
+          // Initialisation par défaut du compte sélectionné
+          if (accounts.isNotEmpty && (_selectedAccountId == null || !accounts.any((a) => a.accountId == _selectedAccountId))) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _selectedAccountId = accounts.first.accountId;
+                });
+              }
+            });
+          }
 
-            // Sélecteur de Catégorie
-            _buildCategorySelector(),
-            const SizedBox(height: 20),
+          return StreamBuilder<List<Category>>(
+            stream: _categoriesStream,
+            builder: (context, categorySnapshot) {
+              if (categorySnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            // Description
-            _buildDescriptionField(),
-            const SizedBox(height: 20),
+              final categories = categorySnapshot.data ?? [];
+              
+              // Initialisation par défaut de la catégorie sélectionnée
+              if (categories.isNotEmpty && (_selectedCategoryId == null || !categories.any((c) => c.categoryId == _selectedCategoryId))) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _selectedCategoryId = categories.first.categoryId;
+                    });
+                  }
+                });
+              }
 
-            // Note (optionnel)
-            _buildNoteField(),
-            const SizedBox(height: 20),
+              return Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(24.0),
+                  children: [
+                    if (!isLoggedIn)
+                      _buildAuthBanner(context),
+                    if (!isLoggedIn)
+                      const SizedBox(height: 16),
+                    
+                    // Templates rapides
+                    _buildTemplates(),
+                    const SizedBox(height: 16),
 
-            // Sélecteur de Date
-            _buildDateSelector(),
-            const SizedBox(height: 20),
+                    // Montant (Champ principal)
+                    _buildAmountField(),
+                    const SizedBox(height: 24),
 
-            // Tags (optionnel)
-            _buildTagsField(),
-            const SizedBox(height: 40),
+                    // Sélecteur de Compte
+                    _buildAccountSelector(accounts),
+                    const SizedBox(height: 20),
 
-            // Bouton de Sauvegarde
-            _buildSaveButton(),
-          ],
-        ),
+                    // Sélecteur de Catégorie
+                    _buildCategorySelector(categories),
+                    const SizedBox(height: 20),
+
+                    // Description
+                    _buildDescriptionField(),
+                    const SizedBox(height: 20),
+
+                    // Note (optionnel)
+                    _buildNoteField(),
+                    const SizedBox(height: 20),
+
+                    // Sélecteur de Date
+                    _buildDateSelector(),
+                    const SizedBox(height: 20),
+
+                    // Tags (optionnel)
+                    _buildTagsField(),
+                    const SizedBox(height: 40),
+
+                    // Bouton de Sauvegarde
+                    _buildSaveButton(),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTemplates() {
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _templates.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final template = _templates[index];
+          final isSelected = _selectedTemplate == template.name;
+          return StreamBuilder<List<Category>>(
+            stream: _categoriesStream,
+            builder: (context, snapshot) {
+              final categories = snapshot.data ?? [];
+              return ActionChip(
+                label: Text(template.name),
+                backgroundColor: isSelected ? _accentColor.withOpacity(0.2) : Colors.grey[100],
+                labelStyle: TextStyle(
+                  color: isSelected ? _accentColor : Colors.grey[800],
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+                onPressed: () => _applyTemplate(template, categories),
+              );
+            }
+          );
+        },
       ),
     );
   }
@@ -310,11 +530,30 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     color: Colors.grey[700],
                   ),
                 ),
+                const Spacer(),
+                if (_selectedTemplate != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _accentColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _selectedTemplate!,
+                      style: TextStyle(
+                        color: _accentColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
             TextFormField(
-              keyboardType: TextInputType.number,
+              controller: _amountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textInputAction: TextInputAction.next,
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -333,6 +572,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 return null;
               },
               onSaved: (value) => _amount = double.parse(value!),
+              onChanged: (value) {
+                final parsed = double.tryParse(value);
+                if (parsed != null) {
+                  _amount = parsed;
+                }
+              },
             ),
           ],
         ),
@@ -340,8 +585,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
   }
 
-  Widget _buildAccountSelector() {
-    if (_accounts.isEmpty) {
+  Widget _buildAccountSelector(List<Account> accounts) {
+    if (accounts.isEmpty) {
       return Card(
         color: Colors.red[50],
         shape: RoundedRectangleBorder(borderRadius: AppDesign.mediumRadius),
@@ -376,49 +621,60 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     }
 
     return DropdownButtonFormField<String>(
+      isExpanded: true,
+      itemHeight: null, // autorise plusieurs lignes sans overflow
+      isDense: false,
       decoration: InputDecoration(
         labelText: 'Compte',
         prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
         border: OutlineInputBorder(borderRadius: AppDesign.mediumRadius),
         filled: true,
         fillColor: Colors.grey[50],
+        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       ),
       value: _selectedAccountId,
-      items: _accounts.map((Account account) {
+      items: accounts.map((Account account) {
         return DropdownMenuItem<String>(
           value: account.accountId,
-          child: Row(
-            children: [
-              Text(account.icon ?? '💰', style: const TextStyle(fontSize: 20)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      account.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Text(
-                      '${account.balance.toStringAsFixed(2)} ${account.currency}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                  ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Row(
+              children: [
+                Text(account.icon ?? '💰', style: const TextStyle(fontSize: 24)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        account.name,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '${account.balance.toStringAsFixed(2)} ${account.currency}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       }).toList(),
       onChanged: (String? newValue) {
         setState(() => _selectedAccountId = newValue);
       },
+      validator: (value) => value == null ? 'Compte requis' : null,
     );
   }
 
-  Widget _buildCategorySelector() {
-    if (_categories.isEmpty) {
+  Widget _buildCategorySelector(List<Category> categories) {
+    if (categories.isEmpty) {
       return Card(
         color: Colors.orange[50],
         child: const Padding(
@@ -432,6 +688,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     }
 
     return DropdownButtonFormField<String>(
+      isExpanded: true,
+      itemHeight: null, // autorise plusieurs lignes sans overflow
+      isDense: false,
       decoration: InputDecoration(
         labelText: 'Catégorie',
         prefixIcon: const Icon(Icons.category_outlined),
@@ -440,14 +699,19 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         fillColor: Colors.grey[50],
       ),
       value: _selectedCategoryId,
-      items: _categories.map((Category category) {
+      items: categories.map((Category category) {
         return DropdownMenuItem<String>(
           value: category.categoryId,
           child: Row(
             children: [
               Text(category.icon, style: const TextStyle(fontSize: 20)),
               const SizedBox(width: 12),
-              Text(category.name),
+              Expanded(
+                child: Text(
+                  category.name,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
         );
@@ -455,6 +719,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       onChanged: (String? newValue) {
         setState(() => _selectedCategoryId = newValue);
       },
+      validator: (value) => value == null ? 'Catégorie requise' : null,
+      hint: _selectedTemplate != null ? const Text('Catégorie liée au template') : null,
     );
   }
 
@@ -578,4 +844,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       ),
     );
   }
+}
+
+class _TxTemplate {
+  final String name;
+  final double amount;
+  final String categoryLabel;
+  final String? note;
+
+  _TxTemplate({
+    required this.name,
+    required this.amount,
+    required this.categoryLabel,
+    this.note,
+  });
 }

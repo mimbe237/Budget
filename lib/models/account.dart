@@ -6,6 +6,7 @@ enum AccountType {
   cash,
   creditCard,
   investment,
+  mobileWallet,
   other,
 }
 

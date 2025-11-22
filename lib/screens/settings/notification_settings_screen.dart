@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/notification_service.dart';
 import '../../constants/app_design.dart';
+import '../../widgets/revolutionary_logo.dart';
 
 /// Écran de paramètres des notifications
 class NotificationSettingsScreen extends StatefulWidget {
@@ -23,12 +24,18 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: AppBar(
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppDesign.primaryIndigo,
-          ),
+        title: Row(
+          children: [
+            const RevolutionaryLogo(size: 32),
+            const SizedBox(width: 12),
+            const Text(
+              'Notifications',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppDesign.primaryIndigo,
+              ),
+            ),
+          ],
         ),
         backgroundColor: Colors.white,
         elevation: 0,

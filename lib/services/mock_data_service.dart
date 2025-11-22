@@ -75,6 +75,19 @@ class MockDataService {
         createdAt: now.subtract(const Duration(days: 20)),
         updatedAt: now,
       ),
+      Account(
+        accountId: 'acc_4',
+        userId: mockUserId,
+        name: 'Mobile Money',
+        type: AccountType.mobileWallet,
+        balance: 500.00,
+        currency: 'EUR',
+        icon: '📱',
+        color: '#9C27B0',
+        sharedWithUIDs: const [],
+        createdAt: now.subtract(const Duration(days: 15)),
+        updatedAt: now,
+      ),
     ];
   }
 

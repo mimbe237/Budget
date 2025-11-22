@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/mock_data_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
+import '../../widgets/modern_page_app_bar.dart';
 
 /// Écran de suivi et financement des objectifs d'épargne
 class GoalFundingScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
   final MockDataService _mockService = MockDataService();
   List<Goal> _goals = [];
   List<Account> _accounts = [];
+  String? _selectedGoalForHistory;
 
   @override
   void initState() {
@@ -119,6 +121,80 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
     });
   }
 
+  Widget _buildGoalHistory(Goal goal) {
+    // Données factices de contributions liées à l'objectif
+    final entries = [
+      _GoalTx(label: 'Virement épargne', amount: 200, date: DateTime.now().subtract(const Duration(days: 3))),
+      _GoalTx(label: 'Bonus salaire', amount: 150, date: DateTime.now().subtract(const Duration(days: 10))),
+      _GoalTx(label: 'Arrondi automatique', amount: 35, date: DateTime.now().subtract(const Duration(days: 15))),
+    ];
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text(
+                'Historique des mouvements',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...entries.map((e) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppDesign.primaryIndigo.withOpacity(0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.savings, size: 16, color: AppDesign.primaryIndigo),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          e.label,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                        ),
+                        Text(
+                          '${e.date.day}/${e.date.month}/${e.date.year}',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '+${e.amount.toStringAsFixed(2)} €',
+                    style: const TextStyle(
+                      color: AppDesign.incomeColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeGoals = _goals.where((g) => g.status == GoalStatus.active).toList();
@@ -130,16 +206,10 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
 
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
-      appBar: AppBar(
-        title: const Text(
-          'Objectifs d\'Épargne',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppDesign.primaryIndigo,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
+      appBar: const ModernPageAppBar(
+        title: 'Objectifs d\'Épargne',
+        subtitle: 'Suivez et financez vos projets',
+        icon: Icons.flag_rounded,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -175,8 +245,15 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateGoalModal(),
         backgroundColor: AppDesign.primaryIndigo,
+        foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('Nouvel Objectif'),
+        label: const Text(
+          'Nouvel Objectif',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }
@@ -403,6 +480,19 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                                 color: Colors.orange,
                                 size: 28,
                               ),
+                            IconButton(
+                              icon: const Icon(Icons.receipt_long_outlined, color: Colors.grey),
+                              tooltip: 'Historique',
+                              onPressed: () {
+                                setState(() {
+                                  if (_selectedGoalForHistory == goal.goalId) {
+                                    _selectedGoalForHistory = null;
+                                  } else {
+                                    _selectedGoalForHistory = goal.goalId;
+                                  }
+                                });
+                              },
+                            ),
                           ],
                         ),
                         if (goal.description != null)
@@ -526,11 +616,15 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                         ),
                     ],
                   ),
-                ],
-              ),
-              
-              // Bouton Financer
-              if (!isCompleted) ...[
+              ],
+            ),
+            
+            const SizedBox(height: 12),
+            if (_selectedGoalForHistory == goal.goalId)
+              _buildGoalHistory(goal),
+            
+            // Bouton Financer
+            if (!isCompleted) ...[
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -1205,4 +1299,12 @@ class _FundGoalModalState extends State<FundGoalModal> {
       }
     }
   }
+}
+
+// Petit modèle interne pour l'historique factice
+class _GoalTx {
+  final String label;
+  final double amount;
+  final DateTime date;
+  _GoalTx({required this.label, required this.amount, required this.date});
 }

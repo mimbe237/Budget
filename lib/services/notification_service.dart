@@ -26,11 +26,17 @@ class NotificationService {
   static const String _dailyChannelId = 'daily_channel';
   static const String _dailyChannelName = 'Rappels Quotidiens';
   static const String _dailyChannelDescription = 'Rappels pour enregistrer vos dépenses';
+  static const String _monthlyChannelId = 'monthly_channel';
+  static const String _monthlyChannelName = 'Rappels Mensuels';
+  static const String _monthlyChannelDescription = 'Rappel mensuel pour bilan ou charges fixes';
 
   // Préférences utilisateur (simulation - à remplacer par SharedPreferences en production)
   bool _budgetAlertsEnabled = true;
+  double _budgetAlertThreshold = 0.85; // 85% d'épuisement
   bool _dailyRemindersEnabled = true;
+  bool _monthlyRemindersEnabled = false;
   bool _goalAlertsEnabled = true;
+  bool get budgetAlertsEnabled => _budgetAlertsEnabled;
 
   /// Initialise le service de notifications
   Future<void> init() async {
@@ -158,6 +164,10 @@ class NotificationService {
     return _dailyRemindersEnabled;
   }
 
+  bool _isMonthlyReminderEnabled() {
+    return _monthlyRemindersEnabled;
+  }
+
   /// Vérifie si les alertes d'objectifs sont activées
   bool _isGoalAlertEnabled() {
     // TODO: Remplacer par SharedPreferences.getBool('goal_alerts_enabled')
@@ -171,6 +181,14 @@ class NotificationService {
     debugPrint('Alertes budget: ${enabled ? "activées" : "désactivées"}');
   }
 
+  double get budgetAlertThreshold => _budgetAlertThreshold;
+
+  Future<void> setBudgetAlertThreshold(double value) async {
+    _budgetAlertThreshold = value.clamp(0.5, 1.2);
+    // TODO: persister la valeur
+    debugPrint('Seuil alerte budget: $_budgetAlertThreshold');
+  }
+
   /// Active/Désactive les rappels quotidiens
   Future<void> setDailyRemindersEnabled(bool enabled) async {
     _dailyRemindersEnabled = enabled;
@@ -180,6 +198,16 @@ class NotificationService {
       await cancelDailyReminder();
     }
     debugPrint('Rappels quotidiens: ${enabled ? "activés" : "désactivés"}');
+  }
+
+  Future<void> setMonthlyRemindersEnabled(bool enabled, {TimeOfDay? timeOfDay}) async {
+    _monthlyRemindersEnabled = enabled;
+    if (!enabled) {
+      await cancelMonthlyReminder();
+    } else if (timeOfDay != null) {
+      await scheduleMonthlyReminder(timeOfDay);
+    }
+    debugPrint('Rappels mensuels: ${enabled ? "activés" : "désactivés"}');
   }
 
   /// Active/Désactive les alertes d'objectifs
@@ -396,6 +424,67 @@ class NotificationService {
   Future<void> cancelDailyReminder() async {
     await _notificationsPlugin.cancel(0); // ID 0 = rappel quotidien
     debugPrint('🚫 Rappel quotidien annulé');
+  }
+
+  /// Programme un rappel mensuel
+  Future<void> scheduleMonthlyReminder(TimeOfDay time) async {
+    if (!_isInitialized) return;
+    if (!_isMonthlyReminderEnabled()) return;
+
+    await cancelMonthlyReminder();
+
+    final now = DateTime.now();
+    // Programmer pour le 1er du mois prochain
+    var scheduledDate = DateTime(
+      now.year,
+      now.month + 1,
+      1,
+      time.hour,
+      time.minute,
+    );
+
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      _monthlyChannelId,
+      _monthlyChannelName,
+      channelDescription: _monthlyChannelDescription,
+      importance: Importance.defaultImportance,
+      priority: Priority.defaultPriority,
+      icon: '@mipmap/ic_launcher',
+      color: Color(0xFF5E35B1),
+      playSound: true,
+    );
+
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _notificationsPlugin.zonedSchedule(
+      1, // ID 1 pour le rappel mensuel
+      'Bilan mensuel 📊',
+      'C\'est le moment de faire le point sur votre budget du mois.',
+      tz.TZDateTime.from(scheduledDate, tz.local),
+      notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime, // Répéter tous les mois
+      payload: 'monthly_reminder',
+    );
+
+    debugPrint('📅 Rappel mensuel programmé');
+  }
+
+  /// Annule le rappel mensuel
+  Future<void> cancelMonthlyReminder() async {
+    await _notificationsPlugin.cancel(1); // ID 1 = rappel mensuel
+    debugPrint('🚫 Rappel mensuel annulé');
   }
 
   /// Annule toutes les notifications

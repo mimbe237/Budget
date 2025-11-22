@@ -1,258 +1,45 @@
 {
   "indexes": [
     {
-      "collectionGroup": "affiliateLinks",
+      "collectionGroup": "transactions",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "affiliateId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "active",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "affiliates",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "budgetGoals",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "archived",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "clicks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "affiliateId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "clicks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "linkId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "commissions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "affiliateId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "monthKey",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "debtPayments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "debtId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "paidAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "debtRateHistory",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "debtId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "effectiveDate",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "debts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "debtSchedules",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "debtId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "dueDate",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "debtSchedules",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "debtId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "periodIndex",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "debtSchedules",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "debtId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "expenses",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "type",
+          "fieldPath": "accountId",
           "order": "ASCENDING"
         },
         {
           "fieldPath": "date",
-          "order": "ASCENDING"
+          "order": "DESCENDING"
         },
         {
           "fieldPath": "__name__",
-          "order": "ASCENDING"
+          "order": "DESCENDING"
         }
       ],
       "density": "SPARSE_ALL"
     },
     {
-      "collectionGroup": "expenses",
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "categoryId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "transactions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -271,62 +58,39 @@
       "density": "SPARSE_ALL"
     },
     {
-      "collectionGroup": "payouts",
+      "collectionGroup": "accounts",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "affiliateId",
+          "fieldPath": "isActive",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "status",
+          "fieldPath": "createdAt",
           "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "periodTo",
-          "order": "DESCENDING"
         },
         {
           "fieldPath": "__name__",
-          "order": "DESCENDING"
+          "order": "ASCENDING"
         }
       ],
       "density": "SPARSE_ALL"
     },
     {
-      "collectionGroup": "referrals",
+      "collectionGroup": "categories",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "affiliateId",
+          "fieldPath": "isActive",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
-    },
-    {
-      "collectionGroup": "referrals",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
+          "fieldPath": "name",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        },
-        {
           "fieldPath": "__name__",
-          "order": "DESCENDING"
+          "order": "ASCENDING"
         }
       ],
       "density": "SPARSE_ALL"

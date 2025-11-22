@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import '../../constants/app_design.dart';
 import '../../services/notification_service.dart';
 import '../../services/mock_data_service.dart';
+import '../../services/firestore_service.dart';
 import '../../models/user_profile.dart';
 import '../settings/notification_settings_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../onboarding/onboarding_wizard_screen.dart';
+import '../auth/auth_screen.dart';
+import '../../widgets/revolutionary_logo.dart';
 
 /// Écran de profil et paramètres utilisateur
 /// Affiche les informations du profil et permet de gérer les préférences
@@ -27,6 +30,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   bool _dailyReminderEnabled = true;
   bool _budgetAlertsEnabled = true;
   bool _goalAlertsEnabled = true;
+  double _budgetAlertThreshold = 0.85;
 
   // Devise actuelle
   String _currentCurrency = 'EUR (€)';
@@ -61,7 +65,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     // Pour l'instant, on utilise les valeurs par défaut
     setState(() {
       _dailyReminderEnabled = true;
-      _budgetAlertsEnabled = true;
+      _budgetAlertsEnabled = _notificationService.budgetAlertsEnabled;
+      _budgetAlertThreshold = _notificationService.budgetAlertThreshold;
       _goalAlertsEnabled = true;
     });
   }
@@ -120,6 +125,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   _buildLogoutButton(),
                   
                   const SizedBox(height: 32),
+
+                  ..._systemExtras(),
                 ],
               ),
             ),
@@ -127,6 +134,50 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ],
       ),
     );
+  }
+
+  List<Widget> _systemExtras() {
+    final items = <Widget>[];
+    if (FirestoreService().isCurrentUserDemo) {
+      items.add(const Divider(height: 1, indent: 72));
+      items.add(
+        ListTile(
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.cleaning_services_outlined,
+              color: Colors.redAccent,
+              size: 24,
+            ),
+          ),
+          title: const Text(
+            'Purger les données démo',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          subtitle: const Text(
+            'Efface toutes les données démo puis déconnecte.',
+            style: TextStyle(fontSize: 12),
+          ),
+          trailing: const Icon(Icons.warning_amber, color: Colors.redAccent),
+          onTap: () async {
+            await FirestoreService().cleanupDemoDataOnLogout();
+            await FirestoreService().logout();
+            if (!mounted) return;
+            Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const AuthScreen()),
+              (route) => false,
+            );
+          },
+        ),
+      );
+    }
+    return items;
   }
 
   /// AppBar avec en-tête profil
@@ -155,6 +206,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       expandedHeight: 240,
       floating: false,
       pinned: true,
+      title: const RevolutionaryLogo(size: 32),
       backgroundColor: AppDesign.primaryIndigo,
       elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
@@ -390,6 +442,47 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               }
             },
           ),
+          if (_budgetAlertsEnabled)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(72, 0, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Seuil d\'alerte',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        '${(_budgetAlertThreshold * 100).toStringAsFixed(0)}%',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: _budgetAlertThreshold,
+                    min: 0.5,
+                    max: 1.2,
+                    divisions: 7,
+                    label: '${(_budgetAlertThreshold * 100).toStringAsFixed(0)}%',
+                    onChanged: (v) {
+                      setState(() => _budgetAlertThreshold = v);
+                    },
+                    onChangeEnd: (v) async {
+                      await _notificationService.setBudgetAlertThreshold(v);
+                    },
+                    activeColor: AppDesign.expenseColor,
+                    inactiveColor: AppDesign.expenseColor.withOpacity(0.2),
+                  ),
+                  const Text(
+                    'Alerte quand une poche dépasse ce pourcentage de son budget.',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
           
           const Divider(height: 1, indent: 72),
           

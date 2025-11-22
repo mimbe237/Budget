@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/account.dart';
 import '../../services/firestore_service.dart';
+import '../../widgets/revolutionary_logo.dart';
 
 /// Écran d'onboarding wizard en 3 étapes
 /// Étape 1: Profil utilisateur (nom + devise)
@@ -177,6 +178,10 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const Padding(
+          padding: EdgeInsets.all(8.0),
+          child: RevolutionaryLogo(size: 32),
+        ),
         title: Column(
           children: [
             Text(
@@ -457,7 +462,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
               initialValue: account.balance.toString(),
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Solde initial',
+                labelText: 'Solde Actuel',
                 suffixText: _currency,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
