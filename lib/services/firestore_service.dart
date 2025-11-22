@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_profile.dart';
@@ -210,36 +211,54 @@ class FirestoreService {
     }
   }
 
+  /// Obtenir les transactions avec pagination (retourne QuerySnapshot pour gérer le curseur)
+  Future<QuerySnapshot> getTransactionsPagedSnapshot(
+    String userId, {
+    int limit = 20,
+    DocumentSnapshot? startAfterDocument,
+    app_transaction.TransactionType? type,
+    String? accountId,
+    String? categoryId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      Query query = _transactionsCollection(userId).where('isDeleted', isEqualTo: false);
+
+      if (accountId != null) query = query.where('accountId', isEqualTo: accountId);
+      if (categoryId != null) query = query.where('categoryId', isEqualTo: categoryId);
+      if (type != null) query = query.where('type', isEqualTo: type.name);
+      if (startDate != null) query = query.where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+      if (endDate != null) query = query.where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+
+      query = query.orderBy('date', descending: true).limit(limit);
+
+      if (startAfterDocument != null) {
+        query = query.startAfterDocument(startAfterDocument);
+      }
+
+      return await query.get();
+    } catch (e) {
+      throw Exception('Erreur pagination: $e');
+    }
+  }
+
   Future<void> _seedDemoAccountsAndTransactions(String userId) async {
-    // 1. Création des comptes
-    final mainAccountId = await addAccount(
-      userId: userId,
-      name: 'Compte courant',
-      type: AccountType.checking,
-      balance: 0,
-      icon: '💳',
-      color: '#5E35B1',
-    );
+    final batch = _firestore.batch();
+    final now = DateTime.now();
+    final random = math.Random();
 
-    final savingsAccountId = await addAccount(
-      userId: userId,
-      name: 'Épargne',
-      type: AccountType.savings,
-      balance: 0,
-      icon: '🐷',
-      color: '#4CAF50',
-    );
+    // 1. Création des comptes (IDs générés manuellement pour le batch)
+    final mainAccountId = _accountsCollection(userId).doc().id;
+    final savingsAccountId = _accountsCollection(userId).doc().id;
+    final cashAccountId = _accountsCollection(userId).doc().id;
 
-    final cashAccountId = await addAccount(
-      userId: userId,
-      name: 'Espèces',
-      type: AccountType.cash,
-      balance: 0,
-      icon: '💵',
-      color: '#FF9800',
-    );
+    // Soldes initiaux (calculés en mémoire)
+    double mainBalance = 0;
+    double savingsBalance = 0;
+    double cashBalance = 0;
 
-    // Récupération des catégories pour lier les transactions
+    // Récupération des catégories
     final categories = await getCategories(userId);
     String? getCatId(String name) {
       try {
@@ -255,114 +274,136 @@ class FirestoreService {
     final transportCat = getCatId('Transport');
     final leisureCat = getCatId('Loisirs');
     final billsCat = getCatId('Factures');
+    final healthCat = getCatId('Santé');
 
-    // 2. Création des transactions (Historique sur 2 mois)
-    final now = DateTime.now();
-    final lastMonth = now.subtract(const Duration(days: 30));
-
-    // --- MOIS PRÉCÉDENT ---
-    await addTransaction(
-      userId: userId,
-      accountId: mainAccountId,
-      categoryId: salaryCat,
-      type: app_transaction.TransactionType.income,
-      amount: 3200,
-      description: 'Salaire Octobre',
-      date: lastMonth.subtract(const Duration(days: 2)),
-      note: 'Virement reçu',
-    );
-
-    await addTransaction(
-      userId: userId,
-      accountId: mainAccountId,
-      categoryId: housingCat,
-      type: app_transaction.TransactionType.expense,
-      amount: 1200,
-      description: 'Loyer Octobre',
-      date: lastMonth,
-      note: 'Prélèvement automatique',
-    );
-
-    // --- MOIS COURANT ---
-    await addTransaction(
-      userId: userId,
-      accountId: mainAccountId,
-      categoryId: salaryCat,
-      type: app_transaction.TransactionType.income,
-      amount: 3200,
-      description: 'Salaire Novembre',
-      date: now.subtract(const Duration(days: 15)),
-      note: 'Entreprise DemoCorp',
-    );
-
-    await addTransaction(
-      userId: userId,
-      accountId: mainAccountId,
-      categoryId: housingCat,
-      type: app_transaction.TransactionType.expense,
-      amount: 1200,
-      description: 'Loyer Novembre',
-      date: now.subtract(const Duration(days: 14)),
-      note: 'Appartement centre-ville',
-    );
-
-    await addTransaction(
-      userId: userId,
-      accountId: mainAccountId,
-      categoryId: foodCat,
-      type: app_transaction.TransactionType.expense,
-      amount: 150,
-      description: 'Courses Semaine 1',
-      date: now.subtract(const Duration(days: 12)),
-      note: 'Supermarché',
-    );
-
-    await addTransaction(
-      userId: userId,
-      accountId: mainAccountId,
-      categoryId: billsCat,
-      type: app_transaction.TransactionType.expense,
-      amount: 45.99,
-      description: 'Internet & TV',
-      date: now.subtract(const Duration(days: 10)),
-      note: 'Facture mensuelle',
-    );
-
-    await addTransaction(
-      userId: userId,
-      accountId: mainAccountId,
-      categoryId: null, // Transfert interne
-      type: app_transaction.TransactionType.transfer,
-      amount: 500,
-      description: 'Épargne mensuelle',
-      toAccountId: savingsAccountId,
-      date: now.subtract(const Duration(days: 8)),
-      note: 'Objectif vacances',
-    );
-
-    await addTransaction(
-      userId: userId,
-      accountId: cashAccountId,
-      categoryId: transportCat,
-      type: app_transaction.TransactionType.expense,
-      amount: 50,
-      description: 'Essence',
-      date: now.subtract(const Duration(days: 5)),
-      note: 'Plein voiture',
-    );
-
-    await addTransaction(
-      userId: userId,
-      accountId: mainAccountId,
-      categoryId: leisureCat,
-      type: app_transaction.TransactionType.expense,
-      amount: 85,
-      description: 'Restaurant',
-      date: now.subtract(const Duration(days: 2)),
-      note: 'Sortie entre amis',
-    );
+    // 2. Génération des transactions sur 6 mois
+    // On génère environ 150 transactions
+    // ~25 transactions par mois
     
-    // 3. Création d'un objectif
+    for (int i = 5; i >= 0; i--) {
+      final monthDate = DateTime(now.year, now.month - i, 1);
+      final daysInMonth = DateTime(monthDate.year, monthDate.month + 1, 0).day;
+      
+      // Salaire (le 28 ou 30 du mois)
+      final salaryDate = DateTime(monthDate.year, monthDate.month, 28);
+      if (salaryDate.isBefore(now)) {
+        final amount = 3200.0 + random.nextInt(200); // Salaire variable
+        mainBalance += amount;
+        _addBatchTransaction(
+          batch, userId, mainAccountId, salaryCat, 
+          app_transaction.TransactionType.income, amount, 
+          'Salaire ${DateFormat('MMMM').format(salaryDate)}', salaryDate
+        );
+      }
+
+      // Loyer (le 5 du mois)
+      final rentDate = DateTime(monthDate.year, monthDate.month, 5);
+      if (rentDate.isBefore(now)) {
+        const amount = 1200.0;
+        mainBalance -= amount;
+        _addBatchTransaction(
+          batch, userId, mainAccountId, housingCat, 
+          app_transaction.TransactionType.expense, amount, 
+          'Loyer', rentDate
+        );
+      }
+
+      // Factures (Internet, Électricité) - vers le 10
+      final billsDate = DateTime(monthDate.year, monthDate.month, 10);
+      if (billsDate.isBefore(now)) {
+        final amount = 150.0 + random.nextDouble() * 50;
+        mainBalance -= amount;
+        _addBatchTransaction(
+          batch, userId, mainAccountId, billsCat, 
+          app_transaction.TransactionType.expense, amount, 
+          'Factures (Élec/Internet)', billsDate
+        );
+      }
+
+      // Épargne (Virement vers livret) - vers le 15
+      final savingsDate = DateTime(monthDate.year, monthDate.month, 15);
+      if (savingsDate.isBefore(now)) {
+        final amount = 300.0 + random.nextInt(200);
+        mainBalance -= amount;
+        savingsBalance += amount;
+        _addBatchTransaction(
+          batch, userId, mainAccountId, null, 
+          app_transaction.TransactionType.transfer, amount, 
+          'Épargne mensuelle', savingsDate,
+          toAccountId: savingsAccountId
+        );
+      }
+
+      // Dépenses courantes (Courses, Loisirs, Transport)
+      // ~20 transactions aléatoires par mois
+      for (int j = 0; j < 20; j++) {
+        final day = 1 + random.nextInt(daysInMonth);
+        final txDate = DateTime(monthDate.year, monthDate.month, day, random.nextInt(23), random.nextInt(59));
+        
+        if (txDate.isAfter(now)) continue;
+
+        final typeRoll = random.nextDouble();
+        
+        if (typeRoll < 0.6) {
+          // Courses (60%)
+          final amount = 30.0 + random.nextDouble() * 100;
+          mainBalance -= amount;
+          _addBatchTransaction(
+            batch, userId, mainAccountId, foodCat, 
+            app_transaction.TransactionType.expense, amount, 
+            'Courses Supermarché', txDate
+          );
+        } else if (typeRoll < 0.8) {
+          // Loisirs (20%)
+          final amount = 15.0 + random.nextDouble() * 60;
+          mainBalance -= amount;
+          _addBatchTransaction(
+            batch, userId, mainAccountId, leisureCat, 
+            app_transaction.TransactionType.expense, amount, 
+            'Sortie / Loisir', txDate
+          );
+        } else if (typeRoll < 0.9) {
+          // Transport (10%)
+          final amount = 10.0 + random.nextDouble() * 40;
+          cashBalance -= amount; // Payé en cash souvent
+          _addBatchTransaction(
+            batch, userId, cashAccountId, transportCat, 
+            app_transaction.TransactionType.expense, amount, 
+            'Transport / Essence', txDate
+          );
+        } else {
+          // Santé / Divers (10%)
+          final amount = 20.0 + random.nextDouble() * 50;
+          mainBalance -= amount;
+          _addBatchTransaction(
+            batch, userId, mainAccountId, healthCat, 
+            app_transaction.TransactionType.expense, amount, 
+            'Pharmacie / Santé', txDate
+          );
+        }
+      }
+    }
+
+    // 3. Ajout des comptes au batch avec les soldes calculés
+    batch.set(_accountsCollection(userId).doc(mainAccountId), Account(
+      accountId: mainAccountId, userId: userId, name: 'Compte courant', 
+      type: AccountType.checking, balance: mainBalance, icon: '💳', color: '#5E35B1',
+      createdAt: now, updatedAt: now
+    ).toMap());
+
+    batch.set(_accountsCollection(userId).doc(savingsAccountId), Account(
+      accountId: savingsAccountId, userId: userId, name: 'Épargne', 
+      type: AccountType.savings, balance: savingsBalance, icon: '🐷', color: '#4CAF50',
+      createdAt: now, updatedAt: now
+    ).toMap());
+
+    batch.set(_accountsCollection(userId).doc(cashAccountId), Account(
+      accountId: cashAccountId, userId: userId, name: 'Espèces', 
+      type: AccountType.cash, balance: cashBalance, icon: '💵', color: '#FF9800',
+      createdAt: now, updatedAt: now
+    ).toMap());
+
+    // 4. Création d'un objectif
     await addGoal(
       userId: userId,
       name: 'Vacances Été',
@@ -372,7 +413,7 @@ class FirestoreService {
       color: '#0ea5e9',
     );
     
-    // 4. Création d'un budget
+    // 5. Création d'un budget
     await saveBudgetPlan(
       userId: userId,
       totalBudget: 2500,
@@ -383,6 +424,37 @@ class FirestoreService {
         if (leisureCat != null) leisureCat: 300,
       },
     );
+
+    // 6. Commit final
+    await batch.commit();
+  }
+
+  void _addBatchTransaction(
+    WriteBatch batch, 
+    String userId, 
+    String accountId, 
+    String? categoryId, 
+    app_transaction.TransactionType type, 
+    double amount, 
+    String description, 
+    DateTime date,
+    {String? toAccountId}
+  ) {
+    final docRef = _transactionsCollection(userId).doc();
+    final tx = app_transaction.Transaction(
+      transactionId: docRef.id,
+      userId: userId,
+      accountId: accountId,
+      categoryId: categoryId,
+      type: type,
+      amount: amount,
+      description: description,
+      date: date,
+      toAccountId: toAccountId,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    batch.set(docRef, tx.toMap());
   }
 
   // ============================================================================
@@ -1063,6 +1135,231 @@ class FirestoreService {
       });
     } catch (e) {
       throw Exception('Erreur lors de la suppression de la transaction: $e');
+    }
+  }
+
+  // ============================================================================
+  // CORBEILLE & SUPPRESSION LOGIQUE (SOFT DELETE)
+  // ============================================================================
+
+  /// Supprime logiquement une transaction (déplace vers la corbeille)
+  /// Met à jour le solde du compte comme si la transaction était annulée
+  Future<void> softDeleteTransaction(String userId, String transactionId) async {
+    try {
+      await _firestore.runTransaction((transaction) async {
+        // 1. Récupérer la transaction
+        final transactionDocRef = _transactionsCollection(userId).doc(transactionId);
+        final transactionSnapshot = await transaction.get(transactionDocRef);
+        
+        if (!transactionSnapshot.exists) {
+          throw Exception('La transaction n\'existe pas');
+        }
+
+        final transactionData = transactionSnapshot.data() as Map<String, dynamic>;
+        
+        // Si déjà supprimée, on ne fait rien
+        if (transactionData['isDeleted'] == true) return;
+
+        final accountId = transactionData['accountId'] as String;
+        final amount = (transactionData['amount'] ?? 0).toDouble();
+        final type = app_transaction.TransactionType.values.firstWhere(
+          (e) => e.name == transactionData['type'],
+        );
+        final toAccountId = transactionData['toAccountId'] as String?;
+
+        // 2. Récupérer le compte source
+        final accountDocRef = _accountsCollection(userId).doc(accountId);
+        final accountSnapshot = await transaction.get(accountDocRef);
+        
+        if (!accountSnapshot.exists) {
+          throw Exception('Le compte n\'existe pas');
+        }
+
+        final accountData = accountSnapshot.data() as Map<String, dynamic>;
+        final currentBalance = (accountData['balance'] ?? 0).toDouble();
+
+        // 3. Restaurer le solde (inverser l'opération)
+        double newBalance = currentBalance;
+        final now = DateTime.now();
+        
+        switch (type) {
+          case app_transaction.TransactionType.income:
+            newBalance -= amount;
+            break;
+          case app_transaction.TransactionType.expense:
+            newBalance += amount;
+            break;
+          case app_transaction.TransactionType.transfer:
+            newBalance += amount;
+            
+            // Restaurer aussi le compte de destination
+            if (toAccountId != null) {
+              final toAccountDocRef = _accountsCollection(userId).doc(toAccountId);
+              final toAccountSnapshot = await transaction.get(toAccountDocRef);
+              
+              if (toAccountSnapshot.exists) {
+                final toAccountData = toAccountSnapshot.data() as Map<String, dynamic>;
+                final toCurrentBalance = (toAccountData['balance'] ?? 0).toDouble();
+                
+                transaction.update(toAccountDocRef, {
+                  'balance': toCurrentBalance - amount,
+                  'updatedAt': Timestamp.fromDate(now),
+                });
+              }
+            }
+            break;
+        }
+
+        // 4. Mettre à jour le solde du compte
+        transaction.update(accountDocRef, {
+          'balance': newBalance,
+          'updatedAt': Timestamp.fromDate(now),
+        });
+
+        // 5. Marquer la transaction comme supprimée (Soft Delete)
+        transaction.update(transactionDocRef, {
+          'isDeleted': true,
+          'deletedAt': Timestamp.fromDate(now),
+          'updatedAt': Timestamp.fromDate(now),
+        });
+      });
+    } catch (e) {
+      throw Exception('Erreur lors de la suppression logique: $e');
+    }
+  }
+
+  /// Restaure une transaction depuis la corbeille
+  /// Ré-applique l'impact sur le solde
+  Future<void> restoreTransaction(String userId, String transactionId) async {
+    try {
+      await _firestore.runTransaction((transaction) async {
+        // 1. Récupérer la transaction
+        final transactionDocRef = _transactionsCollection(userId).doc(transactionId);
+        final transactionSnapshot = await transaction.get(transactionDocRef);
+        
+        if (!transactionSnapshot.exists) {
+          throw Exception('La transaction n\'existe pas');
+        }
+
+        final transactionData = transactionSnapshot.data() as Map<String, dynamic>;
+        
+        // Si non supprimée, on ne fait rien
+        if (transactionData['isDeleted'] != true) return;
+
+        final accountId = transactionData['accountId'] as String;
+        final amount = (transactionData['amount'] ?? 0).toDouble();
+        final type = app_transaction.TransactionType.values.firstWhere(
+          (e) => e.name == transactionData['type'],
+        );
+        final toAccountId = transactionData['toAccountId'] as String?;
+
+        // 2. Récupérer le compte source
+        final accountDocRef = _accountsCollection(userId).doc(accountId);
+        final accountSnapshot = await transaction.get(accountDocRef);
+        
+        if (!accountSnapshot.exists) {
+          throw Exception('Le compte n\'existe pas');
+        }
+
+        final accountData = accountSnapshot.data() as Map<String, dynamic>;
+        final currentBalance = (accountData['balance'] ?? 0).toDouble();
+
+        // 3. Ré-appliquer l'opération sur le solde
+        double newBalance = currentBalance;
+        final now = DateTime.now();
+        
+        switch (type) {
+          case app_transaction.TransactionType.income:
+            newBalance += amount;
+            break;
+          case app_transaction.TransactionType.expense:
+            newBalance -= amount;
+            break;
+          case app_transaction.TransactionType.transfer:
+            newBalance -= amount;
+            
+            // Ré-appliquer sur le compte de destination
+            if (toAccountId != null) {
+              final toAccountDocRef = _accountsCollection(userId).doc(toAccountId);
+              final toAccountSnapshot = await transaction.get(toAccountDocRef);
+              
+              if (toAccountSnapshot.exists) {
+                final toAccountData = toAccountSnapshot.data() as Map<String, dynamic>;
+                final toCurrentBalance = (toAccountData['balance'] ?? 0).toDouble();
+                
+                transaction.update(toAccountDocRef, {
+                  'balance': toCurrentBalance + amount,
+                  'updatedAt': Timestamp.fromDate(now),
+                });
+              }
+            }
+            break;
+        }
+
+        // 4. Mettre à jour le solde du compte
+        transaction.update(accountDocRef, {
+          'balance': newBalance,
+          'updatedAt': Timestamp.fromDate(now),
+        });
+
+        // 5. Restaurer la transaction (enlever flag isDeleted)
+        transaction.update(transactionDocRef, {
+          'isDeleted': false,
+          'deletedAt': FieldValue.delete(),
+          'updatedAt': Timestamp.fromDate(now),
+        });
+      });
+    } catch (e) {
+      throw Exception('Erreur lors de la restauration: $e');
+    }
+  }
+
+  /// Stream des transactions dans la corbeille
+  Stream<List<app_transaction.Transaction>> getDeletedTransactionsStream(String userId) {
+    return _transactionsCollection(userId)
+        .where('isDeleted', isEqualTo: true)
+        .orderBy('deletedAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return app_transaction.Transaction.fromMap(
+          doc.data() as Map<String, dynamic>,
+          doc.id,
+        );
+      }).toList();
+    });
+  }
+
+  /// Nettoyage automatique de la corbeille (supprime définitivement après 30 jours)
+  Future<void> runTrashCleanup(String userId) async {
+    try {
+      final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+      
+      final snapshot = await _transactionsCollection(userId)
+          .where('isDeleted', isEqualTo: true)
+          .where('deletedAt', isLessThan: Timestamp.fromDate(thirtyDaysAgo))
+          .get();
+
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      if (snapshot.docs.isNotEmpty) {
+        await batch.commit();
+        print('${snapshot.docs.length} transactions supprimées définitivement de la corbeille.');
+      }
+    } catch (e) {
+      print('Erreur lors du nettoyage de la corbeille: $e');
+    }
+  }
+  
+  /// Suppression définitive immédiate (depuis la corbeille)
+  Future<void> deleteTransactionPermanently(String userId, String transactionId) async {
+    try {
+      await _transactionsCollection(userId).doc(transactionId).delete();
+    } catch (e) {
+      throw Exception('Erreur lors de la suppression définitive: $e');
     }
   }
 

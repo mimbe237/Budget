@@ -14,6 +14,8 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double toolbarHeight;
   final bool showHome;
   final VoidCallback? onHomeTap;
+  final bool showProfile;
+  final Color? backgroundColor;
 
   const ModernPageAppBar({
     super.key,
@@ -26,6 +28,8 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.toolbarHeight = 82,
     this.showHome = true,
     this.onHomeTap,
+    this.showProfile = true,
+    this.backgroundColor = Colors.white,
   });
 
   @override
@@ -52,9 +56,36 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (actions != null) {
       combinedActions.addAll(actions!);
     }
+    if (showProfile) {
+      combinedActions.add(
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: PopupMenuButton<int>(
+            tooltip: 'Profil',
+            offset: const Offset(0, 42),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            itemBuilder: (context) => const [
+              PopupMenuItem<int>(
+                value: 0,
+                child: Text('Profil'),
+              ),
+              PopupMenuItem<int>(
+                value: 1,
+                child: Text('Paramètres'),
+              ),
+            ],
+            onSelected: (_) {},
+            child: CircleAvatar(
+              backgroundColor: accentColor.withOpacity(0.12),
+              child: Icon(Icons.person_outline, color: accentColor),
+            ),
+          ),
+        ),
+      );
+    }
 
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor ?? Colors.white,
       elevation: 0,
       toolbarHeight: toolbarHeight,
       centerTitle: false,

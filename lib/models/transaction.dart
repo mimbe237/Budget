@@ -20,6 +20,8 @@ class Transaction {
   final String? toAccountId; // Pour les transferts
   final List<String>? tags;
   final String? receiptUrl;
+  final bool isDeleted;
+  final DateTime? deletedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -37,9 +39,14 @@ class Transaction {
     this.toAccountId,
     this.tags,
     this.receiptUrl,
+    this.isDeleted = false,
+    this.deletedAt,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  // Verrouillage après 48h
+  bool get isLocked => DateTime.now().difference(createdAt).inHours > 48;
 
   // Conversion vers Map pour Firestore
   Map<String, dynamic> toMap() {
@@ -57,6 +64,8 @@ class Transaction {
       'toAccountId': toAccountId,
       'tags': tags,
       'receiptUrl': receiptUrl,
+      'isDeleted': isDeleted,
+      'deletedAt': deletedAt != null ? Timestamp.fromDate(deletedAt!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -81,6 +90,8 @@ class Transaction {
       toAccountId: map['toAccountId'],
       tags: map['tags'] != null ? List<String>.from(map['tags']) : null,
       receiptUrl: map['receiptUrl'],
+      isDeleted: map['isDeleted'] ?? false,
+      deletedAt: map['deletedAt'] != null ? (map['deletedAt'] as Timestamp).toDate() : null,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
@@ -101,6 +112,8 @@ class Transaction {
     String? toAccountId,
     List<String>? tags,
     String? receiptUrl,
+    bool? isDeleted,
+    DateTime? deletedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -118,6 +131,8 @@ class Transaction {
       toAccountId: toAccountId ?? this.toAccountId,
       tags: tags ?? this.tags,
       receiptUrl: receiptUrl ?? this.receiptUrl,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt: deletedAt ?? this.deletedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

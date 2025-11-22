@@ -12,6 +12,8 @@ import '../goals/goal_funding_screen.dart';
 import '../ious/iou_tracking_screen.dart';
 import '../transactions/transaction_form_screen.dart';
 import '../transactions/transactions_list_screen.dart';
+import '../trash/trash_screen.dart';
+import 'package:rxdart/rxdart.dart';
 
 /// Dashboard principal affichant le solde global, les performances mensuelles
 /// et l'historique récent des transactions en temps réel
@@ -30,12 +32,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _currentLang = 'fr';
 
   @override
+  void initState() {
+    super.initState();
+    // Nettoyage automatique de la corbeille (items > 3 jours)
+    final userId = _firestoreService.currentUserId;
+    if (userId != null) {
+      _firestoreService.runTrashCleanup(userId);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
-        toolbarHeight: 68,
-        title: const RevolutionaryLogo(withText: true),
+        toolbarHeight: 74,
+        titleSpacing: 12,
+        title: Row(
+          children: [
+            const RevolutionaryLogo(size: 38),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Budget',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black87,
+                    height: 1.0,
+                  ),
+                ),
+                Text(
+                  'Pro',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: AppDesign.primaryIndigo,
+                    height: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
         centerTitle: false,
         backgroundColor: Colors.white,
         elevation: 0,
@@ -197,6 +238,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _buildTotalBalanceCard(),
       const SizedBox(height: AppDesign.spacingMedium),
       _buildBudgetExcellenceCard(),
+      const SizedBox(height: AppDesign.spacingMedium),
+      CategoryBudgetProgressBlock(
+        firestoreService: _firestoreService,
+      ),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildPerformanceHeader(context),
       const SizedBox(height: AppDesign.spacingSmall),
@@ -224,6 +269,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _buildTotalBalanceCard(),
       const SizedBox(height: AppDesign.spacingMedium),
       _buildBudgetExcellenceCard(),
+      const SizedBox(height: AppDesign.spacingMedium),
+      CategoryBudgetProgressBlock(
+        firestoreService: _firestoreService,
+      ),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildPerformanceHeader(context),
       const SizedBox(height: AppDesign.spacingSmall),
@@ -339,6 +388,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const CategoryManagementScreen()),
+        ),
+      ),
+      _ShortcutAction(
+        label: 'Corbeille',
+        subtitle: 'Restaurer ou supprimer',
+        icon: Icons.delete_outline,
+        color: Colors.grey,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const TrashScreen()),
         ),
       ),
     ];
@@ -1092,6 +1151,237 @@ class _ShortcutCard extends StatelessWidget {
             const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.black38),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class CategoryBudgetProgressBlock extends StatelessWidget {
+  final FirestoreService firestoreService;
+
+  const CategoryBudgetProgressBlock({super.key, required this.firestoreService});
+
+  @override
+  Widget build(BuildContext context) {
+    final userId = firestoreService.currentUserId;
+    if (userId == null) {
+      return _placeholderStaticCard(
+        title: 'Budget par catégorie',
+        message: 'Connectez-vous pour voir vos catégories.',
+      );
+    }
+
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+
+    final categories$ = firestoreService.getCategoriesStream(userId, type: null);
+    final transactions$ = firestoreService.getTransactionsStream(
+      userId,
+      startDate: startOfMonth,
+      endDate: now,
+      limit: 500,
+    );
+
+    return StreamBuilder<List<dynamic>>(
+      stream: CombineLatestStream.list([categories$, transactions$]),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Padding(
+            padding: EdgeInsets.all(12),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final categories = snapshot.data![0] as List<Category>;
+        final txs = snapshot.data![1] as List<Transaction>;
+
+        const defaultAllocation = 200.0;
+
+        final items = categories.where((c) => c.type == CategoryType.expense && c.isActive).map((cat) {
+          final spent = txs
+              .where((t) => t.categoryId == cat.categoryId && t.type == TransactionType.expense)
+              .fold<double>(0, (sum, t) => sum + t.amount);
+          return _CategoryBudgetItem(
+            name: cat.name,
+            icon: cat.icon,
+            allocated: defaultAllocation,
+            spent: spent,
+          );
+        }).toList();
+
+        if (items.isEmpty) {
+          return _placeholderStaticCard(
+            title: 'Budget par catégorie',
+            message: 'Aucune catégorie de dépense active.',
+          );
+        }
+
+        final overflowCount = items.where((i) => i.spent > i.allocated).length;
+        final isHealthy = overflowCount == 0;
+        final footerColor =
+            isHealthy ? const Color(0xFF4CAF50).withOpacity(0.08) : const Color(0xFFEF5350).withOpacity(0.08);
+        final footerTextColor = isHealthy ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+        final footerIcon = isHealthy ? Icons.check_circle_rounded : Icons.warning_amber_rounded;
+        final footerText = isHealthy
+            ? 'Tout est sous contrôle. Excellente gestion !'
+            : 'Attention : $overflowCount poches budgétaires sont en alerte rouge.';
+
+        return Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppDesign.paddingMedium),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Budget par catégorie',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                ...items.map((item) => _CategoryProgressRow(item: item)).toList(),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: footerColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(footerIcon, color: footerTextColor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          footerText,
+                          style: TextStyle(
+                            color: footerTextColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static Card _placeholderStaticCard({required String title, required String message}) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppDesign.paddingLarge),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryBudgetItem {
+  final String name;
+  final String icon;
+  final double allocated;
+  final double spent;
+
+  _CategoryBudgetItem({
+    required this.name,
+    required this.icon,
+    required this.allocated,
+    required this.spent,
+  });
+}
+
+class _CategoryProgressRow extends StatelessWidget {
+  final _CategoryBudgetItem item;
+
+  const _CategoryProgressRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = item.allocated > 0 ? item.spent / item.allocated : 0;
+    Color barColor;
+    if (ratio >= 1) {
+      barColor = const Color(0xFFEF5350);
+    } else if (ratio >= 0.75) {
+      barColor = const Color(0xFFFFC107);
+    } else {
+      barColor = const Color(0xFF4CAF50);
+    }
+
+    final progressValue = ratio >= 1 ? 1.0 : ratio;
+    final spentStyle = TextStyle(
+      color: ratio >= 1 ? const Color(0xFFEF5350) : Colors.black87,
+      fontWeight: ratio >= 1 ? FontWeight.bold : FontWeight.w600,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(item.icon, style: const TextStyle(fontSize: 16)),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    item.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+              Text(
+                '${item.spent.toStringAsFixed(0)}€ / ${item.allocated.toStringAsFixed(0)}€',
+                style: spentStyle,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progressValue.clamp(0.0, 1.0).toDouble(),
+              minHeight: 9,
+              backgroundColor: Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation<Color>(barColor),
+            ),
+          ),
+        ],
       ),
     );
   }

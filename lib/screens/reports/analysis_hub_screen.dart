@@ -33,6 +33,7 @@ class _AnalysisHubScreenState extends State<AnalysisHubScreen> with SingleTicker
         title: 'Analyses & Rapports',
         subtitle: 'Visualisez vos données et insights IA',
         icon: Icons.bar_chart_rounded,
+        showProfile: true,
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppDesign.primaryIndigo,

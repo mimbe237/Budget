@@ -118,6 +118,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
         title: 'Suivi Dettes & Créances',
         subtitle: 'Ce que je dois et ce qu’on me doit',
         icon: Icons.handshake_rounded,
+        showProfile: true,
       ),
       body: SingleChildScrollView(
         child: Padding(

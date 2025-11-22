@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'comparative_financial_matrix.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
+import 'global_financial_flow_block.dart';
 
 enum ReportPeriod { currentMonth, lastMonth, quarter, year, custom }
 
@@ -151,7 +153,12 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                                 flex: 4,
                                 child: Column(
                                   children: [
-                                    _buildKPICards(),
+                                    if (_firestoreService.currentUserId != null)
+                                      GlobalFinancialFlowBlock(
+                                        userId: _firestoreService.currentUserId!,
+                                        transactions: _transactions,
+                                        dateRange: _getDateRange(),
+                                      ),
                                     const SizedBox(height: 20),
                                     _buildTrendChart(),
                                   ],
@@ -173,13 +180,21 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                         else
                           Column(
                             children: [
-                              _buildKPICards(),
+                              if (_firestoreService.currentUserId != null)
+                                GlobalFinancialFlowBlock(
+                                  userId: _firestoreService.currentUserId!,
+                                  transactions: _transactions,
+                                  dateRange: _getDateRange(),
+                                ),
                               const SizedBox(height: 20),
                               _buildTrendChart(),
                               const SizedBox(height: 20),
                               _buildDistributionChart(),
                               const SizedBox(height: 20),
                               _buildCategoryList(),
+                              const SizedBox(height: 20),
+                              if (_firestoreService.currentUserId != null)
+                                ComparativeFinancialMatrix(userId: _firestoreService.currentUserId!),
                             ],
                           ),
                       ],
@@ -280,108 +295,6 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKPICards() {
-    double income = 0;
-    double expense = 0;
-    
-    for (var t in _transactions) {
-      if (t.type == app_transaction.TransactionType.income) income += t.amount;
-      if (t.type == app_transaction.TransactionType.expense) expense += t.amount;
-    }
-
-    final netCashflow = income - expense;
-    final savingsRate = income > 0 ? ((income - expense) / income * 100) : 0.0;
-    
-    final range = _getDateRange();
-    final days = range.end.difference(range.start).inDays + 1;
-    final dailySpend = days > 0 ? expense / days : 0.0;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isSmall = constraints.maxWidth < 600;
-        return Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          children: [
-            SizedBox(
-              width: isSmall ? double.infinity : (constraints.maxWidth - 32) / 3,
-              child: _buildKPICard(
-                'Cashflow Net',
-                '${netCashflow >= 0 ? '+' : ''}${netCashflow.toStringAsFixed(2)} €',
-                netCashflow >= 0 ? AppDesign.incomeColor : AppDesign.expenseColor,
-                netCashflow >= 0 ? Icons.trending_up : Icons.trending_down,
-              ),
-            ),
-            SizedBox(
-              width: isSmall ? double.infinity : (constraints.maxWidth - 32) / 3,
-              child: _buildKPICard(
-                'Taux d\'Épargne',
-                '${savingsRate.toStringAsFixed(1)}%',
-                savingsRate > 20 ? AppDesign.incomeColor : (savingsRate > 0 ? Colors.orange : AppDesign.expenseColor),
-                Icons.savings_outlined,
-              ),
-            ),
-            SizedBox(
-              width: isSmall ? double.infinity : (constraints.maxWidth - 32) / 3,
-              child: _buildKPICard(
-                'Dépense / Jour',
-                '${dailySpend.toStringAsFixed(2)} €',
-                AppDesign.primaryIndigo,
-                Icons.calendar_today_outlined,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildKPICard(String title, String value, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Icon(icon, color: color, size: 20),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
         ],
       ),
     );

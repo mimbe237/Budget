@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:characters/characters.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/firestore_service.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../models/account.dart';
@@ -10,7 +11,7 @@ import '../../constants/app_design.dart';
 import 'package:flutter/services.dart';
 import '../../widgets/modern_page_app_bar.dart';
 
-/// Liste des transactions avec filtres simples (type)
+/// Liste des transactions avec pagination infinie et filtres
 class TransactionsListScreen extends StatefulWidget {
   const TransactionsListScreen({super.key});
 
@@ -21,9 +22,19 @@ class TransactionsListScreen extends StatefulWidget {
 class _TransactionsListScreenState extends State<TransactionsListScreen> {
   final _firestoreService = FirestoreService();
   final _mockService = MockDataService();
-  late Stream<List<app_transaction.Transaction>> _transactionsStream;
+  
+  // State pour la pagination
+  final List<app_transaction.Transaction> _transactions = [];
+  final List<DocumentSnapshot> _snapshots = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+  final int _pageSize = 20;
+  
+  // Streams pour les filtres (Comptes/Catégories)
   late Stream<List<Account>> _accountsStream;
   late Stream<List<Category>> _categoriesStream;
+  
+  // Filtres actifs
   app_transaction.TransactionType? _filterType;
   String? _filterAccountId;
   String? _filterCategoryId;
@@ -31,41 +42,113 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
   double? _minAmount;
   double? _maxAmount;
   String _search = '';
+  
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final _currency = NumberFormat.currency(locale: 'fr_FR', symbol: '€');
 
   @override
   void initState() {
     super.initState();
-    _initStream();
+    _initStreams();
+    _loadInitialData();
+    _scrollController.addListener(_onScroll);
   }
 
-  void _initStream() {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _initStreams() {
     final userId = _firestoreService.currentUserId;
     if (userId == null) {
-      _transactionsStream = Stream.value(_mockService.getMockTransactions());
       _accountsStream = Stream.value(_mockService.getMockAccounts());
       _categoriesStream = Stream.value(_mockService.getMockCategories());
     } else {
-      _transactionsStream = _firestoreService.getTransactionsStream(
+      _accountsStream = _firestoreService.getAccountsStream(userId);
+      _categoriesStream = _firestoreService.getCategoriesStream(userId);
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreData();
+    }
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() {
+      _transactions.clear();
+      _snapshots.clear();
+      _isLoading = true;
+      _hasMore = true;
+    });
+    await _fetchPage();
+  }
+
+  Future<void> _loadMoreData() async {
+    if (_isLoading || !_hasMore) return;
+    setState(() => _isLoading = true);
+    await _fetchPage();
+  }
+
+  Future<void> _fetchPage() async {
+    try {
+      final userId = _firestoreService.currentUserId;
+      if (userId == null) {
+        // Mock data fallback
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          setState(() {
+            _transactions.addAll(_mockService.getMockTransactions());
+            _isLoading = false;
+            _hasMore = false;
+          });
+        }
+        return;
+      }
+
+      final snapshot = await _firestoreService.getTransactionsPagedSnapshot(
         userId,
+        limit: _pageSize,
+        startAfterDocument: _snapshots.isNotEmpty ? _snapshots.last : null,
         type: _filterType,
         accountId: _filterAccountId,
         categoryId: _filterCategoryId,
         startDate: _filterRange?.start,
         endDate: _filterRange?.end,
-        limit: 500,
       );
-      _accountsStream = _firestoreService.getAccountsStream(userId);
-      _categoriesStream = _firestoreService.getCategoriesStream(userId);
+
+      final newTransactions = snapshot.docs.map((doc) => 
+        app_transaction.Transaction.fromMap(doc.data() as Map<String, dynamic>, doc.id)
+      ).toList();
+
+      if (mounted) {
+        setState(() {
+          _transactions.addAll(newTransactions);
+          _snapshots.addAll(snapshot.docs);
+          _isLoading = false;
+          if (snapshot.docs.length < _pageSize) {
+            _hasMore = false;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
     }
   }
 
   void _updateFilter(app_transaction.TransactionType? type) {
     setState(() {
       _filterType = type;
-      _initStream();
     });
+    _loadInitialData();
   }
 
   Future<void> _pickDateRange() async {
@@ -83,8 +166,8 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
     if (result != null) {
       setState(() {
         _filterRange = result;
-        _initStream();
       });
+      _loadInitialData();
     }
   }
 
@@ -98,21 +181,20 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
       _maxAmount = null;
       _search = '';
       _searchController.clear();
-      _initStream();
     });
+    _loadInitialData();
   }
 
   Future<void> _exportCsv() async {
-    final snapshot = await _transactionsStream.first;
-    if (snapshot.isEmpty) {
+    if (_transactions.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucune transaction à exporter')),
+        const SnackBar(content: Text('Aucune transaction chargée à exporter')),
       );
       return;
     }
     final buffer = StringBuffer();
     buffer.writeln('date,type,description,amount,category');
-    for (final tx in snapshot) {
+    for (final tx in _transactions) {
       buffer.writeln(
         '${DateFormat('yyyy-MM-dd').format(tx.date)},${tx.type.name},${tx.description ?? ''},${tx.amount.toStringAsFixed(2)},${tx.category ?? ''}',
       );
@@ -120,19 +202,30 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
     await Clipboard.setData(ClipboardData(text: buffer.toString()));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('CSV copié dans le presse-papiers')),
+        const SnackBar(content: Text('CSV (données chargées) copié dans le presse-papiers')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Filtrage local pour la recherche textuelle et montant (sur les données chargées)
+    final filteredTransactions = _transactions.where((tx) {
+      final matchesSearch = _search.isEmpty ||
+          (tx.description?.toLowerCase().contains(_search.toLowerCase()) ?? false) ||
+          (tx.category?.toLowerCase().contains(_search.toLowerCase()) ?? false);
+      final matchesMin = _minAmount == null || tx.amount >= _minAmount!;
+      final matchesMax = _maxAmount == null || tx.amount <= _maxAmount!;
+      return matchesSearch && matchesMin && matchesMax;
+    }).toList();
+
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: ModernPageAppBar(
         title: 'Transactions',
         subtitle: 'Historique et filtres détaillés',
         icon: Icons.swap_horiz_rounded,
+        showProfile: true,
         actions: [
           IconButton(
             tooltip: 'Exporter CSV',
@@ -164,89 +257,83 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                 children: [
                   _buildFilters(accounts, categories),
                   Expanded(
-                    child: StreamBuilder<List<app_transaction.Transaction>>(
-                      stream: _transactionsStream,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                        if (snapshot.hasError) {
-                          return Center(child: Text('Erreur: ${snapshot.error}'));
-                        }
-                        var transactions = snapshot.data ?? [];
-
-                        transactions = transactions.where((tx) {
-                          final matchesSearch = _search.isEmpty ||
-                              (tx.description?.toLowerCase().contains(_search.toLowerCase()) ?? false) ||
-                              (tx.category?.toLowerCase().contains(_search.toLowerCase()) ?? false);
-                          final matchesMin = _minAmount == null || tx.amount >= _minAmount!;
-                          final matchesMax = _maxAmount == null || tx.amount <= _maxAmount!;
-                          return matchesSearch && matchesMin && matchesMax;
-                        }).toList();
-
-                        if (transactions.isEmpty) {
-                          return const Center(
-                            child: Text(
-                              'Aucune transaction pour le moment.',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          );
-                        }
-
-                        return ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: transactions.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final tx = transactions[index];
-                            final isIncome = tx.type == app_transaction.TransactionType.income;
-                            final isExpense = tx.type == app_transaction.TransactionType.expense;
-                            final color = isIncome
-                                ? AppDesign.incomeColor
-                                : isExpense
-                                    ? AppDesign.expenseColor
-                                    : Colors.blueGrey;
-                            final prefix = isIncome ? '+' : isExpense ? '-' : '';
-                            final dateLabel = DateFormat('dd/MM/yyyy').format(tx.date);
-
-                            final iconText = (tx.category ?? '💳');
-                            final leadingChar = iconText.isNotEmpty ? iconText.characters.first : '💳';
-
-                            return Card(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
-                              ),
-                              elevation: 2,
-                              child: ListTile(
-                                onTap: () => _openTransactionEditor(tx, categories),
-                                leading: CircleAvatar(
-                                  backgroundColor: color.withOpacity(0.12),
+                    child: RefreshIndicator(
+                      onRefresh: _loadInitialData,
+                      child: filteredTransactions.isEmpty && !_isLoading
+                          ? ListView(
+                              children: const [
+                                SizedBox(height: 100),
+                                Center(
                                   child: Text(
-                                    leadingChar,
-                                    style: const TextStyle(fontSize: 20),
+                                    'Aucune transaction trouvée.',
+                                    style: TextStyle(color: Colors.grey),
                                   ),
                                 ),
-                                title: Text(
-                                  tx.description?.isNotEmpty == true ? tx.description! : 'Transaction',
-                                  style: const TextStyle(fontWeight: FontWeight.w700),
-                                ),
-                                subtitle: Text(
-                                  '$dateLabel · ${tx.category ?? 'Sans catégorie'}',
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                                trailing: Text(
-                                  '$prefix${_currency.format(tx.amount)}',
-                                  style: TextStyle(
-                                    color: color,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                              ],
+                            )
+                          : ListView.separated(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.all(16),
+                              itemCount: filteredTransactions.length + (_hasMore ? 1 : 0),
+                              separatorBuilder: (_, __) => const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                if (index == filteredTransactions.length) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(16.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                }
+
+                                final tx = filteredTransactions[index];
+                                final isIncome = tx.type == app_transaction.TransactionType.income;
+                                final isExpense = tx.type == app_transaction.TransactionType.expense;
+                                final color = isIncome
+                                    ? AppDesign.incomeColor
+                                    : isExpense
+                                        ? AppDesign.expenseColor
+                                        : Colors.blueGrey;
+                                final prefix = isIncome ? '+' : isExpense ? '-' : '';
+                                final dateLabel = DateFormat('dd/MM/yyyy').format(tx.date);
+
+                                final iconText = (tx.category ?? '💳');
+                                final leadingChar = iconText.isNotEmpty ? iconText.characters.first : '💳';
+
+                                return Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
                                   ),
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
+                                  elevation: 2,
+                                  child: ListTile(
+                                    onTap: () => _openTransactionEditor(tx, categories),
+                                    leading: CircleAvatar(
+                                      backgroundColor: color.withOpacity(0.12),
+                                      child: Text(
+                                        leadingChar,
+                                        style: const TextStyle(fontSize: 20),
+                                      ),
+                                    ),
+                                    title: Text(
+                                      tx.description?.isNotEmpty == true ? tx.description! : 'Transaction',
+                                      style: const TextStyle(fontWeight: FontWeight.w700),
+                                    ),
+                                    subtitle: Text(
+                                      '$dateLabel · ${tx.category ?? 'Sans catégorie'}',
+                                      style: const TextStyle(color: Colors.grey),
+                                    ),
+                                    trailing: Text(
+                                      '$prefix${_currency.format(tx.amount)}',
+                                      style: TextStyle(
+                                        color: color,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                     ),
                   ),
                 ],
@@ -369,8 +456,8 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                   onChanged: (val) {
                     setState(() {
                       _filterAccountId = val;
-                      _initStream();
                     });
+                    _loadInitialData();
                   },
                 ),
               ),
@@ -391,8 +478,8 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                   onChanged: (val) {
                     setState(() {
                       _filterCategoryId = val;
-                      _initStream();
                     });
+                    _loadInitialData();
                   },
                 ),
               ),
@@ -442,6 +529,9 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
     final amountController = TextEditingController(text: tx.amount.toStringAsFixed(2));
     DateTime selectedDate = tx.date;
     String? selectedCategoryId = tx.categoryId;
+    
+    // Vérification du verrouillage
+    final isLocked = tx.isLocked;
 
     await showModalBottomSheet(
       context: context,
@@ -463,13 +553,72 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Modifier la transaction',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Modifier la transaction',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                      ),
+                      if (!isLocked)
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          tooltip: 'Mettre à la corbeille',
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (dCtx) => AlertDialog(
+                                title: const Text('Supprimer ?'),
+                                content: const Text('La transaction sera déplacée dans la corbeille.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(dCtx, false),
+                                    child: const Text('Annuler'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(dCtx, true),
+                                    child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                  ),
+                                ],
+                              ),
+                            );
+                            
+                            if (confirm == true) {
+                              await _firestoreService.softDeleteTransaction(userId, tx.transactionId);
+                              // Refresh list
+                              _loadInitialData();
+                              if (mounted) Navigator.pop(ctx);
+                            }
+                          },
+                        ),
+                    ],
                   ),
+                  if (isLocked)
+                    Container(
+                      margin: const EdgeInsets.only(top: 8, bottom: 8),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.lock_outline, size: 16, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Modification verrouillée (48h dépassées)',
+                              style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: descController,
+                    enabled: !isLocked,
                     decoration: const InputDecoration(
                       labelText: 'Description',
                       prefixIcon: Icon(Icons.notes_outlined),
@@ -478,6 +627,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: amountController,
+                    enabled: !isLocked,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
                       labelText: 'Montant',
@@ -504,7 +654,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                         ),
                       ),
                     ],
-                    onChanged: (val) => setSheetState(() => selectedCategoryId = val),
+                    onChanged: isLocked ? null : (val) => setSheetState(() => selectedCategoryId = val),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -516,7 +666,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                         ),
                       ),
                       TextButton.icon(
-                        onPressed: () async {
+                        onPressed: isLocked ? null : () async {
                           final picked = await showDatePicker(
                             context: ctx,
                             initialDate: selectedDate,
@@ -533,29 +683,38 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final newAmount = double.tryParse(amountController.text.replaceAll(',', '.'));
-                        await _firestoreService.updateTransactionBasic(
-                          userId: userId,
-                          transactionId: tx.transactionId,
-                          amount: newAmount,
-                          description: descController.text.trim().isEmpty ? null : descController.text.trim(),
-                          categoryId: selectedCategoryId,
-                          date: selectedDate,
-                        );
-                        if (mounted) Navigator.pop(ctx);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppDesign.primaryIndigo,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  if (!isLocked)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final newAmount = double.tryParse(amountController.text.replaceAll(',', '.'));
+                          try {
+                            await _firestoreService.updateTransactionBasic(
+                              userId: userId,
+                              transactionId: tx.transactionId,
+                              amount: newAmount,
+                              description: descController.text.trim().isEmpty ? null : descController.text.trim(),
+                              categoryId: selectedCategoryId,
+                              date: selectedDate,
+                            );
+                            // Refresh list
+                            _loadInitialData();
+                            if (mounted) Navigator.pop(ctx);
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Erreur: $e')),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppDesign.primaryIndigo,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Enregistrer'),
                       ),
-                      child: const Text('Enregistrer'),
                     ),
-                  ),
                 ],
               ),
             );

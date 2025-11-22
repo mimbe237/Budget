@@ -210,6 +210,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
         title: 'Objectifs d\'Épargne',
         subtitle: 'Suivez et financez vos projets',
         icon: Icons.flag_rounded,
+        showProfile: true,
       ),
       body: SingleChildScrollView(
         child: Padding(

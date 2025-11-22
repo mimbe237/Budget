@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:characters/characters.dart';
+import 'package:rxdart/rxdart.dart';
 import '../../models/budget_plan.dart';
 import '../../models/transaction.dart';
+import '../../models/category.dart';
 import '../../services/firestore_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
 import '../transactions/transaction_form_screen.dart';
+import '../categories/category_management_screen.dart';
 
 /// Écran de planification budgétaire avec répartition intelligente
 class BudgetPlannerScreen extends StatefulWidget {
@@ -53,6 +56,126 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     _loadActualSpending();
     _initializeControllers();
     _initTransactionsStream();
+  }
+
+  Widget _placeholderCard({
+    String title = 'Fonctionnalité à venir',
+    String message = 'Cette section est en cours de développement.',
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        height: 100,
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              message,
+              style: TextStyle(color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIncomeCategoriesRecap() {
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      return _placeholderCard(
+        title: 'Revenus par catégorie',
+        message: 'Connectez-vous pour voir vos revenus par catégorie.',
+      );
+    }
+
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+
+    final categories$ = _firestoreService.getCategoriesStream(userId, type: CategoryType.income);
+    final transactions$ = _firestoreService.getTransactionsStream(
+      userId,
+      type: TransactionType.income,
+      startDate: startOfMonth,
+      endDate: now,
+      limit: 500,
+    );
+
+    return StreamBuilder<List<dynamic>>(
+      stream: CombineLatestStream.list([categories$, transactions$]),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Padding(
+            padding: EdgeInsets.all(12),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final categories = snapshot.data![0] as List<Category>;
+        final txs = snapshot.data![1] as List<Transaction>;
+
+        if (categories.isEmpty) {
+          return _placeholderCard(
+            title: 'Revenus par catégorie',
+            message: 'Aucune catégorie de revenu active.',
+          );
+        }
+
+        final totals = <String, double>{};
+        double totalIncome = 0;
+        for (final cat in categories) {
+          totals[cat.categoryId] = 0;
+        }
+        for (final tx in txs) {
+          if (tx.categoryId != null && totals.containsKey(tx.categoryId)) {
+            totals[tx.categoryId!] = (totals[tx.categoryId!] ?? 0) + tx.amount;
+            totalIncome += tx.amount;
+          }
+        }
+        totalIncome = totalIncome <= 0 ? 1 : totalIncome;
+
+        final items = categories.map((c) {
+          final amount = totals[c.categoryId] ?? 0;
+          final ratio = amount / totalIncome;
+          return _IncomeCategoryItem(
+            name: c.name,
+            icon: c.icon,
+            amount: amount,
+            ratio: ratio,
+          );
+        }).toList();
+
+        return Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDesign.radiusXLarge)),
+          child: Padding(
+            padding: const EdgeInsets.all(AppDesign.paddingMedium),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Revenus par catégorie (mois)',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                ...items.map((i) => _IncomeCategoryRow(item: i)).toList(),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _initializeControllers() {
@@ -182,8 +305,13 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             bottom: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: Row(
-                children: [
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                      onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(width: 8),
                   const RevolutionaryLogo(size: 40),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -229,12 +357,33 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       ),
                     ),
                   ),
-                ],
+                  const SizedBox(width: 8),
+                  PopupMenuButton<int>(
+                    tooltip: 'Profil',
+                    offset: const Offset(0, 42),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem<int>(
+                        value: 0,
+                        child: Text('Profil'),
+                      ),
+                      PopupMenuItem<int>(
+                        value: 1,
+                        child: Text('Paramètres'),
+                      ),
+                    ],
+                    onSelected: (_) {},
+                    child: CircleAvatar(
+                      backgroundColor: AppDesign.primaryIndigo.withOpacity(0.12),
+                      child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
+                    ),
+                  ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      ),
       body: SingleChildScrollView(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -250,7 +399,12 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     alignment: Alignment.center,
                     child: TextButton.icon(
                       onPressed: () {
-                        Navigator.pushNamed(context, '/categories');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CategoryManagementScreen(),
+                          ),
+                        );
                       },
                       style: TextButton.styleFrom(
                         foregroundColor: AppDesign.primaryIndigo,
@@ -308,6 +462,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     const SizedBox(height: AppDesign.spacingLarge),
                     _buildBudgetSummaryPanel(),
                   ],
+                  const SizedBox(height: AppDesign.spacingLarge),
+                  _buildIncomeCategoriesRecap(),
                   const SizedBox(height: AppDesign.spacingLarge),
                   _buildTransactionsSection(),
                 ],
@@ -1382,6 +1538,72 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
       const SnackBar(
         content: Text('Budget enregistré avec succès !'),
         backgroundColor: AppDesign.incomeColor,
+      ),
+    );
+  }
+}
+
+class _IncomeCategoryItem {
+  final String name;
+  final String icon;
+  final double amount;
+  final double ratio;
+
+  _IncomeCategoryItem({
+    required this.name,
+    required this.icon,
+    required this.amount,
+    required this.ratio,
+  });
+}
+
+class _IncomeCategoryRow extends StatelessWidget {
+  final _IncomeCategoryItem item;
+
+  const _IncomeCategoryRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final barColor = AppDesign.incomeColor;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppDesign.incomeColor.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(item.icon, style: const TextStyle(fontSize: 16)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  item.name,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              Text(
+                '${item.amount.toStringAsFixed(2)} €',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: item.ratio.clamp(0.0, 1.0),
+              minHeight: 8,
+              backgroundColor: Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation<Color>(barColor),
+            ),
+          ),
+        ],
       ),
     );
   }
