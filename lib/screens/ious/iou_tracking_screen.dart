@@ -181,7 +181,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
             color: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
-              side: BorderSide(color: AppDesign.expenseColor.withOpacity(0.15), width: 1.2),
+              side: BorderSide(color: AppDesign.expenseColor.withValues(alpha: 0.15), width: 1.2),
             ),
             child: Padding(
               padding: const EdgeInsets.all(AppDesign.paddingMedium),
@@ -222,7 +222,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
             color: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
-              side: BorderSide(color: AppDesign.incomeColor.withOpacity(0.15), width: 1.2),
+              side: BorderSide(color: AppDesign.incomeColor.withValues(alpha: 0.15), width: 1.2),
             ),
             child: Padding(
               padding: const EdgeInsets.all(AppDesign.paddingMedium),
@@ -263,7 +263,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
   Widget _buildSectionHeader(String title, IconData icon, Color color, int count) {
     return Row(
       children: [
-        Icon(icon, color: color.withOpacity(0.8), size: 22),
+        Icon(icon, color: color.withValues(alpha: 0.8), size: 22),
         const SizedBox(width: 8),
         Text(
           title,
@@ -277,14 +277,14 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
+            color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             '$count actif${count > 1 ? 's' : ''}',
             style: TextStyle(
               fontSize: 12,
-              color: color.withOpacity(0.9),
+              color: color.withValues(alpha: 0.9),
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -310,7 +310,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
         side: BorderSide(
-          color: color.withOpacity(isCompleted ? 0.15 : 0.25),
+          color: color.withValues(alpha: isCompleted ? 0.15 : 0.25),
           width: 1.3,
         ),
       ),
@@ -329,7 +329,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
+                      color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: Center(
@@ -367,9 +367,9 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     ),
                   ),
                   if (isCompleted)
-                    Icon(Icons.check_circle, color: Colors.green.withOpacity(0.8), size: 24)
+                    Icon(Icons.check_circle, color: Colors.green.withValues(alpha: 0.8), size: 24)
                   else if (isOverdue)
-                    Icon(Icons.warning_amber_rounded, color: Colors.orange.withOpacity(0.9), size: 24),
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange.withValues(alpha: 0.9), size: 24),
                   IconButton(
                     icon: const Icon(Icons.receipt_long_outlined, color: Colors.grey),
                     tooltip: 'Historique',
@@ -436,7 +436,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                   minHeight: 8,
                   backgroundColor: Colors.grey[200],
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isCompleted ? Colors.green : color.withOpacity(0.9),
+                    isCompleted ? Colors.green : color.withValues(alpha: 0.9),
                   ),
                 ),
               ),
@@ -525,7 +525,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: color.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -650,19 +650,21 @@ class _AddIOUModalState extends State<AddIOUModal> {
     final isReceivable = _selectedType == IOUType.receivable;
     final color = isReceivable ? AppDesign.incomeColor : AppDesign.expenseColor;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 const Text(
                   'Nouvelle dette ou créance',
                   style: TextStyle(
@@ -787,7 +789,6 @@ class _AddIOUModalState extends State<AddIOUModal> {
                 ),
                 const SizedBox(height: 24),
                 
-                // Bouton d'ajout
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -909,25 +910,27 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
     final isReceivable = widget.iou.type == IOUType.receivable;
     final color = isReceivable ? AppDesign.incomeColor : AppDesign.expenseColor;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
+                        color: color.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -966,9 +969,9 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: color.withOpacity(0.3)),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     children: [

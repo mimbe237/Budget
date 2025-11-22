@@ -187,7 +187,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
+          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)] : [],
         ),
         child: Text(
           label,
@@ -419,7 +419,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
       height: 40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: baseColor.withOpacity(opacity),
+        color: baseColor.withValues(alpha: opacity),
         border: Border(
           right: BorderSide(color: Colors.grey[100]!),
           bottom: BorderSide(color: Colors.grey[100]!),

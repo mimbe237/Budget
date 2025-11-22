@@ -308,7 +308,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                                   child: ListTile(
                                     onTap: () => _openTransactionEditor(tx, categories),
                                     leading: CircleAvatar(
-                                      backgroundColor: color.withOpacity(0.12),
+                                      backgroundColor: color.withValues(alpha: 0.12),
                                       child: Text(
                                         leadingChar,
                                         style: const TextStyle(fontSize: 20),
@@ -498,7 +498,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
     return ChoiceChip(
       label: Text(label),
       selected: selected,
-      selectedColor: AppDesign.primaryIndigo.withOpacity(0.15),
+      selectedColor: AppDesign.primaryIndigo.withValues(alpha: 0.15),
       labelStyle: TextStyle(
         color: selected ? AppDesign.primaryIndigo : Colors.grey[800],
         fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
@@ -598,9 +598,9 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                       margin: const EdgeInsets.only(top: 8, bottom: 8),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
+                        color: Colors.orange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: const [

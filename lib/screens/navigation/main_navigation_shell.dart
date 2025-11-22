@@ -134,7 +134,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF5E35B1).withOpacity(0.4),
+              color: const Color(0xFF5E35B1).withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -179,7 +179,7 @@ class QuickActionsMenu extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -256,7 +256,7 @@ class QuickActionsMenu extends StatelessWidget {
                         context: context,
                         icon: Icons.trending_up_rounded,
                         iconColor: AppDesign.incomeColor,
-                        iconBackgroundColor: AppDesign.incomeColor.withOpacity(0.12),
+                        iconBackgroundColor: AppDesign.incomeColor.withValues(alpha: 0.12),
                         title: 'Revenu',
                         description: 'Enregistrez un nouveau revenu...',
                         onTap: () {
@@ -277,7 +277,7 @@ class QuickActionsMenu extends StatelessWidget {
                         context: context,
                         icon: Icons.trending_down_rounded,
                         iconColor: AppDesign.expenseColor,
-                        iconBackgroundColor: AppDesign.expenseColor.withOpacity(0.12),
+                        iconBackgroundColor: AppDesign.expenseColor.withValues(alpha: 0.12),
                         title: 'Dépense',
                         description: 'Suivez instantanément une dépense...',
                         onTap: () {
@@ -298,7 +298,7 @@ class QuickActionsMenu extends StatelessWidget {
                         context: context,
                         icon: Icons.flag_rounded,
                         iconColor: AppDesign.primaryPurple,
-                        iconBackgroundColor: AppDesign.primaryPurple.withOpacity(0.12),
+                        iconBackgroundColor: AppDesign.primaryPurple.withValues(alpha: 0.12),
                         title: 'Objectif',
                         description: 'Définissez un objectif d\'épargne...',
                         onTap: () {
@@ -328,7 +328,7 @@ class QuickActionsMenu extends StatelessWidget {
                         context: context,
                         icon: Icons.handshake_rounded,
                         iconColor: const Color(0xFFFB8C00),
-                        iconBackgroundColor: const Color(0xFFFB8C00).withOpacity(0.12),
+                        iconBackgroundColor: const Color(0xFFFB8C00).withValues(alpha: 0.12),
                         title: 'Dettes',
                         description: 'Enregistrez un nouvel emprunt...',
                         onTap: () {
@@ -514,7 +514,7 @@ class ProfilePlaceholderScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),

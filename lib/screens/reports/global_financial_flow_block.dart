@@ -54,6 +54,9 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
   Future<void> _calculateFlows() async {
     setState(() => _isLoading = true);
 
+    final start = widget.dateRange.start;
+    final end = widget.dateRange.end;
+
     // 1. Calculs basés sur les transactions (Income, Expense, Goals)
     double income = 0;
     double expense = 0;
@@ -75,29 +78,29 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
         .toSet();
 
     for (var tx in widget.transactions) {
+      final amount = tx.amount;
+
       // Income / Expense
       if (tx.type == app_transaction.TransactionType.income) {
-        income += tx.amount;
+        income += amount;
       } else if (tx.type == app_transaction.TransactionType.expense) {
-        expense += tx.amount;
+        expense += amount;
         
         // Goal Funding (via tags ou catégorie)
         if (tx.tags?.contains('goal') == true || 
-            (tx.category?.toLowerCase().contains('objectif') ?? false)) {
-          goalFunding += tx.amount;
+            (tx.category?.toLowerCase().contains('objectif') ?? false) ||
+            (tx.description?.toLowerCase().contains('objectif') ?? false)) {
+          goalFunding += amount;
         }
 
-        // Repaid (Dettes remboursées - détection par mots clés ou catégorie)
-        // Idéalement, on aurait un type de transaction spécifique ou un lien vers l'IOU
-        if ((tx.category?.toLowerCase().contains('dette') ?? false) || 
-            (tx.category?.toLowerCase().contains('remboursement') ?? false) ||
-            (tx.description?.toLowerCase().contains('remboursement') ?? false)) {
-          repaid += tx.amount;
+        // Remboursements de dettes (détection par mots clés)
+        if (_looksLikeRepayment(tx)) {
+          repaid += amount;
         }
       } else if (tx.type == app_transaction.TransactionType.transfer) {
         // Savings (Virements vers comptes épargne)
         if (tx.toAccountId != null && savingsAccountIds.contains(tx.toAccountId)) {
-          savings += tx.amount;
+          savings += amount;
         }
       }
     }
@@ -113,13 +116,14 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
       final ious = await _firestoreService.getIOUsStream(widget.userId).first;
       
       for (var iou in ious) {
-        if (iou.createdAt.isAfter(widget.dateRange.start) && 
-            iou.createdAt.isBefore(widget.dateRange.end)) {
-          if (iou.type == IOUType.payable) {
-            borrowed += iou.amount;
-          } else {
-            lent += iou.amount;
-          }
+        final createdInPeriod = !iou.createdAt.isBefore(start) && !iou.createdAt.isAfter(end);
+
+        if (!createdInPeriod) continue;
+
+        if (iou.type == IOUType.payable || iou.type == IOUType.iOwe) {
+          borrowed += iou.amount;
+        } else if (iou.type == IOUType.owedToMe || iou.type == IOUType.receivable) {
+          lent += iou.amount;
         }
       }
     } catch (e) {
@@ -140,6 +144,25 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
     }
   }
 
+  bool _looksLikeRepayment(app_transaction.Transaction tx) {
+    final haystack = [
+      tx.category,
+      tx.description,
+      tx.note,
+      ...(tx.tags ?? []),
+    ]
+        .whereType<String>()
+        .map((e) => e.toLowerCase())
+        .join(' ');
+
+    return haystack.contains('rembourse') ||
+        haystack.contains('rembourser') ||
+        haystack.contains('remboursement') ||
+        haystack.contains('dette') ||
+        haystack.contains('iou') ||
+        haystack.contains('debt');
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -148,178 +171,268 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
-        
+        final maxWidth = constraints.maxWidth;
+        final sectionWidth = _computeSectionWidth(maxWidth);
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Section A: Flux Quotidien
-            _buildSectionHeader('Opérations Courantes'),
-            const SizedBox(height: 8),
-            Row(
+            const Text(
+              'Vue 360° des flux financiers',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tous les mouvements d\'argent sur la période sélectionnée',
+              style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
               children: [
-                Expanded(
-                  child: _buildLargeCard(
-                    label: 'Revenus',
-                    amount: _totalIncome,
-                    color: AppDesign.incomeColor,
-                    icon: Icons.arrow_upward_rounded,
-                    bgColor: AppDesign.incomeColor.withOpacity(0.05),
-                  ),
+                SizedBox(
+                  width: sectionWidth,
+                  child: _buildOperationsSection(sectionWidth),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildLargeCard(
-                    label: 'Dépenses',
-                    amount: _totalExpense,
-                    color: AppDesign.expenseColor,
-                    icon: Icons.arrow_downward_rounded,
-                    bgColor: AppDesign.expenseColor.withOpacity(0.05),
-                  ),
+                SizedBox(
+                  width: sectionWidth,
+                  child: _buildCapitalSection(sectionWidth),
+                ),
+                SizedBox(
+                  width: sectionWidth,
+                  child: _buildDebtSection(sectionWidth),
                 ),
               ],
             ),
-            
-            const SizedBox(height: 24),
-            
-            // Section B: Capitalisation
-            _buildSectionHeader('Capitalisation & Avenir'),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMediumCard(
-                    label: 'Épargne Directe',
-                    amount: _totalSavings,
-                    icon: Icons.savings_rounded,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildMediumCard(
-                    label: 'Objectifs Financés',
-                    amount: _totalGoalFunding,
-                    icon: Icons.track_changes_rounded,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Section C: Mouvements Tiers
-            _buildSectionHeader('Dettes & Créances'),
-            const SizedBox(height: 8),
-            isMobile 
-              ? Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(child: _buildSmallCard('Emprunté', _totalBorrowed, Colors.orange)),
-                        const SizedBox(width: 12),
-                        Expanded(child: _buildSmallCard('Prêté', _totalLent, Colors.blueGrey)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSmallCard('Remboursé', _totalRepaid, Colors.grey[700]!),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Expanded(child: _buildSmallCard('Emprunté', _totalBorrowed, Colors.orange)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildSmallCard('Prêté', _totalLent, Colors.blueGrey)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildSmallCard('Remboursé', _totalRepaid, Colors.grey[700]!)),
-                  ],
-                ),
           ],
         );
       },
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title.toUpperCase(),
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.bold,
-        color: Colors.grey[500],
-        letterSpacing: 1.0,
-      ),
+  double _computeSectionWidth(double maxWidth) {
+    if (maxWidth >= 1180) {
+      return (maxWidth - 32) / 3;
+    } else if (maxWidth >= 820) {
+      return (maxWidth - 16) / 2;
+    }
+    return maxWidth;
+  }
+
+  Widget _buildOperationsSection(double availableWidth) {
+    final cardWidth = _computeCardWidth(availableWidth, desiredPerRow: 2);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Opérations', 'Le flux quotidien'),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            SizedBox(
+              width: cardWidth,
+              child: _flowCard(
+                label: 'Revenus',
+                amount: _totalIncome,
+                color: AppDesign.successGreen,
+                icon: Icons.arrow_upward_rounded,
+                amountFontSize: 24,
+              ),
+            ),
+            SizedBox(
+              width: cardWidth,
+              child: _flowCard(
+                label: 'Dépenses',
+                amount: _totalExpense,
+                color: AppDesign.dangerRed,
+                icon: Icons.arrow_downward_rounded,
+                amountFontSize: 24,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _buildLargeCard({
+  Widget _buildCapitalSection(double availableWidth) {
+    final cardWidth = _computeCardWidth(availableWidth, desiredPerRow: 2);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Capitalisation', 'La construction d\'avenir'),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            SizedBox(
+              width: cardWidth,
+              child: _flowCard(
+                label: 'Épargne Directe',
+                amount: _totalSavings,
+                color: AppDesign.primaryIndigo,
+                emoji: '🏦',
+                amountFontSize: 20,
+                labelColor: AppDesign.primaryIndigo.withValues(alpha: 0.75),
+                amountColor: AppDesign.primaryIndigo,
+              ),
+            ),
+            SizedBox(
+              width: cardWidth,
+              child: _flowCard(
+                label: 'Objectifs Financés',
+                amount: _totalGoalFunding,
+                color: AppDesign.primaryIndigo,
+                emoji: '🎯',
+                amountFontSize: 20,
+                labelColor: AppDesign.primaryIndigo.withValues(alpha: 0.75),
+                amountColor: AppDesign.primaryIndigo,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDebtSection(double availableWidth) {
+    final int desiredPerRow;
+    if (availableWidth >= 900) {
+      desiredPerRow = 3;
+    } else if (availableWidth >= 560) {
+      desiredPerRow = 2;
+    } else {
+      desiredPerRow = 1;
+    }
+    final cardWidth = _computeCardWidth(availableWidth, desiredPerRow: desiredPerRow);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Dettes', 'Mouvements tiers'),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            SizedBox(
+              width: cardWidth,
+              child: _flowCard(
+                label: 'Emprunté',
+                amount: _totalBorrowed,
+                color: AppDesign.warningOrange,
+                icon: Icons.trending_up_rounded,
+                amountFontSize: 18,
+              ),
+            ),
+            SizedBox(
+              width: cardWidth,
+              child: _flowCard(
+                label: 'Prêté',
+                amount: _totalLent,
+                color: Colors.blueGrey,
+                icon: Icons.outbond_rounded,
+                amountFontSize: 18,
+              ),
+            ),
+            SizedBox(
+              width: cardWidth,
+              child: _flowCard(
+                label: 'Remboursé',
+                amount: _totalRepaid,
+                color: Colors.grey[800]!,
+                icon: Icons.check_circle_outline_rounded,
+                amountFontSize: 18,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionTitle(String title, String subtitle) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: Colors.grey[700],
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _flowCard({
     required String label,
     required double amount,
     required Color color,
-    required IconData icon,
-    required Color bgColor,
+    IconData? icon,
+    String? emoji,
+    double amountFontSize = 20,
+    double backgroundOpacity = 0.05,
+    Color? labelColor,
+    Color? amountColor,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: color, size: 24),
-              Text(
-                label,
-                style: TextStyle(color: color.withOpacity(0.8), fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            NumberFormat.currency(locale: 'fr_FR', symbol: '€').format(amount),
-            style: TextStyle(
-              color: color,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    final textColor = labelColor ?? Colors.grey[600];
+    final valueColor = amountColor ?? color;
 
-  Widget _buildMediumCard({
-    required String label,
-    required double amount,
-    required IconData icon,
-  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppDesign.primaryIndigo.withOpacity(0.05),
+        color: color.withValues(alpha: backgroundOpacity),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppDesign.primaryIndigo.withOpacity(0.1)),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppDesign.primaryIndigo, size: 24),
-          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.6),
+              shape: BoxShape.circle,
+            ),
+            child: icon != null
+                ? Icon(icon, color: color, size: 20)
+                : Text(emoji ?? '', style: TextStyle(fontSize: 18, color: color)),
+          ),
+          const SizedBox(height: 10),
           Text(
             label,
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            style: TextStyle(
+              color: textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
-            NumberFormat.currency(locale: 'fr_FR', symbol: '€', decimalDigits: 0).format(amount),
-            style: const TextStyle(
-              color: AppDesign.primaryIndigo,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+            _formatAmount(amount),
+            style: TextStyle(
+              color: valueColor,
+              fontSize: amountFontSize,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.2,
             ),
           ),
         ],
@@ -327,46 +440,21 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
     );
   }
 
-  Widget _buildSmallCard(String label, double amount, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.1)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 24,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 11),
-                ),
-                Text(
-                  NumberFormat.currency(locale: 'fr_FR', symbol: '€', decimalDigits: 0).format(amount),
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  double _computeCardWidth(double availableWidth, {required int desiredPerRow, double spacing = 12}) {
+    if (desiredPerRow <= 1 || availableWidth < 420) {
+      return availableWidth;
+    }
+
+    final totalSpacing = spacing * (desiredPerRow - 1);
+    return (availableWidth - totalSpacing) / desiredPerRow;
+  }
+
+  String _formatAmount(double amount) {
+    final formatter = NumberFormat.currency(
+      locale: 'fr_FR',
+      symbol: '€',
+      decimalDigits: amount.abs() >= 1000 ? 0 : 2,
     );
+    return formatter.format(amount);
   }
 }

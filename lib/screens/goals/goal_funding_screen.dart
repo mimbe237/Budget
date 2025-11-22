@@ -158,7 +158,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppDesign.primaryIndigo.withOpacity(0.08),
+                      color: AppDesign.primaryIndigo.withValues(alpha: 0.08),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.savings, size: 16, color: AppDesign.primaryIndigo),
@@ -376,7 +376,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: AppDesign.primaryIndigo.withOpacity(0.1),
+            color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -441,7 +441,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                           ),
                           Color(
                             int.parse((goal.color ?? '#6366F1').replaceFirst('#', '0xFF')),
-                          ).withOpacity(0.7),
+                          ).withValues(alpha: 0.7),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(15),
@@ -742,19 +742,21 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 const Row(
                   children: [
                     Icon(Icons.flag, color: AppDesign.primaryIndigo, size: 32),
@@ -887,7 +889,7 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
                         child: Container(
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? AppDesign.primaryIndigo.withOpacity(0.1)
+                                ? AppDesign.primaryIndigo.withValues(alpha: 0.1)
                                 : Colors.grey[200],
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
@@ -1001,19 +1003,21 @@ class _FundGoalModalState extends State<FundGoalModal> {
         ? widget.goal.currentAmount / widget.goal.targetAmount 
         : 0.0;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Row(
                   children: [
                     Container(
@@ -1059,9 +1063,9 @@ class _FundGoalModalState extends State<FundGoalModal> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppDesign.primaryIndigo.withOpacity(0.1),
+                    color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppDesign.primaryIndigo.withOpacity(0.3)),
+                    border: Border.all(color: AppDesign.primaryIndigo.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     children: [

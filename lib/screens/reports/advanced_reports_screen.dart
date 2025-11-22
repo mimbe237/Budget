@@ -218,7 +218,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -274,9 +274,9 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppDesign.primaryIndigo.withOpacity(0.05),
+                  color: AppDesign.primaryIndigo.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppDesign.primaryIndigo.withOpacity(0.1)),
+                  border: Border.all(color: AppDesign.primaryIndigo.withValues(alpha: 0.1)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -387,7 +387,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                           dotData: FlDotData(show: false),
                           belowBarData: BarAreaData(
                             show: true,
-                            color: AppDesign.primaryIndigo.withOpacity(0.1),
+                            color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                           ),
                         ),
                       ],
@@ -570,7 +570,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: AppDesign.expenseColor.withOpacity(0.1),
+                          color: AppDesign.expenseColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(

@@ -322,6 +322,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final bool isLoggedIn = _firestoreService.currentUserId != null;
     
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text(
           _isExpense ? 'Nouvelle Dépense' : 'Nouveau Revenu',
@@ -382,49 +383,48 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
               return Form(
                 key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.all(24.0),
-                  children: [
-                    if (!isLoggedIn)
-                      _buildAuthBanner(context),
-                    if (!isLoggedIn)
-                      const SizedBox(height: 16),
-                    
-                    // Templates rapides
-                    _buildTemplates(),
-                    const SizedBox(height: 16),
+                child: SafeArea(
+                  child: AnimatedPadding(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!isLoggedIn) _buildAuthBanner(context),
+                          if (!isLoggedIn) const SizedBox(height: 16),
+                          
+                          _buildTemplates(),
+                          const SizedBox(height: 16),
 
-                    // Montant (Champ principal)
-                    _buildAmountField(),
-                    const SizedBox(height: 24),
+                          _buildAmountField(),
+                          const SizedBox(height: 24),
 
-                    // Sélecteur de Compte
-                    _buildAccountSelector(accounts),
-                    const SizedBox(height: 20),
+                          _buildAccountSelector(accounts),
+                          const SizedBox(height: 20),
 
-                    // Sélecteur de Catégorie
-                    _buildCategorySelector(categories),
-                    const SizedBox(height: 20),
+                          _buildCategorySelector(categories),
+                          const SizedBox(height: 20),
 
-                    // Description
-                    _buildDescriptionField(),
-                    const SizedBox(height: 20),
+                          _buildDescriptionField(),
+                          const SizedBox(height: 20),
 
-                    // Note (optionnel)
-                    _buildNoteField(),
-                    const SizedBox(height: 20),
+                          _buildNoteField(),
+                          const SizedBox(height: 20),
 
-                    // Sélecteur de Date
-                    _buildDateSelector(),
-                    const SizedBox(height: 20),
+                          _buildDateSelector(),
+                          const SizedBox(height: 20),
 
-                    // Tags (optionnel)
-                    _buildTagsField(),
-                    const SizedBox(height: 40),
+                          _buildTagsField(),
+                          const SizedBox(height: 32),
 
-                    // Bouton de Sauvegarde
-                    _buildSaveButton(),
-                  ],
+                          _buildSaveButton(),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               );
             },
@@ -450,7 +450,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               final categories = snapshot.data ?? [];
               return ActionChip(
                 label: Text(template.name),
-                backgroundColor: isSelected ? _accentColor.withOpacity(0.2) : Colors.grey[100],
+                backgroundColor: isSelected ? _accentColor.withValues(alpha: 0.2) : Colors.grey[100],
                 labelStyle: TextStyle(
                   color: isSelected ? _accentColor : Colors.grey[800],
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -535,7 +535,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _accentColor.withOpacity(0.12),
+                      color: _accentColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

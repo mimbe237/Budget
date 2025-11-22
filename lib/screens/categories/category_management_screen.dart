@@ -90,8 +90,11 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           : FloatingActionButton.extended(
               onPressed: () => _openCategoryForm(userId: userId),
               backgroundColor: AppDesign.primaryIndigo,
-              icon: const Icon(Icons.add),
-              label: const Text('Nouvelle Catégorie'),
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'Nouvelle Catégorie',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
             ),
     );
   }
@@ -121,7 +124,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           height: 48,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: AppDesign.primaryIndigo.withOpacity(0.1),
+            color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Text(
@@ -182,7 +185,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                         label: const Text('Dépense'),
                         selected: selectedType == CategoryType.expense,
                         onSelected: (_) => setSheetState(() => selectedType = CategoryType.expense),
-                        selectedColor: AppDesign.expenseColor.withOpacity(0.2),
+                        selectedColor: AppDesign.expenseColor.withValues(alpha: 0.2),
                         labelStyle: TextStyle(
                           color: selectedType == CategoryType.expense ? AppDesign.expenseColor : Colors.black,
                         ),
@@ -192,7 +195,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                         label: const Text('Revenu'),
                         selected: selectedType == CategoryType.income,
                         onSelected: (_) => setSheetState(() => selectedType = CategoryType.income),
-                        selectedColor: AppDesign.incomeColor.withOpacity(0.2),
+                        selectedColor: AppDesign.incomeColor.withValues(alpha: 0.2),
                         labelStyle: TextStyle(
                           color: selectedType == CategoryType.income ? AppDesign.incomeColor : Colors.black,
                         ),

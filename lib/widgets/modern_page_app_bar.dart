@@ -37,6 +37,8 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.of(context).size.width < 430;
+
     final combinedActions = <Widget>[];
     if (showHome) {
       combinedActions.add(
@@ -76,7 +78,7 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
             ],
             onSelected: (_) {},
             child: CircleAvatar(
-              backgroundColor: accentColor.withOpacity(0.12),
+              backgroundColor: accentColor.withValues(alpha: 0.12),
               child: Icon(Icons.person_outline, color: accentColor),
             ),
           ),
@@ -89,16 +91,14 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       toolbarHeight: toolbarHeight,
       centerTitle: false,
-      titleSpacing: 16,
-      title: Row(
-        children: [
-          const RevolutionaryLogo(size: 48),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+      titleSpacing: isCompact ? 12 : 16,
+      title: isCompact
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                const RevolutionaryLogo(size: 48),
+                const SizedBox(height: 10),
                 Text(
                   title,
                   style: const TextStyle(
@@ -106,20 +106,55 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
                     fontWeight: FontWeight.w800,
                     color: Colors.black87,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: const TextStyle(
                     fontSize: 13,
                     color: Colors.black54,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                const RevolutionaryLogo(size: 48),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black54,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
       actions: combinedActions,
       bottom: bottom,
     );

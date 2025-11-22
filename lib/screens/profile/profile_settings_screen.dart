@@ -145,7 +145,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.redAccent.withOpacity(0.1),
+              color: Colors.redAccent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
@@ -233,7 +233,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -269,7 +269,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -329,7 +329,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -342,7 +342,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             secondary: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppDesign.primaryIndigo.withOpacity(0.1),
+                color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -397,7 +397,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             secondary: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppDesign.expenseColor.withOpacity(0.1),
+                color: AppDesign.expenseColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -474,7 +474,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       await _notificationService.setBudgetAlertThreshold(v);
                     },
                     activeColor: AppDesign.expenseColor,
-                    inactiveColor: AppDesign.expenseColor.withOpacity(0.2),
+                    inactiveColor: AppDesign.expenseColor.withValues(alpha: 0.2),
                   ),
                   const Text(
                     'Alerte quand une poche dépasse ce pourcentage de son budget.',
@@ -491,7 +491,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             secondary: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppDesign.incomeColor.withOpacity(0.1),
+                color: AppDesign.incomeColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -584,7 +584,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -597,7 +597,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppDesign.primaryIndigo.withOpacity(0.1),
+                color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -639,7 +639,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppDesign.primaryPurple.withOpacity(0.1),
+                color: AppDesign.primaryPurple.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -687,7 +687,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -720,7 +720,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -753,10 +753,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppDesign.expenseColor.withOpacity(0.3), width: 2),
+        border: Border.all(color: AppDesign.expenseColor.withValues(alpha: 0.3), width: 2),
         boxShadow: [
           BoxShadow(
-            color: AppDesign.expenseColor.withOpacity(0.1),
+            color: AppDesign.expenseColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -766,7 +766,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppDesign.expenseColor.withOpacity(0.1),
+            color: AppDesign.expenseColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: const Icon(

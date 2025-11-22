@@ -469,7 +469,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppDesign.primaryIndigo.withOpacity(0.3),
+            color: AppDesign.primaryIndigo.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -480,7 +480,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -528,9 +528,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.08),
+        color: badgeColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: badgeColor.withOpacity(0.4)),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,7 +546,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                 child: Text(
                   message,
                   style: TextStyle(
-                    color: badgeColor.withOpacity(0.9),
+                    color: badgeColor.withValues(alpha: 0.9),
                     fontSize: 13,
                   ),
                 ),
@@ -597,9 +597,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     bool isGood = anomaly.contains('✅') || anomaly.contains('Excellente');
 
     Color bgColor = isWarning
-        ? AppDesign.expenseColor.withOpacity(0.1)
+        ? AppDesign.expenseColor.withValues(alpha: 0.1)
         : isGood
-            ? AppDesign.incomeColor.withOpacity(0.1)
+            ? AppDesign.incomeColor.withValues(alpha: 0.1)
             : Colors.grey[100]!;
 
     Color borderColor = isWarning
@@ -670,16 +670,16 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppDesign.expenseColor.withOpacity(0.05),
+            color: AppDesign.expenseColor.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppDesign.expenseColor.withOpacity(0.3)),
+            border: Border.all(color: AppDesign.expenseColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppDesign.expenseColor.withOpacity(0.15),
+                  color: AppDesign.expenseColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.error_outline, color: AppDesign.expenseColor),
@@ -747,7 +747,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         border: Border.all(color: color, width: 2),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.15),
+            color: color.withValues(alpha: 0.15),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -760,7 +760,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: color, size: 28),
@@ -823,7 +823,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
@@ -878,19 +878,19 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     switch (type) {
       case 'success':
         cardColor = AppDesign.incomeColor;
-        iconBgColor = AppDesign.incomeColor.withOpacity(0.1);
+        iconBgColor = AppDesign.incomeColor.withValues(alpha: 0.1);
         break;
       case 'danger':
         cardColor = AppDesign.expenseColor;
-        iconBgColor = AppDesign.expenseColor.withOpacity(0.1);
+        iconBgColor = AppDesign.expenseColor.withValues(alpha: 0.1);
         break;
       case 'warning':
         cardColor = const Color(0xFFFFA726);
-        iconBgColor = const Color(0xFFFFA726).withOpacity(0.1);
+        iconBgColor = const Color(0xFFFFA726).withValues(alpha: 0.1);
         break;
       default:
         cardColor = AppDesign.primaryIndigo;
-        iconBgColor = AppDesign.primaryIndigo.withOpacity(0.1);
+        iconBgColor = AppDesign.primaryIndigo.withValues(alpha: 0.1);
     }
 
     return Container(
@@ -899,10 +899,10 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cardColor.withOpacity(0.3), width: 1.5),
+        border: Border.all(color: cardColor.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/firestore_service.dart';
 import '../navigation/main_navigation_shell.dart';
 import '../../widgets/revolutionary_logo.dart';
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({Key? key}) : super(key: key);
+  const AuthScreen({super.key});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -149,9 +148,9 @@ class _AuthScreenState extends State<AuthScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF00796B).withOpacity(0.08),
+            color: const Color(0xFF00796B).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF00796B).withOpacity(0.2)),
+            border: Border.all(color: const Color(0xFF00796B).withValues(alpha: 0.2)),
           ),
           child: Column(
             children: [
@@ -210,7 +209,7 @@ class _AuthScreenState extends State<AuthScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF00796B).withOpacity(0.15)),
+        border: Border.all(color: const Color(0xFF00796B).withValues(alpha: 0.15)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -218,7 +217,7 @@ class _AuthScreenState extends State<AuthScreen> {
           Text(
             label,
             style: TextStyle(
-              color: Colors.black.withOpacity(0.6),
+              color: Colors.black.withValues(alpha: 0.6),
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
@@ -239,25 +238,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget _buildLoginForm() {
     return Column(
       children: [
-        const SizedBox(height: 16),
-        const Text(
-          'Bienvenue',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'Connectez-vous pour gérer vos finances',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.black54,
-          ),
-        ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
         if (!_isLogin) ...[
           TextFormField(
             controller: _nameController,
@@ -459,8 +440,38 @@ class _AuthScreenState extends State<AuthScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const RevolutionaryLogo(size: 60),
-                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const RevolutionaryLogo(size: 60),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Budget Pro',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.black87,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Gère tes finances comme un Pro',
+                                  style: TextStyle(
+                                    color: Colors.black.withValues(alpha: 0.65),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
                         // Custom Tab Bar
                         Container(
                           padding: const EdgeInsets.all(6),
@@ -483,7 +494,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       boxShadow: _currentTabIndex == 0
                                           ? [
                                               BoxShadow(
-                                                color: const Color(0xFF00796B).withOpacity(0.08),
+                                                color: const Color(0xFF00796B).withValues(alpha: 0.08),
                                                 blurRadius: 10,
                                                 offset: const Offset(0, 3),
                                               ),
@@ -513,7 +524,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       boxShadow: _currentTabIndex == 1
                                           ? [
                                               BoxShadow(
-                                                color: const Color(0xFF00796B).withOpacity(0.08),
+                                                color: const Color(0xFF00796B).withValues(alpha: 0.08),
                                                 blurRadius: 10,
                                                 offset: const Offset(0, 3),
                                               ),
@@ -566,7 +577,7 @@ class _AuthScreenState extends State<AuthScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             'Ou continuer avec',
-            style: TextStyle(color: Colors.black.withOpacity(0.6), fontWeight: FontWeight.w600),
+            style: TextStyle(color: Colors.black.withValues(alpha: 0.6), fontWeight: FontWeight.w600),
           ),
         ),
         const Expanded(
@@ -614,7 +625,7 @@ class _AuthScreenState extends State<AuthScreen> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: background.withOpacity(0.25),
+              color: background.withValues(alpha: 0.25),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),

@@ -374,7 +374,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     ],
                     onSelected: (_) {},
                     child: CircleAvatar(
-                      backgroundColor: AppDesign.primaryIndigo.withOpacity(0.12),
+                      backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.12),
                       child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
                     ),
                   ),
@@ -496,7 +496,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         helper: 'Factures, courses, loisirs',
         icon: Icons.south_west_rounded,
         colors: [
-          AppDesign.expenseColor.withOpacity(0.9),
+          AppDesign.expenseColor.withValues(alpha: 0.9),
           AppDesign.expenseColor,
         ],
         onTap: () {
@@ -514,7 +514,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         helper: 'Salaire, primes, bonus',
         icon: Icons.north_east_rounded,
         colors: [
-          AppDesign.incomeColor.withOpacity(0.95),
+          AppDesign.incomeColor.withValues(alpha: 0.95),
           AppDesign.incomeColor,
         ],
         onTap: () {
@@ -582,19 +582,19 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
-          border: Border.all(color: base.withOpacity(0.18)),
+          border: Border.all(color: base.withValues(alpha: 0.18)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: base.withOpacity(0.12),
+                color: base.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: base, size: 22),
@@ -732,7 +732,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: indicatorColor.withOpacity(0.12),
+                    color: indicatorColor.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: indicatorColor, size: 28),
@@ -764,7 +764,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: indicatorColor.withOpacity(0.1),
+                    color: indicatorColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
@@ -831,7 +831,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           Text(
             label,
             style: TextStyle(
-              color: color.withOpacity(0.9),
+              color: color.withValues(alpha: 0.9),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -1024,7 +1024,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: barColor.withOpacity(0.12),
+                        color: barColor.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
                       child: Text(icon, style: const TextStyle(fontSize: 16)),
@@ -1185,7 +1185,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
-                        backgroundColor: color.withOpacity(0.12),
+                        backgroundColor: color.withValues(alpha: 0.12),
                         child: Text(
                           (tx.category ?? '💳').isNotEmpty
                               ? (tx.category ?? '💳').characters.first
@@ -1224,7 +1224,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     return ChoiceChip(
       label: Text(label),
       selected: selected,
-      selectedColor: AppDesign.primaryIndigo.withOpacity(0.15),
+      selectedColor: AppDesign.primaryIndigo.withValues(alpha: 0.15),
       labelStyle: TextStyle(
         color: selected ? AppDesign.primaryIndigo : Colors.grey[800],
         fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
@@ -1258,7 +1258,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: AppDesign.primaryIndigo.withOpacity(0.1),
+                    color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
@@ -1575,7 +1575,7 @@ class _IncomeCategoryRow extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppDesign.incomeColor.withOpacity(0.12),
+                  color: AppDesign.incomeColor.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Text(item.icon, style: const TextStyle(fontSize: 16)),

@@ -229,7 +229,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),
@@ -337,7 +337,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         width: 100,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF6366F1).withOpacity(0.1) : Colors.grey[100],
+          color: isSelected ? const Color(0xFF6366F1).withValues(alpha: 0.1) : Colors.grey[100],
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,

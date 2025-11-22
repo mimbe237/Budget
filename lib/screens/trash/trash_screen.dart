@@ -149,8 +149,8 @@ class TrashScreen extends StatelessWidget {
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: transaction.type == TransactionType.expense
-                ? Colors.red.withOpacity(0.1)
-                : Colors.green.withOpacity(0.1),
+                ? Colors.red.withValues(alpha: 0.1)
+                : Colors.green.withValues(alpha: 0.1),
             child: Icon(
               transaction.type == TransactionType.expense
                   ? Icons.arrow_downward

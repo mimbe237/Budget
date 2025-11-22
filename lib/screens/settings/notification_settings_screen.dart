@@ -195,7 +195,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         secondary: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
+            color: iconColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: iconColor),
@@ -214,7 +214,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppDesign.primaryIndigo.withOpacity(0.1),
+            color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(Icons.access_time, color: AppDesign.primaryIndigo),
@@ -258,7 +258,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color),

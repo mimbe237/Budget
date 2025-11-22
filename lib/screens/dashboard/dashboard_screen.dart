@@ -82,18 +82,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            tooltip: 'Comptes',
-            icon: const Icon(Icons.account_balance_wallet, color: AppDesign.primaryIndigo),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AccountManagementScreen(),
-                ),
-              );
-            },
-          ),
-          IconButton(
             tooltip: 'Dettes / créances',
             icon: const Icon(Icons.handshake, color: AppDesign.primaryIndigo),
             onPressed: () {
@@ -170,7 +158,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                   onSelected: (_) {},
                   child: CircleAvatar(
-                    backgroundColor: AppDesign.primaryIndigo.withOpacity(0.1),
+                    backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                     child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
                   ),
                 ),
@@ -402,27 +390,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Accès rapides',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: shortcuts
-              .map(
-                (s) => SizedBox(
-                      height: 120,
-                      child: _ShortcutCard(action: s),
-                    ),
-              )
-              .toList(),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth;
+        final cardWidth = available < 520 ? available : 260.0;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Accès rapides',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: shortcuts
+                  .map(
+                    (s) => SizedBox(
+                          width: cardWidth,
+                          height: 120,
+                          child: _ShortcutCard(
+                            action: s,
+                            width: cardWidth,
+                          ),
+                        ),
+                  )
+                  .toList(),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -479,7 +478,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [_brandTeal, _brandTeal.withOpacity(0.85)],
+              colors: [_brandTeal, _brandTeal.withValues(alpha: 0.85)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -495,7 +494,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Text(
                     'Total Net',
-                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -510,14 +509,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 10),
                   Text(
                     '${accounts.length} compte(s)',
-                    style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
                   ),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.show_chart, color: Colors.white, size: 44),
@@ -594,7 +593,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       CircularProgressIndicator(
                         value: budgetConsumed > 1 ? 1 : budgetConsumed,
                         strokeWidth: 10,
-                        backgroundColor: gaugeColor.withOpacity(0.12),
+                        backgroundColor: gaugeColor.withValues(alpha: 0.12),
                         valueColor: AlwaysStoppedAnimation<Color>(gaugeColor),
                       ),
                       Center(
@@ -706,53 +705,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final remaining = income - expense;
         const targetAmount = 2500.0; // TODO: Récupérer de la config utilisateur
 
-        return GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.35,
-          mainAxisSpacing: AppDesign.spacingMedium,
-          crossAxisSpacing: AppDesign.spacingMedium,
-          children: [
-            _InsightCard(
-              title: 'Revenu du mois',
-              amount: income,
-              emoji: '💰',
-              color: AppDesign.incomeColor,
-              subtitle: 'Total encaissé',
-            ),
-            _InsightCard(
-              title: 'Dépenses du mois',
-              amount: expense,
-              emoji: '💸',
-              color: AppDesign.expenseColor,
-              subtitle: 'Total déboursé',
-            ),
-            _InsightCard(
-              title: 'Dettes du mois',
-              amount: debtAmount,
-              emoji: '💳',
-              color: AppDesign.expenseColor,
-              subtitle: 'Remboursements & échéances',
-            ),
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const GoalFundingScreen(),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 620;
+            final crossAxisCount = isNarrow ? 1 : 2;
+            final aspectRatio = isNarrow ? 2.8 : 1.35;
+
+            return GridView.count(
+              crossAxisCount: crossAxisCount,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: aspectRatio,
+              mainAxisSpacing: AppDesign.spacingMedium,
+              crossAxisSpacing: AppDesign.spacingMedium,
+              children: [
+                _InsightCard(
+                  title: 'Revenu du mois',
+                  amount: income,
+                  emoji: '💰',
+                  color: AppDesign.incomeColor,
+                  subtitle: 'Total encaissé',
+                ),
+                _InsightCard(
+                  title: 'Dépenses du mois',
+                  amount: expense,
+                  emoji: '💸',
+                  color: AppDesign.expenseColor,
+                  subtitle: 'Total déboursé',
+                ),
+                _InsightCard(
+                  title: 'Dettes du mois',
+                  amount: debtAmount,
+                  emoji: '💳',
+                  color: AppDesign.expenseColor,
+                  subtitle: 'Remboursements & échéances',
+                ),
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const GoalFundingScreen(),
+                      ),
+                    );
+                  },
+                  child: _InsightCard(
+                    title: 'Objectifs financés',
+                    amount: targetAmount,
+                    emoji: '🎯',
+                    color: AppDesign.primaryPurple,
+                    subtitle: 'Progression',
                   ),
-                );
-              },
-              child: _InsightCard(
-                title: 'Objectifs financés',
-                amount: targetAmount,
-                emoji: '🎯',
-                color: AppDesign.primaryPurple,
-                subtitle: 'Progression',
-              ),
-            ),
-          ],
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -838,7 +845,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: txColor.withOpacity(0.12),
+                    color: txColor.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(txIcon, color: txColor),
@@ -882,7 +889,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: 62,
               height: 62,
               decoration: BoxDecoration(
-                color: AppDesign.primaryIndigo.withOpacity(0.1),
+                color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.pie_chart_outline, color: AppDesign.primaryIndigo, size: 34),
@@ -994,7 +1001,7 @@ class _InsightCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            color.withOpacity(0.18),
+            color.withValues(alpha: 0.18),
             Colors.white,
           ],
           begin: Alignment.topLeft,
@@ -1003,7 +1010,7 @@ class _InsightCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -1020,7 +1027,7 @@ class _InsightCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.18),
+                  color: color.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                 ),
                 child: Text(
@@ -1089,8 +1096,9 @@ class _ShortcutAction {
 
 class _ShortcutCard extends StatelessWidget {
   final _ShortcutAction action;
+  final double width;
 
-  const _ShortcutCard({required this.action});
+  const _ShortcutCard({required this.action, required this.width});
 
   @override
   Widget build(BuildContext context) {
@@ -1098,15 +1106,15 @@ class _ShortcutCard extends StatelessWidget {
       onTap: action.onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        width: 210,
+        width: width,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: action.color.withOpacity(0.08),
+          color: action.color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: action.color.withOpacity(0.18)),
+          border: Border.all(color: action.color.withValues(alpha: 0.18)),
           boxShadow: [
             BoxShadow(
-              color: action.color.withOpacity(0.08),
+              color: action.color.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -1117,7 +1125,7 @@ class _ShortcutCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: action.color.withOpacity(0.16),
+                color: action.color.withValues(alpha: 0.16),
                 shape: BoxShape.circle,
               ),
               child: Icon(action.icon, color: action.color, size: 22),
@@ -1218,7 +1226,7 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
         final overflowCount = items.where((i) => i.spent > i.allocated).length;
         final isHealthy = overflowCount == 0;
         final footerColor =
-            isHealthy ? const Color(0xFF4CAF50).withOpacity(0.08) : const Color(0xFFEF5350).withOpacity(0.08);
+            isHealthy ? const Color(0xFF4CAF50).withValues(alpha: 0.08) : const Color(0xFFEF5350).withValues(alpha: 0.08);
         final footerTextColor = isHealthy ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
         final footerIcon = isHealthy ? Icons.check_circle_rounded : Icons.warning_amber_rounded;
         final footerText = isHealthy

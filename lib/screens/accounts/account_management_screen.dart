@@ -198,7 +198,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: accountColor.withOpacity(0.1),
+                  color: accountColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppDesign.borderRadiusMedium),
                 ),
                 child: Center(
@@ -229,7 +229,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: accountColor.withOpacity(0.1),
+                        color: accountColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -304,7 +304,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.16),
+              color: Colors.white.withValues(alpha: 0.16),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.account_balance, color: Colors.white, size: 28),
@@ -317,7 +317,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 Text(
                   'Avoirs financiers',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.2,
@@ -337,7 +337,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 Text(
                   'Total de tous vos comptes',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.78),
+                    color: Colors.white.withValues(alpha: 0.78),
                     fontSize: 12,
                   ),
                 ),
@@ -461,7 +461,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
-                        backgroundColor: color.withOpacity(0.12),
+                        backgroundColor: color.withValues(alpha: 0.12),
                         child: Text(
                           (tx.category ?? '💳').characters.first,
                           style: const TextStyle(fontSize: 18),
@@ -504,7 +504,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             _historyFilterType = type;
           });
         },
-        selectedColor: AppDesign.primaryIndigo.withOpacity(0.15),
+        selectedColor: AppDesign.primaryIndigo.withValues(alpha: 0.15),
         labelStyle: TextStyle(
           color: selected ? AppDesign.primaryIndigo : Colors.grey[800],
           fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
@@ -840,7 +840,7 @@ class _AddAccountModalState extends State<AddAccountModal> {
                         height: 50,
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppDesign.primaryIndigo.withOpacity(0.1)
+                              ? AppDesign.primaryIndigo.withValues(alpha: 0.1)
                               : Colors.grey[200],
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
@@ -1066,7 +1066,7 @@ class _EditAccountModalState extends State<EditAccountModal> {
                         height: 50,
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppDesign.primaryIndigo.withOpacity(0.1)
+                              ? AppDesign.primaryIndigo.withValues(alpha: 0.1)
                               : Colors.grey[200],
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
@@ -1260,7 +1260,7 @@ class _TransferModalState extends State<TransferModal> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppDesign.transferColor.withOpacity(0.1),
+                        color: AppDesign.transferColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -1567,7 +1567,7 @@ class _ShareAccountModalState extends State<ShareAccountModal> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppDesign.primaryIndigo.withOpacity(0.1),
+                      color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
