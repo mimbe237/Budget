@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Users, CreditCard, TrendingUp, Activity, RefreshCw } from 'lucide-react';
 import { collection, Timestamp, onSnapshot, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { fetchAdminAPI } from '@/lib/adminAPI';
 import AdminShell from '@/components/AdminShell';
 import { KPICard } from '@/components/KPICard';
 import { Badge } from '@/components/Badge';
@@ -63,9 +64,7 @@ function DashboardContent() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/admin/monthly-stats');
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'Erreur API');
+      const json = await fetchAdminAPI('/api/admin/monthly-stats');
       const data = json.data as { totalUsers: number; activeUsers: number; totalTransactions: number; platformBalance: number; monthly: MonthlyPoint[] };
       setStats({
         totalUsers: data.totalUsers,

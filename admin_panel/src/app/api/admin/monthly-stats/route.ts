@@ -14,9 +14,26 @@ function initAdmin() {
 
 interface MonthlyPoint { month: string; transactions: number; newUsers: number; volume: number }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
+    // --- Authentication & Authorization ---
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ ok: false, error: 'Missing bearer token' }), { status: 401 });
+    }
+    const idToken = authHeader.substring(7);
     initAdmin();
+    let decoded: admin.auth.DecodedIdToken;
+    try {
+      decoded = await admin.auth().verifyIdToken(idToken);
+    } catch (e: any) {
+      return new Response(JSON.stringify({ ok: false, error: 'Invalid token' }), { status: 401 });
+    }
+    const isAdminClaim = decoded.admin === true || decoded.role === 'admin';
+    if (!isAdminClaim) {
+      return new Response(JSON.stringify({ ok: false, error: 'Forbidden: admin only' }), { status: 403 });
+    }
+
     const db = admin.firestore();
 
     const usersSnap = await db.collection('users').get();

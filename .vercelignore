@@ -1,0 +1,25 @@
+# Ignorer les dossiers Flutter et natifs
+android/
+ios/
+macos/
+windows/
+linux/
+web/
+build/
+assets/
+playstore-assets/
+docs/
+test/
+lib/
+
+# Ignorer les fichiers de configuration Flutter
+pubspec.yaml
+pubspec.lock
+analysis_options.yaml
+*.iml
+
+# Ignorer les clés Android
+android-keys/
+
+# Ignorer les fichiers markdown (sauf admin_panel)
+/*.md

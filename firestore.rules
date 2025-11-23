@@ -41,8 +41,9 @@ service cloud.firestore {
 
     // Exemples supplémentaires : transactions, admin_logs
     match /transactions/{transactionId} {
-      allow read: if isAdmin() || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
-      allow write: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      // For reads, use resource.data (existing doc); for writes use request.resource.data (incoming data)
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow write: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
 
     match /admin_logs/{logId} {
