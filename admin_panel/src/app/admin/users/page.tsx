@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Mail, Shield, MoreVertical, Check, X, Crown, Sparkles, ArrowLeft, ArrowRight, SortAsc, RefreshCw } from 'lucide-react';
+import { Search, Filter, Mail, Shield, MoreVertical, Check, X, Crown, Sparkles, ArrowLeft, ArrowRight, SortAsc, RefreshCw, UserMinus, UserPlus } from 'lucide-react';
 import { collection, getDocs, updateDoc, doc, query, orderBy, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { fetchAdminAPI } from '@/lib/adminAPI';
 import { db } from '@/lib/firebase';
 import AdminShell from '@/components/AdminShell';
 import { Badge } from '@/components/Badge';
@@ -109,7 +110,31 @@ function UsersContent() {
   }
 
   async function makeAdmin(user: User) {
+    // Firestore flag (purely informational)
     await updateDoc(doc(db, 'users', user.id), { role: 'admin', isAdmin: true });
+    // Custom claim via secure API route
+    try {
+      await fetchAdminAPI('/api/admin/update-role', {
+        method: 'POST',
+        body: JSON.stringify({ uid: user.id, makeAdmin: true })
+      });
+    } catch (e) {
+      console.error('Erreur makeAdmin:', e);
+    }
+    setRefreshTrigger(prev => prev + 1);
+  }
+
+  async function revokeAdmin(user: User) {
+    // Update Firestore role
+    await updateDoc(doc(db, 'users', user.id), { role: 'user', isAdmin: false });
+    try {
+      await fetchAdminAPI('/api/admin/update-role', {
+        method: 'POST',
+        body: JSON.stringify({ uid: user.id, makeAdmin: false })
+      });
+    } catch (e) {
+      console.error('Erreur revokeAdmin:', e);
+    }
     setRefreshTrigger(prev => prev + 1);
   }
 
@@ -386,24 +411,15 @@ function UsersContent() {
                                 onClick={async () => { await makeAdmin(user); setOpenMenu(null); }}
                                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-semibold text-gray-800 transition hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-800/80"
                               >
-                                <Shield className="h-3 w-3" /> Rendre Admin (Firestore)
+                                <UserPlus className="h-3 w-3" /> Promouvoir Admin
                               </button>
                             )}
-                            {user.role !== 'admin' && (
+                            {user.role === 'admin' && (
                               <button
-                                onClick={async () => {
-                                  try {
-                                    await fetch('/api/admin/claims', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ uid: user.id, makeAdmin: true }),
-                                    });
-                                  } catch {}
-                                  setOpenMenu(null);
-                                }}
+                                onClick={async () => { await revokeAdmin(user); setOpenMenu(null); }}
                                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-semibold text-gray-800 transition hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-800/80"
                               >
-                                <Crown className="h-3 w-3" /> Rôle Claims (Custom)
+                                <UserMinus className="h-3 w-3" /> Révoquer Admin
                               </button>
                             )}
                           </div>
