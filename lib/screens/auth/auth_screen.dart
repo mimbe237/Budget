@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/firestore_service.dart';
 import '../navigation/main_navigation_shell.dart';
 import '../../widgets/revolutionary_logo.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -130,7 +131,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget _buildDemoContent() {
     return Column(
       children: [
-        const Text(
+        const TrText(
           'Mode Démo',
           style: TextStyle(
             fontSize: 24,
@@ -139,7 +140,7 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
+        const TrText(
           'Testez toutes les fonctionnalités Premium sans créer de compte.',
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.black54, fontSize: 14),
@@ -156,7 +157,7 @@ class _AuthScreenState extends State<AuthScreen> {
             children: [
               const Icon(Icons.flash_on_rounded, size: 40, color: Color(0xFF00796B)),
               const SizedBox(height: 16),
-              const Text(
+              const TrText(
                 'Accès Instantané',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
@@ -165,15 +166,15 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              const TrText(
                 'Données temporaires générées automatiquement. Session de 2 heures.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.black54, fontSize: 13),
               ),
               const SizedBox(height: 24),
-              _buildCredentialChip(label: 'Email', value: _demoEmail),
+              _buildCredentialChip(label: t('Email'), value: _demoEmail),
               const SizedBox(height: 12),
-              _buildCredentialChip(label: 'Mot de passe', value: _demoPassword),
+              _buildCredentialChip(label: t('Mot de passe'), value: _demoPassword),
             ],
           ),
         ),
@@ -192,7 +193,7 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ),
             icon: const Icon(Icons.play_arrow_rounded),
-            label: const Text(
+            label: const TrText(
               'Lancer la Démo',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
@@ -214,7 +215,7 @@ class _AuthScreenState extends State<AuthScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
+          TrText(
             label,
             style: TextStyle(
               color: Colors.black.withValues(alpha: 0.6),
@@ -222,7 +223,7 @@ class _AuthScreenState extends State<AuthScreen> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          SelectableText(
+          SelectableTrText(
             value,
             style: const TextStyle(
               color: Color(0xFF00796B),
@@ -243,7 +244,7 @@ class _AuthScreenState extends State<AuthScreen> {
           TextFormField(
             controller: _nameController,
             decoration: InputDecoration(
-              labelText: 'Nom complet',
+              labelText: t('Nom complet'),
               prefixIcon: const Icon(Icons.person_outline),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -262,7 +263,7 @@ class _AuthScreenState extends State<AuthScreen> {
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
           decoration: InputDecoration(
-            labelText: 'Email',
+            labelText: t('Email'),
             prefixIcon: const Icon(Icons.mail_outline),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -280,7 +281,7 @@ class _AuthScreenState extends State<AuthScreen> {
           controller: _passwordController,
           obscureText: true,
           decoration: InputDecoration(
-            labelText: 'Mot de passe',
+            labelText: t('Mot de passe'),
             prefixIcon: const Icon(Icons.lock_outline),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -297,7 +298,7 @@ class _AuthScreenState extends State<AuthScreen> {
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () {},
-            child: const Text(
+            child: const TrText(
               'Mot de passe oublié ?',
               style: TextStyle(color: Colors.black54),
             ),
@@ -317,7 +318,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 Icon(Icons.error, color: Colors.red.shade700, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
+                  child: TrText(
                     _errorMessage!,
                     style: TextStyle(
                       color: Colors.red.shade700,
@@ -360,7 +361,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                : Text(
+                : TrText(
                     _isLogin ? 'Se connecter' : 'S\'inscrire',
                     style: const TextStyle(
                       fontSize: 16,
@@ -383,7 +384,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     _errorMessage = null;
                   });
                 },
-          child: RichText(
+          child: RichTrText(
             text: TextSpan(
               text: _isLogin ? 'Pas encore de compte ? ' : 'Déjà un compte ? ',
               style: const TextStyle(color: Colors.black54),
@@ -448,7 +449,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                const TrText(
                                   'Budget Pro',
                                   style: TextStyle(
                                     fontSize: 22,
@@ -458,7 +459,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
+                                TrText(
                                   'Gère tes finances comme un Pro',
                                   style: TextStyle(
                                     color: Colors.black.withValues(alpha: 0.65),
@@ -501,7 +502,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                             ]
                                           : null,
                                     ),
-                                    child: Text(
+                                    child: TrText(
                                       'Connexion',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
@@ -531,7 +532,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                             ]
                                           : null,
                                     ),
-                                    child: Text(
+                                    child: TrText(
                                       'Démo',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
@@ -575,7 +576,7 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
+          child: TrText(
             'Ou continuer avec',
             style: TextStyle(color: Colors.black.withValues(alpha: 0.6), fontWeight: FontWeight.w600),
           ),

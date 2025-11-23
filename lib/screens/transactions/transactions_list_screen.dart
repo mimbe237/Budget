@@ -10,6 +10,7 @@ import '../../services/mock_data_service.dart';
 import '../../constants/app_design.dart';
 import 'package:flutter/services.dart';
 import '../../widgets/modern_page_app_bar.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Liste des transactions avec pagination infinie et filtres
 class TransactionsListScreen extends StatefulWidget {
@@ -139,7 +140,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: TrText('Erreur: $e')));
       }
     }
   }
@@ -188,7 +189,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
   Future<void> _exportCsv() async {
     if (_transactions.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucune transaction chargée à exporter')),
+        const SnackBar(content: TrText('Aucune transaction chargée à exporter')),
       );
       return;
     }
@@ -202,7 +203,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
     await Clipboard.setData(ClipboardData(text: buffer.toString()));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('CSV (données chargées) copié dans le presse-papiers')),
+        const SnackBar(content: TrText('CSV (données chargées) copié dans le presse-papiers')),
       );
     }
   }
@@ -222,24 +223,24 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: ModernPageAppBar(
-        title: 'Transactions',
-        subtitle: 'Historique et filtres détaillés',
+        title: t('Transactions'),
+        subtitle: t('Historique et filtres détaillés'),
         icon: Icons.swap_horiz_rounded,
         showProfile: true,
         actions: [
           IconButton(
-            tooltip: 'Exporter CSV',
+            tooltip: t('Exporter CSV'),
             icon: const Icon(Icons.file_download_outlined, color: AppDesign.primaryIndigo),
             onPressed: () async {
               await _exportCsv();
             },
           ),
           IconButton(
-            tooltip: 'Exporter PDF (aperçu)',
+            tooltip: t('Exporter PDF (aperçu)'),
             icon: const Icon(Icons.picture_as_pdf_outlined, color: AppDesign.primaryIndigo),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Export PDF à implémenter (aperçu)')),
+                const SnackBar(content: TrText('Export PDF à implémenter (aperçu)')),
               );
             },
           ),
@@ -264,7 +265,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                               children: const [
                                 SizedBox(height: 100),
                                 Center(
-                                  child: Text(
+                                  child: TrText(
                                     'Aucune transaction trouvée.',
                                     style: TextStyle(color: Colors.grey),
                                   ),
@@ -309,20 +310,20 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                                     onTap: () => _openTransactionEditor(tx, categories),
                                     leading: CircleAvatar(
                                       backgroundColor: color.withValues(alpha: 0.12),
-                                      child: Text(
+                                      child: TrText(
                                         leadingChar,
                                         style: const TextStyle(fontSize: 20),
                                       ),
                                     ),
-                                    title: Text(
+                                    title: TrText(
                                       tx.description?.isNotEmpty == true ? tx.description! : 'Transaction',
                                       style: const TextStyle(fontWeight: FontWeight.w700),
                                     ),
-                                    subtitle: Text(
+                                    subtitle: TrText(
                                       '$dateLabel · ${tx.category ?? 'Sans catégorie'}',
                                       style: const TextStyle(color: Colors.grey),
                                     ),
-                                    trailing: Text(
+                                    trailing: TrText(
                                       '$prefix${_currency.format(tx.amount)}',
                                       style: TextStyle(
                                         color: color,
@@ -355,12 +356,12 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
             spacing: 10,
             runSpacing: 8,
             children: [
-              _filterChip(label: 'Toutes', value: null),
-              _filterChip(label: 'Revenus', value: app_transaction.TransactionType.income),
-              _filterChip(label: 'Dépenses', value: app_transaction.TransactionType.expense),
-              _filterChip(label: 'Transferts', value: app_transaction.TransactionType.transfer),
+              _filterChip(label: t('Toutes'), value: null),
+              _filterChip(label: t('Revenus'), value: app_transaction.TransactionType.income),
+              _filterChip(label: t('Dépenses'), value: app_transaction.TransactionType.expense),
+              _filterChip(label: t('Transferts'), value: app_transaction.TransactionType.transfer),
               _secondaryChip(
-                label: 'Gérer catégories',
+                label: t('Gérer catégories'),
                 icon: Icons.category_outlined,
                 onTap: () => _openCategoryManager(categories),
               ),
@@ -372,7 +373,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                 onTap: _pickDateRange,
               ),
               _secondaryChip(
-                label: 'Reset',
+                label: t('Reset'),
                 icon: Icons.refresh,
                 onTap: _resetFilters,
               ),
@@ -385,7 +386,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Rechercher (description/catégorie)',
+                    hintText: t('Rechercher (description/catégorie)'),
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -405,9 +406,9 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                 child: TextField(
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Min',
-                    prefixText: '€ ',
+                  decoration: InputDecoration(
+                    labelText: t('Min'),
+                    prefixText: t('€ '),
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
@@ -423,9 +424,9 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                 child: TextField(
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    labelText: 'Max',
-                    prefixText: '€ ',
+                  decoration: InputDecoration(
+                    labelText: t('Max'),
+                    prefixText: t('€ '),
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
@@ -444,14 +445,14 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                 child: DropdownButtonFormField<String>(
                   value: _filterAccountId,
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Compte',
+                  decoration: InputDecoration(
+                    labelText: t('Compte'),
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('Tous les comptes')),
-                    ...accounts.map((a) => DropdownMenuItem(value: a.accountId, child: Text(a.name))),
+                    const DropdownMenuItem(value: null, child: TrText('Tous les comptes')),
+                    ...accounts.map((a) => DropdownMenuItem(value: a.accountId, child: TrText(a.name))),
                   ],
                   onChanged: (val) {
                     setState(() {
@@ -466,14 +467,14 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                 child: DropdownButtonFormField<String>(
                   value: _filterCategoryId,
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Catégorie',
+                  decoration: InputDecoration(
+                    labelText: t('Catégorie'),
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('Toutes les catégories')),
-                    ...categories.map((c) => DropdownMenuItem(value: c.categoryId, child: Text(c.name))),
+                    const DropdownMenuItem(value: null, child: TrText('Toutes les catégories')),
+                    ...categories.map((c) => DropdownMenuItem(value: c.categoryId, child: TrText(c.name))),
                   ],
                   onChanged: (val) {
                     setState(() {
@@ -496,7 +497,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
   }) {
     final bool selected = _filterType == value;
     return ChoiceChip(
-      label: Text(label),
+      label: TrText(label),
       selected: selected,
       selectedColor: AppDesign.primaryIndigo.withValues(alpha: 0.15),
       labelStyle: TextStyle(
@@ -514,7 +515,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
   }) {
     return ActionChip(
       avatar: Icon(icon, size: 16, color: Colors.grey[700]),
-      label: Text(label),
+      label: TrText(label),
       backgroundColor: Colors.white,
       side: BorderSide(color: Colors.grey[300]!),
       onPressed: onTap,
@@ -556,28 +557,28 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      const TrText(
                         'Modifier la transaction',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                       ),
                       if (!isLocked)
                         IconButton(
                           icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          tooltip: 'Mettre à la corbeille',
+                          tooltip: t('Mettre à la corbeille'),
                           onPressed: () async {
                             final confirm = await showDialog<bool>(
                               context: context,
                               builder: (dCtx) => AlertDialog(
-                                title: const Text('Supprimer ?'),
-                                content: const Text('La transaction sera déplacée dans la corbeille.'),
+                                title: const TrText('Supprimer ?'),
+                                content: const TrText('La transaction sera déplacée dans la corbeille.'),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(dCtx, false),
-                                    child: const Text('Annuler'),
+                                    child: const TrText('Annuler'),
                                   ),
                                   TextButton(
                                     onPressed: () => Navigator.pop(dCtx, true),
-                                    child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                    child: const TrText('Supprimer', style: TextStyle(color: Colors.red)),
                                   ),
                                 ],
                               ),
@@ -607,7 +608,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                           Icon(Icons.lock_outline, size: 16, color: Colors.orange),
                           SizedBox(width: 8),
                           Expanded(
-                            child: Text(
+                            child: TrText(
                               'Modification verrouillée (48h dépassées)',
                               style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
                             ),
@@ -619,8 +620,8 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                   TextField(
                     controller: descController,
                     enabled: !isLocked,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
+                    decoration: InputDecoration(
+                      labelText: t('Description'),
                       prefixIcon: Icon(Icons.notes_outlined),
                     ),
                   ),
@@ -629,8 +630,8 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                     controller: amountController,
                     enabled: !isLocked,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Montant',
+                    decoration: InputDecoration(
+                      labelText: t('Montant'),
                       prefixIcon: Icon(Icons.euro),
                     ),
                   ),
@@ -638,19 +639,19 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                   DropdownButtonFormField<String>(
                     value: selectedCategoryId,
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Catégorie',
+                    decoration: InputDecoration(
+                      labelText: t('Catégorie'),
                       prefixIcon: Icon(Icons.category),
                     ),
                     items: [
                       const DropdownMenuItem(
                         value: null,
-                        child: Text('Aucune'),
+                        child: TrText('Aucune'),
                       ),
                       ...categories.map(
                         (c) => DropdownMenuItem(
                           value: c.categoryId,
-                          child: Text('${c.icon}  ${c.name}'),
+                          child: TrText('${c.icon}  ${c.name}'),
                         ),
                       ),
                     ],
@@ -660,7 +661,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
+                        child: TrText(
                           'Date : ${DateFormat('dd/MM/yyyy').format(selectedDate)}',
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
@@ -678,7 +679,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                           }
                         },
                         icon: const Icon(Icons.date_range),
-                        label: const Text('Changer'),
+                        label: const TrText('Changer'),
                       ),
                     ],
                   ),
@@ -703,7 +704,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                             if (mounted) Navigator.pop(ctx);
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Erreur: $e')),
+                              SnackBar(content: TrText('Erreur: $e')),
                             );
                           }
                         },
@@ -712,7 +713,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Enregistrer'),
+                        child: const TrText('Enregistrer'),
                       ),
                     ),
                 ],
@@ -748,7 +749,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  const TrText(
                     'Catégories',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
@@ -764,9 +765,9 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
               const SizedBox(height: 8),
               ...categories.map(
                 (c) => ListTile(
-                  leading: Text(c.icon, style: const TextStyle(fontSize: 20)),
-                  title: Text(c.name),
-                  subtitle: Text(c.type == CategoryType.income ? 'Revenu' : 'Dépense'),
+                  leading: TrText(c.icon, style: const TextStyle(fontSize: 20)),
+                  title: TrText(c.name),
+                  subtitle: TrText(c.type == CategoryType.income ? 'Revenu' : 'Dépense'),
                   trailing: IconButton(
                     icon: const Icon(Icons.edit),
                     onPressed: () {
@@ -809,7 +810,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  TrText(
                     category == null ? 'Ajouter une catégorie' : 'Modifier la catégorie',
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
@@ -817,13 +818,13 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                   Row(
                     children: [
                       ChoiceChip(
-                        label: const Text('Dépense'),
+                        label: const TrText('Dépense'),
                         selected: selectedType == CategoryType.expense,
                         onSelected: (_) => setSheetState(() => selectedType = CategoryType.expense),
                       ),
                       const SizedBox(width: 8),
                       ChoiceChip(
-                        label: const Text('Revenu'),
+                        label: const TrText('Revenu'),
                         selected: selectedType == CategoryType.income,
                         onSelected: (_) => setSheetState(() => selectedType = CategoryType.income),
                       ),
@@ -832,24 +833,24 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom de la catégorie',
+                    decoration: InputDecoration(
+                      labelText: t('Nom de la catégorie'),
                       prefixIcon: Icon(Icons.label_outline),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: iconController,
-                    decoration: const InputDecoration(
-                      labelText: 'Icône (emoji ou texte)',
+                    decoration: InputDecoration(
+                      labelText: t('Icône (emoji ou texte)'),
                       prefixIcon: Icon(Icons.emoji_emotions_outlined),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: colorController,
-                    decoration: const InputDecoration(
-                      labelText: 'Couleur (hex)',
+                    decoration: InputDecoration(
+                      labelText: t('Couleur (hex)'),
                       prefixIcon: Icon(Icons.palette_outlined),
                     ),
                   ),
@@ -884,7 +885,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text(category == null ? 'Créer' : 'Mettre à jour'),
+                      child: TrText(category == null ? 'Créer' : 'Mettre à jour'),
                     ),
                   ),
                 ],

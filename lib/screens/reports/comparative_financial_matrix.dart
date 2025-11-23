@@ -4,6 +4,7 @@ import 'package:characters/characters.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 class ComparativeFinancialMatrix extends StatefulWidget {
   final String userId;
@@ -157,7 +158,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
             style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
             items: List.generate(5, (index) {
               final year = DateTime.now().year - index;
-              return DropdownMenuItem(value: year, child: Text(year.toString()));
+              return DropdownMenuItem(value: year, child: TrText(year.toString()));
             }),
             onChanged: (year) {
               if (year != null) {
@@ -189,7 +190,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
           borderRadius: BorderRadius.circular(8),
           boxShadow: isSelected ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)] : [],
         ),
-        child: Text(
+        child: TrText(
           label,
           style: TextStyle(
             color: isSelected ? activeColor : Colors.grey[600],
@@ -324,11 +325,11 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
       child: Row(
         children: [
           if (icon != null) ...[
-            Text(icon, style: const TextStyle(fontSize: 16)),
+            TrText(icon, style: const TextStyle(fontSize: 16)),
             const SizedBox(width: 8),
           ],
           Expanded(
-            child: Text(
+            child: TrText(
               text,
               style: TextStyle(
                 fontWeight: isHeader || isBold ? FontWeight.bold : FontWeight.normal,
@@ -356,7 +357,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
           bottom: BorderSide(color: Colors.grey[100]!),
         ),
       ),
-      child: Text(
+      child: TrText(
         monthName.toUpperCase(),
         style: TextStyle(
           fontWeight: FontWeight.bold,
@@ -378,7 +379,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
           bottom: BorderSide(color: Colors.grey[100]!),
         ),
       ),
-      child: Text(
+      child: TrText(
         'TOTAL',
         style: TextStyle(
           fontWeight: FontWeight.bold,
@@ -401,7 +402,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
             bottom: BorderSide(color: Colors.grey[100]!),
           ),
         ),
-        child: Text(
+        child: TrText(
           '-',
           style: TextStyle(color: Colors.grey[300], fontSize: 12),
         ),
@@ -425,7 +426,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
           bottom: BorderSide(color: Colors.grey[100]!),
         ),
       ),
-      child: Text(
+      child: TrText(
         amount >= 1000 ? '${(amount/1000).toStringAsFixed(1)}k' : amount.toStringAsFixed(0),
         style: TextStyle(
           color: Colors.black87,
@@ -447,7 +448,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
           bottom: BorderSide(color: Colors.grey[100]!),
         ),
       ),
-      child: Text(
+      child: TrText(
         amount >= 10000 ? '${(amount/1000).toStringAsFixed(1)}k' : amount.toStringAsFixed(0),
         style: TextStyle(
           fontWeight: FontWeight.bold,
@@ -470,12 +471,12 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
               color: Colors.grey[300],
             ),
             const SizedBox(height: 16),
-            Text(
+            TrText(
               'Aucune donnée pour $_selectedYear',
               style: TextStyle(color: Colors.grey[500], fontSize: 16),
             ),
             const SizedBox(height: 8),
-            Text(
+            TrText(
               'Commencez à ajouter des transactions !',
               style: TextStyle(color: Colors.grey[400], fontSize: 12),
             ),

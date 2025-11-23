@@ -3,6 +3,7 @@ import '../../services/firestore_service.dart';
 import '../../models/category.dart';
 import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 class CategoryManagementScreen extends StatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -25,7 +26,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           children: [
             const RevolutionaryLogo(size: 32),
             const SizedBox(width: 12),
-            const Text(
+            const TrText(
               'Gérer les Catégories',
               style: TextStyle(fontWeight: FontWeight.bold, color: AppDesign.primaryIndigo),
             ),
@@ -36,7 +37,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         iconTheme: const IconThemeData(color: AppDesign.primaryIndigo),
       ),
       body: userId == null
-          ? const Center(child: Text('Veuillez vous connecter.'))
+          ? const Center(child: TrText('Veuillez vous connecter.'))
           : StreamBuilder<List<Category>>(
               stream: _firestoreService.getCategoriesStream(userId),
               builder: (context, snapshot) {
@@ -44,7 +45,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('Erreur: ${snapshot.error}'));
+                  return Center(child: TrText('Erreur: ${snapshot.error}'));
                 }
 
                 final categories = snapshot.data ?? [];
@@ -54,11 +55,11 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Aucune catégorie trouvée.'),
+                        const TrText('Aucune catégorie trouvée.'),
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () => _openCategoryForm(userId: userId),
-                          child: const Text('Créer ma première catégorie'),
+                          child: const TrText('Créer ma première catégorie'),
                         ),
                       ],
                     ),
@@ -91,7 +92,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
               onPressed: () => _openCategoryForm(userId: userId),
               backgroundColor: AppDesign.primaryIndigo,
               icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text(
+              label: const TrText(
                 'Nouvelle Catégorie',
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
@@ -102,7 +103,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   Widget _buildSectionTitle(String title, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 4),
-      child: Text(
+      child: TrText(
         title,
         style: TextStyle(
           fontSize: 18,
@@ -127,16 +128,16 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Text(
+          child: TrText(
             category.icon,
             style: const TextStyle(fontSize: 24),
           ),
         ),
-        title: Text(
+        title: TrText(
           category.name,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
+        subtitle: TrText(
           category.type == CategoryType.income ? 'Revenu' : 'Dépense',
           style: TextStyle(color: Colors.grey[600]),
         ),
@@ -174,7 +175,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  TrText(
                     category == null ? 'Ajouter une catégorie' : 'Modifier la catégorie',
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
@@ -182,7 +183,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                   Row(
                     children: [
                       ChoiceChip(
-                        label: const Text('Dépense'),
+                        label: const TrText('Dépense'),
                         selected: selectedType == CategoryType.expense,
                         onSelected: (_) => setSheetState(() => selectedType = CategoryType.expense),
                         selectedColor: AppDesign.expenseColor.withValues(alpha: 0.2),
@@ -192,7 +193,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                       ),
                       const SizedBox(width: 8),
                       ChoiceChip(
-                        label: const Text('Revenu'),
+                        label: const TrText('Revenu'),
                         selected: selectedType == CategoryType.income,
                         onSelected: (_) => setSheetState(() => selectedType = CategoryType.income),
                         selectedColor: AppDesign.incomeColor.withValues(alpha: 0.2),
@@ -205,8 +206,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom de la catégorie',
+                    decoration: InputDecoration(
+                      labelText: t('Nom de la catégorie'),
                       prefixIcon: Icon(Icons.label_outline),
                       border: OutlineInputBorder(),
                     ),
@@ -214,8 +215,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: iconController,
-                    decoration: const InputDecoration(
-                      labelText: 'Icône (emoji ou texte)',
+                    decoration: InputDecoration(
+                      labelText: t('Icône (emoji ou texte)'),
                       prefixIcon: Icon(Icons.emoji_emotions_outlined),
                       border: OutlineInputBorder(),
                     ),
@@ -223,8 +224,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: colorController,
-                    decoration: const InputDecoration(
-                      labelText: 'Couleur (hex)',
+                    decoration: InputDecoration(
+                      labelText: t('Couleur (hex)'),
                       prefixIcon: Icon(Icons.palette_outlined),
                       border: OutlineInputBorder(),
                     ),
@@ -258,7 +259,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                           if (mounted) Navigator.pop(ctx);
                         } catch (e) {
                           ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(content: Text('Erreur: $e')),
+                            SnackBar(content: TrText('Erreur: $e')),
                           );
                         }
                       },
@@ -268,7 +269,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text(
+                      child: TrText(
                         category == null ? 'Créer' : 'Mettre à jour',
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                       ),

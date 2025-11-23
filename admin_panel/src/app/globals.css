@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f7fb;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-strong: #eef2ff;
+  --border: #e5e7f5;
+  --muted: #5f6c8e;
+  --brand: #3e63dd;
+  --brand-strong: #2e4cc3;
+  --brand-secondary: #7c3aed;
+  --shadow-soft: 0 10px 50px rgba(13, 24, 51, 0.08);
+}
+
+.dark {
+  --background: #05060a;
+  --foreground: #e2e8f0;
+  --surface: #0b1224;
+  --surface-strong: #111a2e;
+  --border: #1f2937;
+  --muted: #94a3b8;
+  --brand: #7aa2ff;
+  --brand-strong: #5f85ff;
+  --brand-secondary: #a855f7;
+  --shadow-soft: 0 12px 50px rgba(6, 10, 20, 0.6);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  min-height: 100vh;
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), "Inter", system-ui, -apple-system, sans-serif;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(62, 99, 221, 0.12), transparent 32%),
+    radial-gradient(circle at 82% 8%, rgba(124, 58, 237, 0.16), transparent 30%),
+    linear-gradient(180deg, var(--background), #eef2ff 120%);
+  position: relative;
+  overflow-x: hidden;
+}
+
+.dark body {
+  background:
+    radial-gradient(circle at 12% 20%, rgba(90, 140, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 88% 12%, rgba(168, 85, 247, 0.18), transparent 32%),
+    linear-gradient(180deg, #05060a, #0f172a 110%);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 30% 40%, rgba(62, 99, 221, 0.06), transparent 45%),
+    radial-gradient(circle at 70% 70%, rgba(15, 23, 42, 0.06), transparent 40%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  transition: all 160ms ease;
+}
+
+::selection {
+  background: rgba(62, 99, 221, 0.18);
+  color: var(--foreground);
+}
+
+.glass-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(12px);
+}
+
+.dark .glass-card {
+  background: linear-gradient(145deg, rgba(17, 24, 39, 0.9), rgba(17, 24, 39, 0.82));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.card-surface {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  border-radius: 18px;
+}
+
+.dark .card-surface {
+  background: var(--surface);
+}

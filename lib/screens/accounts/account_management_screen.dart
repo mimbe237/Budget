@@ -6,6 +6,7 @@ import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
 import '../transactions/transactions_list_screen.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran de gestion des comptes bancaires avec liste, ajout, édition et transfert
 class AccountManagementScreen extends StatefulWidget {
@@ -38,7 +39,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
   Widget build(BuildContext context) {
     if (_userId == null) {
       return const Scaffold(
-        body: Center(child: Text('Veuillez vous connecter pour gérer vos comptes')),
+        body: Center(child: TrText('Veuillez vous connecter pour gérer vos comptes')),
       );
     }
 
@@ -49,7 +50,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           children: [
             const RevolutionaryLogo(size: 32),
             const SizedBox(width: 12),
-            const Text(
+            const TrText(
               'Mes Comptes',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -69,7 +70,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           }
           
           if (snapshot.hasError) {
-            return Center(child: Text('Erreur: ${snapshot.error}'));
+            return Center(child: TrText('Erreur: ${snapshot.error}'));
           }
 
           final accounts = snapshot.data ?? [];
@@ -130,7 +131,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             backgroundColor: AppDesign.primaryIndigo,
             foregroundColor: Colors.white,
             icon: const Icon(Icons.add),
-            label: const Text(
+            label: const TrText(
               'Compte',
               style: TextStyle(
                 color: Colors.white,
@@ -154,7 +155,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             color: Colors.grey[400],
           ),
           const SizedBox(height: 16),
-          Text(
+          TrText(
             'Aucun compte',
             style: TextStyle(
               fontSize: 20,
@@ -163,7 +164,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          TrText(
             'Ajoutez votre premier compte',
             style: TextStyle(color: Colors.grey[500]),
           ),
@@ -202,7 +203,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   borderRadius: BorderRadius.circular(AppDesign.borderRadiusMedium),
                 ),
                 child: Center(
-                  child: Text(
+                  child: TrText(
                     account.icon ?? '❓',
                     style: const TextStyle(fontSize: 28),
                   ),
@@ -215,7 +216,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    TrText(
                       account.name,
                       style: const TextStyle(
                         fontSize: 18,
@@ -232,7 +233,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                         color: accountColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text(
+                      child: TrText(
                         accountTypeLabel,
                         style: TextStyle(
                           fontSize: 12,
@@ -242,7 +243,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    TrText(
                       '${account.balance.toStringAsFixed(2)} ${account.currency}',
                       style: TextStyle(
                         fontSize: 22,
@@ -260,7 +261,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    tooltip: 'Gérer le partage',
+                    tooltip: t('Gérer le partage'),
                     icon: const Icon(Icons.people, color: Colors.grey),
                     onPressed: () => _showShareAccountModal(account),
                   ),
@@ -270,7 +271,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     onPressed: () => _showEditAccountModal(account),
                   ),
                   IconButton(
-                    tooltip: 'Historique',
+                    tooltip: t('Historique'),
                     icon: const Icon(Icons.receipt_long_outlined, color: Colors.grey),
                     onPressed: () {
                       setState(() {
@@ -314,7 +315,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                TrText(
                   'Avoirs financiers',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
@@ -324,7 +325,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
+                TrText(
                   '${total.toStringAsFixed(2)} $currency',
                   style: const TextStyle(
                     color: Colors.white,
@@ -334,7 +335,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
+                TrText(
                   'Total de tous vos comptes',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.78),
@@ -382,7 +383,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    const TrText(
                       'Historique du compte',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
@@ -414,14 +415,14 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                               });
                             }
                           },
-                          child: Text(
+                          child: TrText(
                             _historyRange == null
                                 ? 'Période'
                                 : '${_historyRange!.start.day}/${_historyRange!.start.month} → ${_historyRange!.end.day}/${_historyRange!.end.month}',
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Exporter CSV',
+                          tooltip: t('Exporter CSV'),
                           icon: const Icon(Icons.download),
                           onPressed: () async {
                             final buffer = StringBuffer();
@@ -434,7 +435,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                             await Clipboard.setData(ClipboardData(text: buffer.toString()));
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Historique copié (CSV)')),
+                              const SnackBar(content: TrText('Historique copié (CSV)')),
                             );
                           },
                         ),
@@ -444,7 +445,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 ),
                 const SizedBox(height: 12),
                 if (txs.isEmpty)
-                  const Text(
+                  const TrText(
                     'Aucun mouvement pour ce compte.',
                     style: TextStyle(color: Colors.grey),
                   )
@@ -462,20 +463,20 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
                         backgroundColor: color.withValues(alpha: 0.12),
-                        child: Text(
+                        child: TrText(
                           (tx.category ?? '💳').characters.first,
                           style: const TextStyle(fontSize: 18),
                         ),
                       ),
-                      title: Text(
+                      title: TrText(
                         tx.description ?? 'Transaction',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
-                      subtitle: Text(
+                      subtitle: TrText(
                         '${tx.date.day}/${tx.date.month}/${tx.date.year} · ${tx.category ?? 'Sans catégorie'}',
                         style: const TextStyle(color: Colors.grey),
                       ),
-                      trailing: Text(
+                      trailing: TrText(
                         '$prefix${tx.amount.toStringAsFixed(2)} ${account.currency}',
                         style: TextStyle(
                           color: color,
@@ -497,7 +498,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: ChoiceChip(
-        label: Text(label),
+        label: TrText(label),
         selected: selected,
         onSelected: (_) {
           setState(() {
@@ -571,7 +572,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             );
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Compte ajouté avec succès !')),
+                const SnackBar(content: TrText('Compte ajouté avec succès !')),
               );
             }
           }
@@ -602,7 +603,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             );
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Compte modifié avec succès !')),
+                const SnackBar(content: TrText('Compte modifié avec succès !')),
               );
             }
           }
@@ -612,7 +613,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             await _firestoreService.deleteAccount(_userId!, account.accountId);
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Compte supprimé avec succès !')),
+                const SnackBar(content: TrText('Compte supprimé avec succès !')),
               );
             }
           }
@@ -636,13 +637,13 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
               await _firestoreService.addSharedAccess(email, account.accountId);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Invitation envoyée à $email')),
+                  SnackBar(content: TrText('Invitation envoyée à $email')),
                 );
               }
             } catch (e) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+                  SnackBar(content: TrText('Erreur: $e'), backgroundColor: Colors.red),
                 );
               }
             }
@@ -676,7 +677,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Transfert de ${amount.toStringAsFixed(2)} € effectué avec succès !'),
+                    content: TrText('Transfert de ${amount.toStringAsFixed(2)} € effectué avec succès !'),
                     backgroundColor: AppDesign.incomeColor,
                   ),
                 );
@@ -684,7 +685,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             } catch (e) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+                  SnackBar(content: TrText('Erreur: $e'), backgroundColor: Colors.red),
                 );
               }
             }
@@ -745,7 +746,7 @@ class _AddAccountModalState extends State<AddAccountModal> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                const TrText(
                   'Ajouter un Compte',
                   style: TextStyle(
                     fontSize: 24,
@@ -757,8 +758,8 @@ class _AddAccountModalState extends State<AddAccountModal> {
                 // Nom du compte
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom du compte',
+                  decoration: InputDecoration(
+                    labelText: t('Nom du compte'),
                     prefixIcon: Icon(Icons.account_balance_wallet),
                   ),
                   validator: (value) {
@@ -773,14 +774,14 @@ class _AddAccountModalState extends State<AddAccountModal> {
                 // Type de compte
                 DropdownButtonFormField<AccountType>(
                   value: _selectedType,
-                  decoration: const InputDecoration(
-                    labelText: 'Type de compte',
+                  decoration: InputDecoration(
+                    labelText: t('Type de compte'),
                     prefixIcon: Icon(Icons.category),
                   ),
                   items: AccountType.values.map((type) {
                     return DropdownMenuItem(
                       value: type,
-                      child: Text(_getAccountTypeName(type)),
+                      child: TrText(_getAccountTypeName(type)),
                     );
                   }).toList(),
                   onChanged: (value) {
@@ -794,10 +795,10 @@ class _AddAccountModalState extends State<AddAccountModal> {
                 // Solde initial
                 TextFormField(
                   controller: _balanceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Solde initial',
+                  decoration: InputDecoration(
+                    labelText: t('Solde initial'),
                     prefixIcon: Icon(Icons.euro),
-                    suffixText: '€',
+                    suffixText: t('€'),
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
@@ -816,7 +817,7 @@ class _AddAccountModalState extends State<AddAccountModal> {
                 const SizedBox(height: 16),
                 
                 // Sélection d'icône
-                const Text(
+                const TrText(
                   'Icône du compte',
                   style: TextStyle(
                     fontSize: 14,
@@ -851,7 +852,7 @@ class _AddAccountModalState extends State<AddAccountModal> {
                           ),
                         ),
                         child: Center(
-                          child: Text(
+                          child: TrText(
                             icon,
                             style: const TextStyle(fontSize: 24),
                           ),
@@ -874,7 +875,7 @@ class _AddAccountModalState extends State<AddAccountModal> {
                     ),
                     child: _isLoading 
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text(
+                      : const TrText(
                       'Ajouter le Compte',
                       style: TextStyle(
                         fontSize: 16,
@@ -989,7 +990,7 @@ class _EditAccountModalState extends State<EditAccountModal> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    const TrText(
                       'Modifier le Compte',
                       style: TextStyle(
                         fontSize: 24,
@@ -1007,8 +1008,8 @@ class _EditAccountModalState extends State<EditAccountModal> {
                 // Nom du compte
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom du compte',
+                  decoration: InputDecoration(
+                    labelText: t('Nom du compte'),
                     prefixIcon: Icon(Icons.account_balance_wallet),
                   ),
                   validator: (value) {
@@ -1023,14 +1024,14 @@ class _EditAccountModalState extends State<EditAccountModal> {
                 // Type de compte
                 DropdownButtonFormField<AccountType>(
                   value: _selectedType,
-                  decoration: const InputDecoration(
-                    labelText: 'Type de compte',
+                  decoration: InputDecoration(
+                    labelText: t('Type de compte'),
                     prefixIcon: Icon(Icons.category),
                   ),
                   items: AccountType.values.map((type) {
                     return DropdownMenuItem(
                       value: type,
-                      child: Text(_getAccountTypeName(type)),
+                      child: TrText(_getAccountTypeName(type)),
                     );
                   }).toList(),
                   onChanged: (value) {
@@ -1042,7 +1043,7 @@ class _EditAccountModalState extends State<EditAccountModal> {
                 const SizedBox(height: 16),
                 
                 // Sélection d'icône
-                const Text(
+                const TrText(
                   'Icône du compte',
                   style: TextStyle(
                     fontSize: 14,
@@ -1077,7 +1078,7 @@ class _EditAccountModalState extends State<EditAccountModal> {
                           ),
                         ),
                         child: Center(
-                          child: Text(
+                          child: TrText(
                             icon,
                             style: const TextStyle(fontSize: 24),
                           ),
@@ -1097,7 +1098,7 @@ class _EditAccountModalState extends State<EditAccountModal> {
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: const Text('Annuler'),
+                        child: const TrText('Annuler'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1111,7 +1112,7 @@ class _EditAccountModalState extends State<EditAccountModal> {
                         ),
                         child: _isLoading
                           ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text(
+                          : const TrText(
                           'Enregistrer',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
@@ -1169,14 +1170,14 @@ class _EditAccountModalState extends State<EditAccountModal> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer le compte'),
-        content: Text(
+        title: const TrText('Supprimer le compte'),
+        content: TrText(
           'Êtes-vous sûr de vouloir supprimer "${widget.account.name}" ?\n\nCette action est irréversible.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: const TrText('Annuler'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1186,7 +1187,7 @@ class _EditAccountModalState extends State<EditAccountModal> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppDesign.expenseColor,
             ),
-            child: const Text('Supprimer'),
+            child: const TrText('Supprimer'),
           ),
         ],
       ),
@@ -1270,7 +1271,7 @@ class _TransferModalState extends State<TransferModal> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
+                    const TrText(
                       'Transférer de l\'argent',
                       style: TextStyle(
                         fontSize: 24,
@@ -1284,24 +1285,24 @@ class _TransferModalState extends State<TransferModal> {
                 // Compte source
                 DropdownButtonFormField<Account>(
                   value: _sourceAccount,
-                  decoration: const InputDecoration(
-                    labelText: 'Depuis le compte',
+                  decoration: InputDecoration(
+                    labelText: t('Depuis le compte'),
                     prefixIcon: Icon(Icons.account_balance_wallet),
                   ),
-                  hint: const Text('Sélectionner un compte'),
+                  hint: const TrText('Sélectionner un compte'),
                   items: _availableSourceAccounts.map((account) {
                     return DropdownMenuItem(
                       value: account,
                       child: Row(
                         children: [
-                          Text(account.icon ?? '❓', style: const TextStyle(fontSize: 20)),
+                          TrText(account.icon ?? '❓', style: const TextStyle(fontSize: 20)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(account.name),
-                                Text(
+                                TrText(account.name),
+                                TrText(
                                   '${account.balance.toStringAsFixed(2)} ${account.currency}',
                                   style: TextStyle(
                                     fontSize: 12,
@@ -1342,24 +1343,24 @@ class _TransferModalState extends State<TransferModal> {
                 // Compte destination
                 DropdownButtonFormField<Account>(
                   value: _destinationAccount,
-                  decoration: const InputDecoration(
-                    labelText: 'Vers le compte',
+                  decoration: InputDecoration(
+                    labelText: t('Vers le compte'),
                     prefixIcon: Icon(Icons.account_balance),
                   ),
-                  hint: const Text('Sélectionner un compte'),
+                  hint: const TrText('Sélectionner un compte'),
                   items: _availableDestinationAccounts.map((account) {
                     return DropdownMenuItem(
                       value: account,
                       child: Row(
                         children: [
-                          Text(account.icon ?? '❓', style: const TextStyle(fontSize: 20)),
+                          TrText(account.icon ?? '❓', style: const TextStyle(fontSize: 20)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(account.name),
-                                Text(
+                                TrText(account.name),
+                                TrText(
                                   '${account.balance.toStringAsFixed(2)} ${account.currency}',
                                   style: TextStyle(
                                     fontSize: 12,
@@ -1391,9 +1392,9 @@ class _TransferModalState extends State<TransferModal> {
                 TextFormField(
                   controller: _amountController,
                   decoration: InputDecoration(
-                    labelText: 'Montant à transférer',
+                    labelText: t('Montant à transférer'),
                     prefixIcon: const Icon(Icons.euro),
-                    suffixText: 'EUR',
+                    suffixText: t('EUR'),
                     helperText: _sourceAccount != null
                         ? 'Solde disponible: ${_sourceAccount!.balance.toStringAsFixed(2)} EUR'
                         : null,
@@ -1440,7 +1441,7 @@ class _TransferModalState extends State<TransferModal> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
+                        : const TrText(
                             'Effectuer le Transfert',
                             style: TextStyle(
                               fontSize: 16,
@@ -1556,7 +1557,7 @@ class _ShareAccountModalState extends State<ShareAccountModal> {
             children: [
               Row(
                 children: [
-                  const Text(
+                  const TrText(
                     'Gérer le partage',
                     style: TextStyle(
                       fontSize: 22,
@@ -1570,7 +1571,7 @@ class _ShareAccountModalState extends State<ShareAccountModal> {
                       color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
+                    child: TrText(
                       widget.account.name,
                       style: const TextStyle(
                         color: AppDesign.primaryIndigo,
@@ -1583,10 +1584,10 @@ class _ShareAccountModalState extends State<ShareAccountModal> {
               const SizedBox(height: 16),
               TextField(
                 controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email de l’utilisateur',
+                decoration: InputDecoration(
+                  labelText: t('Email de l’utilisateur'),
                   prefixIcon: Icon(Icons.email_outlined),
-                  hintText: 'prenom.nom@email.com',
+                  hintText: t('prenom.nom@email.com'),
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -1610,11 +1611,11 @@ class _ShareAccountModalState extends State<ShareAccountModal> {
                           ),
                         )
                       : const Icon(Icons.send),
-                  label: Text(_isSending ? 'Envoi...' : 'Envoyer une invitation'),
+                  label: TrText(_isSending ? 'Envoi...' : 'Envoyer une invitation'),
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
+              const TrText(
                 'Utilisateurs ayant accès',
                 style: TextStyle(
                   fontSize: 16,
@@ -1630,7 +1631,7 @@ class _ShareAccountModalState extends State<ShareAccountModal> {
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
+                  child: const TrText(
                     'Aucun utilisateur ajouté pour le moment.',
                     style: TextStyle(color: Colors.grey),
                   ),
@@ -1642,7 +1643,7 @@ class _ShareAccountModalState extends State<ShareAccountModal> {
                   children: _sharedWith.map((uid) {
                     return Chip(
                       avatar: const Icon(Icons.person, size: 18),
-                      label: Text(uid),
+                      label: TrText(uid),
                     );
                   }).toList(),
                 ),

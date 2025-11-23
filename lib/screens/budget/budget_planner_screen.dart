@@ -12,6 +12,7 @@ import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
 import '../transactions/transaction_form_screen.dart';
 import '../categories/category_management_screen.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran de planification budgétaire avec répartition intelligente
 class BudgetPlannerScreen extends StatefulWidget {
@@ -71,7 +72,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            TrText(
               title,
               style: TextStyle(
                 color: Colors.black87,
@@ -80,7 +81,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
+            TrText(
               message,
               style: TextStyle(color: Colors.grey[600]),
               textAlign: TextAlign.center,
@@ -95,7 +96,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     final userId = _firestoreService.currentUserId;
     if (userId == null) {
       return _placeholderCard(
-        title: 'Revenus par catégorie',
+        title: t('Revenus par catégorie'),
         message: 'Connectez-vous pour voir vos revenus par catégorie.',
       );
     }
@@ -127,7 +128,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
 
         if (categories.isEmpty) {
           return _placeholderCard(
-            title: 'Revenus par catégorie',
+            title: t('Revenus par catégorie'),
             message: 'Aucune catégorie de revenu active.',
           );
         }
@@ -164,7 +165,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                const TrText(
                   'Revenus par catégorie (mois)',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
@@ -319,7 +320,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
+                        TrText(
                           'Planification budgétaire',
                           style: TextStyle(
                             color: Colors.black87,
@@ -329,7 +330,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                           ),
                         ),
                         SizedBox(height: 2),
-                        Text(
+                        TrText(
                           'Cadrez vos revenus et poches en un clin d’œil',
                           style: TextStyle(
                             color: Colors.black54,
@@ -349,7 +350,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       ),
                     ),
                     icon: const Icon(Icons.refresh_rounded, size: 18, color: AppDesign.primaryIndigo),
-                    label: const Text(
+                    label: const TrText(
                       'Réinitialiser',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
@@ -359,17 +360,17 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   ),
                   const SizedBox(width: 8),
                   PopupMenuButton<int>(
-                    tooltip: 'Profil',
+                    tooltip: t('Profil'),
                     offset: const Offset(0, 42),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     itemBuilder: (context) => const [
                       PopupMenuItem<int>(
                         value: 0,
-                        child: Text('Profil'),
+                        child: TrText('Profil'),
                       ),
                       PopupMenuItem<int>(
                         value: 1,
-                        child: Text('Paramètres'),
+                        child: TrText('Paramètres'),
                       ),
                     ],
                     onSelected: (_) {},
@@ -410,7 +411,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                         foregroundColor: AppDesign.primaryIndigo,
                       ),
                       icon: const Icon(Icons.category_outlined),
-                      label: const Text(
+                      label: const TrText(
                         'Gérer les catégories',
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
@@ -477,7 +478,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         backgroundColor: AppDesign.primaryIndigo,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.save),
-        label: const Text(
+        label: const TrText(
           'Enregistrer',
           style: TextStyle(
             color: Colors.white,
@@ -492,7 +493,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   Widget _buildQuickActions(BuildContext context, {required bool isWide}) {
     final actions = [
       _budgetActionButton(
-        label: 'Ajouter une dépense',
+        label: t('Ajouter une dépense'),
         helper: 'Factures, courses, loisirs',
         icon: Icons.south_west_rounded,
         colors: [
@@ -510,7 +511,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         },
       ),
       _budgetActionButton(
-        label: 'Ajouter un revenu',
+        label: t('Ajouter un revenu'),
         helper: 'Salaire, primes, bonus',
         icon: Icons.north_east_rounded,
         colors: [
@@ -604,7 +605,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  TrText(
                     label,
                     style: TextStyle(
                       color: Colors.black87,
@@ -614,7 +615,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  TrText(
                     helper,
                     style: const TextStyle(
                       color: Colors.black54,
@@ -642,7 +643,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-            const Text(
+            const TrText(
               'Budget mensuel total',
               style: TextStyle(
                 fontSize: 18,
@@ -652,10 +653,10 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _incomeController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 prefixIcon: Icon(Icons.euro, color: AppDesign.incomeColor),
-                suffixText: '€',
-                hintText: 'Ex: 3000',
+                suffixText: t('€'),
+                hintText: t('Ex: 3000'),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
@@ -742,7 +743,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      const TrText(
                         'Santé financière',
                         style: TextStyle(
                           color: Colors.black54,
@@ -750,7 +751,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Text(
+                      TrText(
                         message,
                         style: const TextStyle(
                           color: Colors.black87,
@@ -767,7 +768,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     color: indicatorColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Text(
+                  child: TrText(
                     '$allocated% alloué',
                     style: TextStyle(
                       color: indicatorColor,
@@ -798,7 +799,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 ),
                 const SizedBox(width: 8),
                 _healthChip(
-                  label: 'Total prévu',
+                  label: t('Total prévu'),
                   value: '${_totalIncome.toStringAsFixed(0)} €',
                   color: Colors.black54,
                   icon: Icons.stacked_bar_chart_rounded,
@@ -828,7 +829,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         children: [
           Icon(icon, color: color, size: 16),
           const SizedBox(width: 6),
-          Text(
+          TrText(
             label,
             style: TextStyle(
               color: color.withValues(alpha: 0.9),
@@ -836,7 +837,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
+          TrText(
             value,
             style: const TextStyle(
               color: Colors.white,
@@ -861,7 +862,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         padding: const EdgeInsets.all(AppDesign.paddingLarge),
         child: Column(
           children: [
-            const Text(
+            const TrText(
               'Répartition Visuelle',
               style: TextStyle(
                 fontSize: 18,
@@ -880,7 +881,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Text(
+            TrText(
               'Total: ${(totalPercentage * 100).toStringAsFixed(1)}%',
               style: TextStyle(
                 fontSize: 24,
@@ -920,7 +921,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               ),
             ),
             const SizedBox(width: 6),
-            Text(
+            TrText(
               name,
               style: const TextStyle(
                 fontSize: 12,
@@ -929,7 +930,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               ),
             ),
             const SizedBox(width: 4),
-            Text(
+            TrText(
               '${(percentage * 100).toStringAsFixed(0)}%',
               style: TextStyle(
                 fontSize: 12,
@@ -972,7 +973,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            const TrText(
               'Poches Budgétaires',
               style: TextStyle(
                 fontSize: 20,
@@ -982,7 +983,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             TextButton.icon(
               onPressed: _resetToDefaultAllocation,
               icon: const Icon(Icons.refresh),
-              label: const Text('Par Défaut'),
+              label: const TrText('Par Défaut'),
             ),
           ],
         ),
@@ -1027,10 +1028,10 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                         color: barColor.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: Text(icon, style: const TextStyle(fontSize: 16)),
+                      child: TrText(icon, style: const TextStyle(fontSize: 16)),
                     ),
                     const SizedBox(width: 10),
-                    Text(
+                    TrText(
                       name,
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
@@ -1042,11 +1043,11 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
+                    TrText(
                       'Prévu ${planned.toStringAsFixed(2)} €',
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
-                    Text(
+                    TrText(
                       'Engagé ${engaged.toStringAsFixed(2)} €',
                       style: TextStyle(
                         color: barColor,
@@ -1083,7 +1084,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const TrText(
               'Synthèse par poche',
               style: TextStyle(
                 fontSize: 16,
@@ -1112,7 +1113,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                const TrText(
                   'Transactions (Budget)',
                   style: TextStyle(
                     fontSize: 16,
@@ -1121,7 +1122,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 ),
                 TextButton(
                   onPressed: _pickTxDateRange,
-                  child: Text(
+                  child: TrText(
                     _txRange == null
                         ? 'Période'
                         : '${_txRange!.start.day}/${_txRange!.start.month} → ${_txRange!.end.day}/${_txRange!.end.month}',
@@ -1139,7 +1140,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 _txFilterChip('Dépenses', TransactionType.expense),
                 _txFilterChip('Transferts', TransactionType.transfer),
                 ActionChip(
-                  label: const Text('Reset'),
+                  label: const TrText('Reset'),
                   avatar: const Icon(Icons.refresh, size: 16),
                   onPressed: () {
                     setState(() {
@@ -1165,7 +1166,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 if (transactions.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.all(12),
-                    child: Text(
+                    child: TrText(
                       'Aucune transaction pour cette période.',
                       style: TextStyle(color: Colors.grey),
                     ),
@@ -1186,22 +1187,22 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
                         backgroundColor: color.withValues(alpha: 0.12),
-                        child: Text(
+                        child: TrText(
                           (tx.category ?? '💳').isNotEmpty
                               ? (tx.category ?? '💳').characters.first
                               : '💳',
                           style: const TextStyle(fontSize: 18),
                         ),
                       ),
-                      title: Text(
+                      title: TrText(
                         tx.description?.isNotEmpty == true ? tx.description! : 'Transaction',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
-                      subtitle: Text(
+                      subtitle: TrText(
                         '${tx.date.day}/${tx.date.month}/${tx.date.year} · ${tx.category ?? 'Sans catégorie'}',
                         style: const TextStyle(color: Colors.grey),
                       ),
-                      trailing: Text(
+                      trailing: TrText(
                         '$prefix${tx.amount.toStringAsFixed(2)} €',
                         style: TextStyle(
                           color: color,
@@ -1222,7 +1223,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   Widget _txFilterChip(String label, TransactionType? value) {
     final selected = _txFilter == value;
     return ChoiceChip(
-      label: Text(label),
+      label: TrText(label),
       selected: selected,
       selectedColor: AppDesign.primaryIndigo.withValues(alpha: 0.15),
       labelStyle: TextStyle(
@@ -1262,7 +1263,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: Text(icon, style: const TextStyle(fontSize: 24)),
+                    child: TrText(icon, style: const TextStyle(fontSize: 24)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1270,7 +1271,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TrText(
                         name,
                         style: const TextStyle(
                           fontSize: 16,
@@ -1278,7 +1279,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                         ),
                       ),
                       if (actualSpent > 0)
-                        Text(
+                        TrText(
                           'Dépensé: ${actualSpent.toStringAsFixed(2)} €',
                           style: TextStyle(
                             fontSize: 12,
@@ -1321,8 +1322,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   flex: 2,
                   child: TextFormField(
                     controller: _percentageControllers[categoryKey],
-                    decoration: const InputDecoration(
-                      suffixText: '%',
+                    decoration: InputDecoration(
+                      suffixText: t('%'),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1345,8 +1346,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   flex: 3,
                   child: TextFormField(
                     controller: _amountControllers[categoryKey],
-                    decoration: const InputDecoration(
-                      suffixText: '€',
+                    decoration: InputDecoration(
+                      suffixText: t('€'),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1381,7 +1382,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
+              TrText(
                 '${actualSpent.toStringAsFixed(2)} € / ${amount.toStringAsFixed(2)} € (${(spentPercentage * 100).toStringAsFixed(0)}%)',
                 style: TextStyle(
                   fontSize: 12,
@@ -1464,14 +1465,14 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Réinitialiser le Budget'),
-        content: const Text(
+        title: const TrText('Réinitialiser le Budget'),
+        content: const TrText(
           'Voulez-vous appliquer la répartition par défaut (30/15/10/5/5/10/10/10/5) ?\n\nCela remplacera votre configuration actuelle.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: const TrText('Annuler'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1484,13 +1485,13 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               });
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Budget réinitialisé avec succès !')),
+                const SnackBar(content: TrText('Budget réinitialisé avec succès !')),
               );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppDesign.primaryIndigo,
             ),
-            child: const Text('Appliquer'),
+            child: const TrText('Appliquer'),
           ),
         ],
       ),
@@ -1504,15 +1505,15 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Budget Déséquilibré'),
-          content: Text(
+          title: const TrText('Budget Déséquilibré'),
+          content: TrText(
             'Le total de votre budget est de ${(totalPercentage * 100).toStringAsFixed(1)}%.\n\n'
             'Voulez-vous enregistrer quand même ou ajuster pour atteindre 100% ?',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler'),
+              child: const TrText('Annuler'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1522,7 +1523,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppDesign.primaryIndigo,
               ),
-              child: const Text('Enregistrer'),
+              child: const TrText('Enregistrer'),
             ),
           ],
         ),
@@ -1536,7 +1537,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     // TODO: Sauvegarder dans Firestore
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Budget enregistré avec succès !'),
+        content: TrText('Budget enregistré avec succès !'),
         backgroundColor: AppDesign.incomeColor,
       ),
     );
@@ -1578,16 +1579,16 @@ class _IncomeCategoryRow extends StatelessWidget {
                   color: AppDesign.incomeColor.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Text(item.icon, style: const TextStyle(fontSize: 16)),
+                child: TrText(item.icon, style: const TextStyle(fontSize: 16)),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
+                child: TrText(
                   item.name,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
-              Text(
+              TrText(
                 '${item.amount.toStringAsFixed(2)} €',
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
               ),

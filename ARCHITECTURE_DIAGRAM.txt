@@ -1,0 +1,273 @@
+```
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║              🎯 BUDGET APP - ARCHITECTURE MULTI-PLATEFORME              ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          APPLICATIONS CLIENTES                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────┐              ┌─────────────────────┐
+    │   FLUTTER APP       │              │   NEXT.JS ADMIN     │
+    │   (Utilisateurs)    │              │   (Administrateurs) │
+    ├─────────────────────┤              ├─────────────────────┤
+    │ 📱 Android          │              │ 💻 Web uniquement   │
+    │ 🍎 iOS              │              │                     │
+    │ 🖥️  Desktop         │              │ Dashboard           │
+    │ 🌐 Web              │              │ Users Management    │
+    │                     │              │ Analytics           │
+    │ Transactions        │              │ Exports (CSV/Excel) │
+    │ Budgets             │              │ Admin Actions       │
+    │ Objectifs           │              │                     │
+    │ Dettes              │              │                     │
+    └──────────┬──────────┘              └──────────┬──────────┘
+               │                                    │
+               │                                    │
+               └────────────┬──────────────────────┘
+                            │
+                            │
+                            ▼
+            ┌───────────────────────────────────┐
+            │                                   │
+            │     🔥 FIREBASE BACKEND          │
+            │         (Partagé)                │
+            │                                   │
+            ├───────────────────────────────────┤
+            │                                   │
+            │  🔐 Authentication               │
+            │     - Email/Password             │
+            │     - Custom Claims (admin)      │
+            │     - Session Management         │
+            │                                   │
+            │  🗄️  Firestore Database          │
+            │     - users/                     │
+            │     - transactions/              │
+            │     - budgets/                   │
+            │     - goals/                     │
+            │     - admin_logs/                │
+            │                                   │
+            │  📦 Cloud Storage                │
+            │     - Avatars                    │
+            │     - Documents                  │
+            │     - Exports                    │
+            │                                   │
+            │  ⚡ Cloud Functions              │
+            │     - Notifications              │
+            │     - Scheduled Tasks            │
+            │     - Data Aggregation           │
+            │                                   │
+            └───────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          FLUX D'AUTHENTIFICATION                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  UTILISATEUR NORMAL                      ADMINISTRATEUR
+  ─────────────────                       ──────────────
+
+  1. Login via Flutter                    1. Login via Next.js Admin
+        ↓                                       ↓
+  2. Firebase Auth                        2. Firebase Auth
+     email/password                          email/password
+        ↓                                       ↓
+  3. Custom Claims:                       3. Custom Claims:
+     { role: "user" }                        { admin: true, role: "admin" }
+        ↓                                       ↓
+  4. Accès app Flutter                    4. Accès panel admin Next.js
+     uniquement                              uniquement
+        ↓                                       ↓
+  5. Firestore Rules                      5. Firestore Rules
+     → Lecture/écriture                      → Lecture/écriture complète
+       de ses données                          de toutes les données
+
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          FIRESTORE STRUCTURE                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  /users/{userId}
+    ├── email: string
+    ├── displayName: string
+    ├── role: "user" | "admin" | "premium"
+    ├── isAdmin: boolean
+    ├── status: "active" | "suspended"
+    ├── balance: number
+    ├── createdAt: timestamp
+    └── lastActive: timestamp
+
+  /transactions/{transactionId}
+    ├── userId: string (ref)
+    ├── amount: number
+    ├── type: "income" | "expense" | "transfer"
+    ├── category: string
+    ├── date: timestamp
+    └── description: string
+
+  /budgets/{budgetId}
+    ├── userId: string (ref)
+    ├── category: string
+    ├── limit: number
+    ├── spent: number
+    └── period: "monthly" | "weekly"
+
+  /goals/{goalId}
+    ├── userId: string (ref)
+    ├── name: string
+    ├── targetAmount: number
+    ├── currentAmount: number
+    ├── targetDate: timestamp
+    └── status: "active" | "completed"
+
+  /admin_logs/{logId}                     ← Nouveau pour audit
+    ├── adminId: string (ref)
+    ├── action: string
+    ├── targetUserId: string (ref)
+    ├── details: object
+    └── timestamp: timestamp
+
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          DÉPLOIEMENT TYPIQUE                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  🌐 Production URLs
+  ─────────────────
+
+  app.budget.com              → Flutter Web (Cloudflare Pages / Firebase Hosting)
+  admin.budget.com            → Next.js Admin (Vercel / Firebase Hosting)
+  api.budget.com              → Cloud Functions (Firebase)
+
+  📱 Mobile Apps
+  ──────────────
+
+  iOS App Store               → Flutter iOS build
+  Google Play Store           → Flutter Android build
+
+  🖥️  Desktop Apps (Optionnel)
+  ─────────────────────────────
+
+  budget-windows.exe          → Flutter Windows
+  budget-macos.dmg            → Flutter macOS
+  budget-linux.AppImage       → Flutter Linux
+
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          SÉCURITÉ & PERMISSIONS                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  Firestore Rules (simplifié)
+  ───────────────────────────
+
+  function isAdmin() {
+    return request.auth.token.admin == true ||
+           request.auth.token.role == "admin";
+  }
+
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
+
+  match /users/{userId} {
+    allow read: if isAdmin() || isOwner(userId);
+    allow write: if isAdmin();
+  }
+
+  match /transactions/{transactionId} {
+    allow read: if isAdmin() ||
+                   resource.data.userId == request.auth.uid;
+    allow write: if isOwner(resource.data.userId);
+  }
+
+  match /admin_logs/{logId} {
+    allow read: if isAdmin();
+    allow write: if isAdmin();
+  }
+
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          DÉVELOPPEMENT LOCAL                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  Terminal 1 (Flutter)                   Terminal 2 (Next.js Admin)
+  ───────────────────                    ─────────────────────────
+
+  cd /Users/macbook/budget               cd /Users/macbook/budget/admin_panel
+  flutter run -d chrome                  npm run dev
+
+  http://localhost:8080                  http://localhost:3000/admin
+
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          COMMANDES UTILES                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  Installation
+  ───────────
+  ./scripts/setup-admin-panel.sh         # Installer le panel admin
+
+  Développement
+  ─────────────
+  flutter run -d chrome                   # Lancer l'app Flutter
+  cd admin_panel && npm run dev          # Lancer le panel admin
+
+  Admin
+  ─────
+  node scripts/create-admin.js <email>   # Créer un compte admin
+
+  Build
+  ─────
+  flutter build web                       # Build Flutter pour web
+  flutter build apk                       # Build Flutter pour Android
+  cd admin_panel && npm run build        # Build Next.js
+
+  Firebase
+  ────────
+  firebase deploy --only firestore       # Déployer les rules
+  firebase deploy --only functions       # Déployer les functions
+  firebase deploy --only hosting         # Déployer le hosting
+
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          STATISTIQUES ADMIN                             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  Dashboard Metrics
+  ────────────────
+
+  👥 Total Utilisateurs        ← count(users)
+  ✅ Utilisateurs Actifs       ← count(users where lastActive > 30 days)
+  💳 Total Transactions        ← count(transactions)
+  💰 Solde Plateforme          ← sum(users.balance)
+
+  📊 Graphiques
+  ────────────
+
+  - Répartition par sexe (Pie Chart)
+  - Top 6 pays (Bar Chart)
+  - Top 5 langues (Bar Chart)
+  - Évolution utilisateurs (Line Chart)
+  - Répartition transactions (Donut Chart)
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+                    📚 DOCUMENTATION DISPONIBLE
+
+                    ADMIN_README.md              ← Vous êtes ici
+                    ADMIN_QUICK_START.md         ← Guide rapide
+                    ADMIN_PANEL_SETUP.md         ← Setup détaillé
+                    ADMIN_USERS_README.md        ← Fonctionnalités
+                    docs/admin-debugging.md      ← Troubleshooting
+
+═══════════════════════════════════════════════════════════════════════════
+
+                    🚀 PRÊT À DÉMARRER ?
+
+                    ./scripts/setup-admin-panel.sh
+
+═══════════════════════════════════════════════════════════════════════════
+```

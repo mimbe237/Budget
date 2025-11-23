@@ -12,14 +12,41 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Vérifie si l'utilisateur a un rôle admin via custom claims
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    // Autorise lecture globale pour admin
+    function adminOrOwner(userId) {
+      return isAdmin() || isOwner(userId);
+    }
+
     // Règles pour la collection users et toutes ses sous-collections
     // Chaque utilisateur a un accès complet (lecture/écriture) à ses propres données
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      // Lecture : propriétaire ou admin
+      allow read: if adminOrOwner(userId);
+      // Ecriture : propriétaire pour ses champs autorisés OU admin
+      allow write: if isOwner(userId) || isAdmin();
       
       match /{document=**} {
-        allow read, write: if isOwner(userId);
+        allow read: if adminOrOwner(userId);
+        allow write: if isOwner(userId) || isAdmin();
       }
+    }
+
+    // Exemples supplémentaires : transactions, admin_logs
+    match /transactions/{transactionId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
+      allow write: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+
+    match /admin_logs/{logId} {
+      allow read, write: if isAdmin();
     }
   }
 }

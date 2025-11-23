@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 class FooterBrand extends StatelessWidget {
   const FooterBrand({super.key});
@@ -29,7 +30,7 @@ class FooterBrand extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Text(
+              child: TrText(
                 'By BEONWEB (www.beonweb.cm)',
                 style: TextStyle(
                   fontSize: 12,

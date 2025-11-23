@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/transaction.dart';
 import '../../services/firestore_service.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 class TrashScreen extends StatelessWidget {
   const TrashScreen({Key? key}) : super(key: key);
@@ -13,17 +14,17 @@ class TrashScreen extends StatelessWidget {
 
     if (userId == null) {
       return const Scaffold(
-        body: Center(child: Text('Veuillez vous connecter')),
+        body: Center(child: TrText('Veuillez vous connecter')),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Corbeille'),
+        title: const TrText('Corbeille'),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_forever),
-            tooltip: 'Vider la corbeille',
+            tooltip: t('Vider la corbeille'),
             onPressed: () => _confirmEmptyTrash(context, firestoreService, userId),
           ),
         ],
@@ -36,7 +37,7 @@ class TrashScreen extends StatelessWidget {
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('Erreur: ${snapshot.error}'));
+            return Center(child: TrText('Erreur: ${snapshot.error}'));
           }
 
           final transactions = snapshot.data ?? [];
@@ -48,7 +49,7 @@ class TrashScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.delete_outline, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
-                  Text(
+                  TrText(
                     'La corbeille est vide',
                     style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
@@ -112,7 +113,7 @@ class TrashScreen extends StatelessWidget {
           // Restore
           await service.restoreTransaction(userId, transaction.transactionId);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Transaction restaurée')),
+            const SnackBar(content: TrText('Transaction restaurée')),
           );
           return false; // Don't remove from list immediately (stream will update)
         } else {
@@ -120,16 +121,16 @@ class TrashScreen extends StatelessWidget {
           return await showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
-              title: const Text('Supprimer définitivement ?'),
-              content: const Text('Cette action est irréversible.'),
+              title: const TrText('Supprimer définitivement ?'),
+              content: const TrText('Cette action est irréversible.'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(false),
-                  child: const Text('Annuler'),
+                  child: const TrText('Annuler'),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(true),
-                  child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                  child: const TrText('Supprimer', style: TextStyle(color: Colors.red)),
                 ),
               ],
             ),
@@ -140,7 +141,7 @@ class TrashScreen extends StatelessWidget {
         if (direction == DismissDirection.endToStart) {
           await service.deleteTransaction(userId, transaction.transactionId);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Transaction supprimée définitivement')),
+            const SnackBar(content: TrText('Transaction supprimée définitivement')),
           );
         }
       },
@@ -160,16 +161,16 @@ class TrashScreen extends StatelessWidget {
                   : Colors.green,
             ),
           ),
-          title: Text(transaction.description ?? 'Sans description'),
+          title: TrText(transaction.description ?? 'Sans description'),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(currencyFormat.format(transaction.amount)),
-              Text(
+              TrText(currencyFormat.format(transaction.amount)),
+              TrText(
                 'Supprimé le ${dateFormat.format(deletedAt)}',
                 style: const TextStyle(fontSize: 12),
               ),
-              Text(
+              TrText(
                 remainingText,
                 style: TextStyle(
                   fontSize: 12,
@@ -188,7 +189,7 @@ class TrashScreen extends StatelessWidget {
                   await service.restoreTransaction(userId, transaction.transactionId);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Transaction restaurée')),
+                      const SnackBar(content: TrText('Transaction restaurée')),
                     );
                   }
                 },
@@ -208,16 +209,16 @@ class TrashScreen extends StatelessWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Vider la corbeille ?'),
-        content: const Text('Toutes les transactions seront supprimées définitivement. Cette action est irréversible.'),
+        title: const TrText('Vider la corbeille ?'),
+        content: const TrText('Toutes les transactions seront supprimées définitivement. Cette action est irréversible.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: const TrText('Annuler'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Vider', style: TextStyle(color: Colors.red)),
+            child: const TrText('Vider', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -235,7 +236,7 @@ class TrashScreen extends StatelessWidget {
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$count éléments supprimés')),
+          SnackBar(content: TrText('$count éléments supprimés')),
         );
       }
     }

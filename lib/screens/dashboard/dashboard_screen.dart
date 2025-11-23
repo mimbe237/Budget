@@ -14,6 +14,7 @@ import '../transactions/transaction_form_screen.dart';
 import '../transactions/transactions_list_screen.dart';
 import '../trash/trash_screen.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Dashboard principal affichant le solde global, les performances mensuelles
 /// et l'historique récent des transactions en temps réel
@@ -55,7 +56,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Text(
+                TrText(
                   'Budget',
                   style: TextStyle(
                     fontSize: 16,
@@ -64,7 +65,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     height: 1.0,
                   ),
                 ),
-                Text(
+                TrText(
                   'Pro',
                   style: TextStyle(
                     fontSize: 16,
@@ -82,7 +83,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            tooltip: 'Dettes / créances',
+            tooltip: t('Dettes / créances'),
             icon: const Icon(Icons.handshake, color: AppDesign.primaryIndigo),
             onPressed: () {
               Navigator.push(
@@ -94,7 +95,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
           IconButton(
-            tooltip: 'Objectifs',
+            tooltip: t('Objectifs'),
             icon: const Icon(Icons.flag_outlined, color: AppDesign.primaryIndigo),
             onPressed: () {
               Navigator.push(
@@ -112,14 +113,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               });
               final selectedLabel = _currentLang == 'fr' ? 'Français' : 'English';
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Langue sélectionnée : $selectedLabel')),
+                SnackBar(content: TrText('Langue sélectionnée : $selectedLabel')),
               );
             },
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               minimumSize: const Size(44, 44),
             ),
-            child: Text(
+            child: TrText(
               _currentLang == 'fr' ? 'EN 🇬🇧' : 'FR 🇫🇷',
               style: const TextStyle(
                 color: AppDesign.primaryIndigo,
@@ -134,26 +135,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.notifications_none, color: AppDesign.primaryIndigo),
-                  tooltip: 'Notifications',
+                  tooltip: t('Notifications'),
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Notifications à venir')),
+                      const SnackBar(content: TrText('Notifications à venir')),
                     );
                   },
                 ),
                 const SizedBox(width: 10),
                 PopupMenuButton<int>(
-                  tooltip: 'Profil',
+                  tooltip: t('Profil'),
                   offset: const Offset(0, 42),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   itemBuilder: (context) => const [
                     PopupMenuItem<int>(
                       value: 0,
-                      child: Text('Profil'),
+                      child: TrText('Profil'),
                     ),
                     PopupMenuItem<int>(
                       value: 1,
-                      child: Text('Paramètres'),
+                      child: TrText('Paramètres'),
                     ),
                   ],
                   onSelected: (_) {},
@@ -218,7 +219,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return [
       _buildQuickAccess(context),
       const SizedBox(height: AppDesign.spacingLarge),
-      const Text(
+      const TrText(
         "Solde Global Actuel",
         style: TextStyle(fontSize: 18, color: Colors.grey),
       ),
@@ -249,7 +250,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return [
       _buildQuickAccess(context),
       const SizedBox(height: AppDesign.spacingLarge),
-      const Text(
+      const TrText(
         "Solde Global Actuel",
         style: TextStyle(fontSize: 18, color: Colors.grey),
       ),
@@ -284,7 +285,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        const TrText(
           "Historique Récent",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
@@ -296,7 +297,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             );
           },
           icon: const Icon(Icons.history_toggle_off_outlined),
-          label: const Text('Voir tout'),
+          label: const TrText('Voir tout'),
         ),
       ],
     );
@@ -305,8 +306,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildQuickAccess(BuildContext context) {
     final shortcuts = [
       _ShortcutAction(
-        label: 'Ajouter dépense',
-        subtitle: 'Achats, factures et sorties',
+        label: t('Ajouter dépense'),
+        subtitle: t('Achats, factures et sorties'),
         icon: Icons.remove_circle_outline,
         color: AppDesign.expenseColor,
         onTap: () => Navigator.push(
@@ -317,8 +318,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       _ShortcutAction(
-        label: 'Ajouter revenu',
-        subtitle: 'Salaires, primes et entrées',
+        label: t('Ajouter revenu'),
+        subtitle: t('Salaires, primes et entrées'),
         icon: Icons.add_circle_outline,
         color: AppDesign.incomeColor,
         onTap: () => Navigator.push(
@@ -329,8 +330,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       _ShortcutAction(
-        label: 'Gérer budget',
-        subtitle: 'Suivi des poches et limites',
+        label: t('Gérer budget'),
+        subtitle: t('Suivi des poches et limites'),
         icon: Icons.pie_chart_outline_rounded,
         color: _brandTeal,
         onTap: () => Navigator.push(
@@ -339,8 +340,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       _ShortcutAction(
-        label: 'Gérer comptes',
-        subtitle: 'Soldes et transferts gérés.',
+        label: t('Gérer comptes'),
+        subtitle: t('Soldes et transferts gérés.'),
         icon: Icons.account_balance_wallet_outlined,
         color: AppDesign.primaryIndigo,
         onTap: () => Navigator.push(
@@ -349,8 +350,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       _ShortcutAction(
-        label: 'Suivre objectifs',
-        subtitle: 'Épargne et projets d\'avenir',
+        label: t('Suivre objectifs'),
+        subtitle: t("Épargne et projets d'avenir"),
         icon: Icons.flag_outlined,
         color: AppDesign.primaryPurple,
         onTap: () => Navigator.push(
@@ -359,8 +360,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       _ShortcutAction(
-        label: 'Gérer dettes',
-        subtitle: 'Emprunts et crédits réglés.',
+        label: t('Gérer dettes'),
+        subtitle: t('Emprunts et crédits réglés.'),
         icon: Icons.handshake_outlined,
         color: Colors.deepOrange,
         onTap: () => Navigator.push(
@@ -369,8 +370,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       _ShortcutAction(
-        label: 'Catégories',
-        subtitle: 'Gérer vos catégories',
+        label: t('Catégories'),
+        subtitle: t('Gérer vos catégories'),
         icon: Icons.category_outlined,
         color: Colors.teal,
         onTap: () => Navigator.push(
@@ -379,8 +380,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       _ShortcutAction(
-        label: 'Corbeille',
-        subtitle: 'Restaurer ou supprimer',
+        label: t('Corbeille'),
+        subtitle: t('Restaurer ou supprimer'),
         icon: Icons.delete_outline,
         color: Colors.grey,
         onTap: () => Navigator.push(
@@ -398,7 +399,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const TrText(
               'Accès rapides',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
@@ -429,7 +430,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        const TrText(
           "Performance Mensuelle",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
@@ -443,7 +444,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             );
           },
           icon: const Icon(Icons.pie_chart),
-          label: const Text('Budget'),
+          label: const TrText('Budget'),
         ),
       ],
     );
@@ -454,7 +455,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final userId = _firestoreService.currentUserId;
     if (userId == null) {
       return _placeholderCard(
-        title: 'Total Net',
+        title: t('Total Net'),
         message: 'Connectez-vous pour voir vos comptes.',
       );
     }
@@ -464,7 +465,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _placeholderCard(
-            title: 'Total Net',
+            title: t('Total Net'),
             message: 'Erreur lors du chargement des comptes.',
           );
         }
@@ -492,12 +493,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  TrText(
                     'Total Net',
                     style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 10),
-                  Text(
+                  TrText(
                     '${totalBalance.toStringAsFixed(2)} €',
                     style: const TextStyle(
                       color: Colors.white,
@@ -507,7 +508,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text(
+                  TrText(
                     '${accounts.length} compte(s)',
                     style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
                   ),
@@ -532,7 +533,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final userId = _firestoreService.currentUserId;
     if (userId == null) {
       return _placeholderCard(
-        title: 'Thermomètre budgétaire',
+        title: t('Thermomètre budgétaire'),
         message: 'Connectez-vous pour voir votre rythme de dépenses.',
       );
     }
@@ -597,7 +598,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         valueColor: AlwaysStoppedAnimation<Color>(gaugeColor),
                       ),
                       Center(
-                        child: Text(
+                        child: TrText(
                           '${(budgetConsumed * 100).toStringAsFixed(0)}%',
                           style: TextStyle(
                             color: gaugeColor,
@@ -613,7 +614,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TrText(
                         'Thermomètre Budgétaire',
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
@@ -622,7 +623,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
+                      TrText(
                         label,
                         style: const TextStyle(
                           fontSize: 15,
@@ -630,12 +631,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
+                      TrText(
                         'Jours écoulés : ${(idealRatio * 100).toStringAsFixed(1)}% • Dépenses : ${(budgetConsumed * 100).toStringAsFixed(1)}%',
                         style: TextStyle(color: Colors.grey[700], fontSize: 12),
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      TrText(
                         insight,
                         style: TextStyle(
                           color: gaugeColor,
@@ -662,7 +663,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (userId == null) {
       return _placeholderCard(
-        title: 'Performance mensuelle',
+        title: t('Performance mensuelle'),
         message: 'Connectez-vous pour voir vos statistiques.',
       );
     }
@@ -677,7 +678,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _placeholderCard(
-            title: 'Performance mensuelle',
+            title: t('Performance mensuelle'),
             message: 'Erreur de chargement des transactions.',
           );
         }
@@ -720,25 +721,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisSpacing: AppDesign.spacingMedium,
               children: [
                 _InsightCard(
-                  title: 'Revenu du mois',
+                  title: t('Revenu du mois'),
                   amount: income,
                   emoji: '💰',
                   color: AppDesign.incomeColor,
-                  subtitle: 'Total encaissé',
+                  subtitle: t('Total encaissé'),
                 ),
                 _InsightCard(
-                  title: 'Dépenses du mois',
+                  title: t('Dépenses du mois'),
                   amount: expense,
                   emoji: '💸',
                   color: AppDesign.expenseColor,
-                  subtitle: 'Total déboursé',
+                  subtitle: t('Total déboursé'),
                 ),
                 _InsightCard(
-                  title: 'Dettes du mois',
+                  title: t('Dettes du mois'),
                   amount: debtAmount,
                   emoji: '💳',
                   color: AppDesign.expenseColor,
-                  subtitle: 'Remboursements & échéances',
+                  subtitle: t('Remboursements & échéances'),
                 ),
                 InkWell(
                   onTap: () {
@@ -750,11 +751,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     );
                   },
                   child: _InsightCard(
-                    title: 'Objectifs financés',
+                    title: t('Objectifs financés'),
                     amount: targetAmount,
                     emoji: '🎯',
                     color: AppDesign.primaryPurple,
-                    subtitle: 'Progression',
+                    subtitle: t('Progression'),
                   ),
                 ),
               ],
@@ -771,7 +772,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (userId == null) {
       return _placeholderCard(
-        title: 'Transactions récentes',
+        title: t('Transactions récentes'),
         message: 'Connectez-vous pour voir vos transactions.',
       );
     }
@@ -784,7 +785,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _placeholderCard(
-            title: 'Transactions récentes',
+            title: t('Transactions récentes'),
             message: 'Erreur de chargement.',
           );
         }
@@ -802,7 +803,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: const Padding(
               padding: EdgeInsets.all(AppDesign.paddingLarge),
               child: Center(
-                child: Text("Aucune transaction récente. Ajoutez-en une !"),
+                child: TrText("Aucune transaction récente. Ajoutez-en une !"),
               ),
             ),
           );
@@ -850,15 +851,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   child: Icon(txIcon, color: txColor),
                 ),
-                title: Text(
+                title: TrText(
                   tx.description ?? '',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text(
+                subtitle: TrText(
                   '$formattedDate · $categoryLabel',
                   style: const TextStyle(color: Colors.grey),
                 ),
-                trailing: Text(
+                trailing: TrText(
                   '$prefix ${tx.amount.toStringAsFixed(2)} €',
                   style: TextStyle(
                     color: txColor,
@@ -899,7 +900,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text(
+                  TrText(
                     'Répartition des dépenses',
                     style: TextStyle(
                       fontSize: 16,
@@ -907,7 +908,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   SizedBox(height: 4),
-                  Text(
+                  TrText(
                     'Optimisez vos budgets par catégorie sur ce mois.',
                     style: TextStyle(color: Colors.grey),
                   ),
@@ -931,7 +932,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            TrText(
               title,
               style: const TextStyle(
                 fontSize: 16,
@@ -939,7 +940,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            TrText(
               message,
               style: const TextStyle(color: Colors.grey),
             ),
@@ -960,7 +961,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
-            Text(
+            TrText(
               'Notifications',
               style: TextStyle(
                 fontSize: 16,
@@ -968,7 +969,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             SizedBox(height: 8),
-            Text(
+            TrText(
               'Aucune notification pour le moment.',
               style: TextStyle(color: Colors.grey),
             ),
@@ -1030,7 +1031,7 @@ class _InsightCard extends StatelessWidget {
                   color: color.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                 ),
-                child: Text(
+                child: TrText(
                   emoji,
                   style: const TextStyle(fontSize: 18),
                 ),
@@ -1040,7 +1041,7 @@ class _InsightCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    TrText(
                       title,
                       style: const TextStyle(
                         color: Colors.black87,
@@ -1051,7 +1052,7 @@ class _InsightCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (subtitle.isNotEmpty)
-                      Text(
+                      TrText(
                         subtitle,
                         style: TextStyle(
                           color: Colors.grey[700],
@@ -1064,7 +1065,7 @@ class _InsightCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
+          TrText(
             '${amount.toStringAsFixed(2)} €',
             style: TextStyle(
               color: color,
@@ -1135,7 +1136,7 @@ class _ShortcutCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  TrText(
                     action.label,
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
@@ -1143,7 +1144,7 @@ class _ShortcutCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
+                  TrText(
                     action.subtitle,
                     style: TextStyle(
                       color: Colors.grey[700],
@@ -1174,7 +1175,7 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
     final userId = firestoreService.currentUserId;
     if (userId == null) {
       return _placeholderStaticCard(
-        title: 'Budget par catégorie',
+        title: t('Budget par catégorie'),
         message: 'Connectez-vous pour voir vos catégories.',
       );
     }
@@ -1218,7 +1219,7 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
 
         if (items.isEmpty) {
           return _placeholderStaticCard(
-            title: 'Budget par catégorie',
+            title: t('Budget par catégorie'),
             message: 'Aucune catégorie de dépense active.',
           );
         }
@@ -1243,7 +1244,7 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                const TrText(
                   'Budget par catégorie',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
@@ -1262,7 +1263,7 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
                       Icon(footerIcon, color: footerTextColor),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
+                        child: TrText(
                           footerText,
                           style: TextStyle(
                             color: footerTextColor,
@@ -1292,7 +1293,7 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            TrText(
               title,
               style: const TextStyle(
                 fontSize: 16,
@@ -1300,7 +1301,7 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            TrText(
               message,
               style: const TextStyle(color: Colors.grey),
             ),
@@ -1364,16 +1365,16 @@ class _CategoryProgressRow extends StatelessWidget {
                       color: Colors.grey.shade200,
                       shape: BoxShape.circle,
                     ),
-                    child: Text(item.icon, style: const TextStyle(fontSize: 16)),
+                    child: TrText(item.icon, style: const TextStyle(fontSize: 16)),
                   ),
                   const SizedBox(width: 10),
-                  Text(
+                  TrText(
                     item.name,
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
-              Text(
+              TrText(
                 '${item.spent.toStringAsFixed(0)}€ / ${item.allocated.toStringAsFixed(0)}€',
                 style: spentStyle,
               ),

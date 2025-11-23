@@ -5,6 +5,7 @@ import '../../services/mock_data_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/modern_page_app_bar.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran de suivi et financement des objectifs d'épargne
 class GoalFundingScreen extends StatefulWidget {
@@ -124,9 +125,9 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
   Widget _buildGoalHistory(Goal goal) {
     // Données factices de contributions liées à l'objectif
     final entries = [
-      _GoalTx(label: 'Virement épargne', amount: 200, date: DateTime.now().subtract(const Duration(days: 3))),
-      _GoalTx(label: 'Bonus salaire', amount: 150, date: DateTime.now().subtract(const Duration(days: 10))),
-      _GoalTx(label: 'Arrondi automatique', amount: 35, date: DateTime.now().subtract(const Duration(days: 15))),
+      _GoalTx(label: t('Virement épargne'), amount: 200, date: DateTime.now().subtract(const Duration(days: 3))),
+      _GoalTx(label: t('Bonus salaire'), amount: 150, date: DateTime.now().subtract(const Duration(days: 10))),
+      _GoalTx(label: t('Arrondi automatique'), amount: 35, date: DateTime.now().subtract(const Duration(days: 15))),
     ];
 
     return Container(
@@ -143,7 +144,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
-              Text(
+              TrText(
                 'Historique des mouvements',
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
               ),
@@ -168,18 +169,18 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        TrText(
                           e.label,
                           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                         ),
-                        Text(
+                        TrText(
                           '${e.date.day}/${e.date.month}/${e.date.year}',
                           style: TextStyle(color: Colors.grey[600], fontSize: 12),
                         ),
                       ],
                     ),
                   ),
-                  Text(
+                  TrText(
                     '+${e.amount.toStringAsFixed(2)} €',
                     style: const TextStyle(
                       color: AppDesign.incomeColor,
@@ -206,9 +207,9 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
 
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
-      appBar: const ModernPageAppBar(
-        title: 'Objectifs d\'Épargne',
-        subtitle: 'Suivez et financez vos projets',
+      appBar: ModernPageAppBar(
+        title: t("Objectifs d'Épargne"),
+        subtitle: t('Suivez et financez vos projets'),
         icon: Icons.flag_rounded,
         showProfile: true,
       ),
@@ -248,7 +249,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
         backgroundColor: AppDesign.primaryIndigo,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text(
+        label: const TrText(
           'Nouvel Objectif',
           style: TextStyle(
             color: Colors.white,
@@ -285,7 +286,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
               children: [
                 Icon(Icons.auto_graph, color: Colors.white, size: 32),
                 SizedBox(width: 12),
-                Text(
+                TrText(
                   'Progression Globale',
                   style: TextStyle(
                     color: Colors.white,
@@ -302,11 +303,11 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    const TrText(
                       'Économisé',
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
-                    Text(
+                    TrText(
                       '${saved.toStringAsFixed(2)} €',
                       style: const TextStyle(
                         color: Colors.white,
@@ -319,11 +320,11 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text(
+                    const TrText(
                       'Objectif',
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
-                    Text(
+                    TrText(
                       '${target.toStringAsFixed(2)} €',
                       style: const TextStyle(
                         color: Colors.white,
@@ -346,7 +347,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            TrText(
               '${(progress * 100).toStringAsFixed(1)}% de tous les objectifs',
               style: const TextStyle(
                 color: Colors.white,
@@ -365,7 +366,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
       children: [
         Icon(icon, color: AppDesign.primaryIndigo, size: 24),
         const SizedBox(width: 8),
-        Text(
+        TrText(
           title,
           style: const TextStyle(
             fontSize: 20,
@@ -379,7 +380,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
             color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(
+          child: TrText(
             '$count',
             style: const TextStyle(
               fontSize: 12,
@@ -447,7 +448,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Center(
-                      child: Text(
+                      child: TrText(
                         goal.icon ?? '🎯',
                         style: const TextStyle(fontSize: 32),
                       ),
@@ -461,7 +462,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: Text(
+                              child: TrText(
                                 goal.name,
                                 style: const TextStyle(
                                   fontSize: 18,
@@ -483,7 +484,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                               ),
                             IconButton(
                               icon: const Icon(Icons.receipt_long_outlined, color: Colors.grey),
-                              tooltip: 'Historique',
+                              tooltip: t('Historique'),
                               onPressed: () {
                                 setState(() {
                                   if (_selectedGoalForHistory == goal.goalId) {
@@ -497,7 +498,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                           ],
                         ),
                         if (goal.description != null)
-                          Text(
+                          TrText(
                             goal.description!,
                             style: TextStyle(
                               fontSize: 12,
@@ -518,11 +519,11 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TrText(
                         'Financé',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
-                      Text(
+                      TrText(
                         '${goal.currentAmount.toStringAsFixed(2)} €',
                         style: TextStyle(
                           fontSize: 20,
@@ -535,11 +536,11 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
+                      TrText(
                         'Progression',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
-                      Text(
+                      TrText(
                         '${(progress * 100).toStringAsFixed(1)}%',
                         style: TextStyle(
                           fontSize: 24,
@@ -552,11 +553,11 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
+                      TrText(
                         'Objectif',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
-                      Text(
+                      TrText(
                         '${goal.targetAmount.toStringAsFixed(2)} €',
                         style: const TextStyle(
                           fontSize: 20,
@@ -587,7 +588,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       if (!isCompleted)
-                        Text(
+                        TrText(
                           'Reste: ${remaining.toStringAsFixed(2)} €',
                           style: TextStyle(
                             fontSize: 12,
@@ -596,7 +597,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                           ),
                         )
                       else
-                        const Text(
+                        const TrText(
                           '🎉 Objectif Atteint !',
                           style: TextStyle(
                             fontSize: 12,
@@ -605,7 +606,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                           ),
                         ),
                       if (goal.targetDate != null)
-                        Text(
+                        TrText(
                           isOverdue
                               ? 'En retard de ${-daysRemaining} jours'
                               : 'J-$daysRemaining jours',
@@ -637,7 +638,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     icon: const Icon(Icons.account_balance_wallet),
-                    label: const Text(
+                    label: const TrText(
                       'Allouer des Fonds',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
@@ -664,7 +665,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
             _goals.add(newGoal);
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Objectif créé avec succès !')),
+            const SnackBar(content: TrText('Objectif créé avec succès !')),
           );
         },
       ),
@@ -697,7 +698,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${updatedAccount.balance} € alloués à ${goal.name} !'),
+              content: TrText('${updatedAccount.balance} € alloués à ${goal.name} !'),
               backgroundColor: AppDesign.incomeColor,
             ),
           );
@@ -757,27 +758,27 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                const Row(
-                  children: [
-                    Icon(Icons.flag, color: AppDesign.primaryIndigo, size: 32),
-                    SizedBox(width: 12),
-                    Text(
-                      'Nouvel Objectif',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                  const Row(
+                    children: [
+                      Icon(Icons.flag, color: AppDesign.primaryIndigo, size: 32),
+                      SizedBox(width: 12),
+                      TrText(
+                        'Nouvel Objectif',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
                 
                 // Nom de l'objectif
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom de l\'objectif',
-                    prefixIcon: Icon(Icons.edit),
+                  decoration: InputDecoration(
+                    labelText: "Nom de l'objectif",
+                    prefixIcon: const Icon(Icons.edit),
                     hintText: 'Ex: Vacances, Voiture...',
                   ),
                   validator: (value) {
@@ -792,9 +793,9 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
                 // Montant cible
                 TextFormField(
                   controller: _amountController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Montant cible',
-                    prefixIcon: Icon(Icons.euro, color: AppDesign.incomeColor),
+                    prefixIcon: const Icon(Icons.euro, color: AppDesign.incomeColor),
                     suffixText: '€',
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -816,9 +817,9 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
                 // Description
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Description (optionnel)',
-                    prefixIcon: Icon(Icons.note),
+                    prefixIcon: const Icon(Icons.note),
                   ),
                   maxLines: 2,
                 ),
@@ -828,10 +829,10 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.calendar_today),
-                  title: Text(
+                  title: TrText(
                     _targetDate == null
                         ? 'Date cible (optionnel)'
-                        : 'Cible: ${DateFormat('dd/MM/yyyy').format(_targetDate!)}',
+                        : "Cible: ${DateFormat('dd/MM/yyyy').format(_targetDate!)}",
                   ),
                   trailing: _targetDate != null
                       ? IconButton(
@@ -860,7 +861,7 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
                 const SizedBox(height: 16),
                 
                 // Sélection d'icône
-                const Text(
+                const TrText(
                   'Icône de l\'objectif',
                   style: TextStyle(
                     fontSize: 14,
@@ -900,7 +901,7 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
                             ),
                           ),
                           child: Center(
-                            child: Text(
+                            child: TrText(
                               icon,
                               style: const TextStyle(fontSize: 24),
                             ),
@@ -922,7 +923,7 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text(
+                    child: const TrText(
                       'Créer l\'Objectif',
                       style: TextStyle(
                         fontSize: 16,
@@ -936,7 +937,7 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   void _createGoal() {
@@ -1018,45 +1019,45 @@ class _FundGoalModalState extends State<FundGoalModal> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppDesign.primaryIndigo, AppDesign.primaryPurple],
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppDesign.primaryIndigo, AppDesign.primaryPurple],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        child: TrText(
+                          widget.goal.icon ?? '🎯',
+                          style: const TextStyle(fontSize: 32),
+                        ),
                       ),
-                      child: Text(
-                        widget.goal.icon ?? '🎯',
-                        style: const TextStyle(fontSize: 32),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Allouer des Fonds',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const TrText(
+                              'Allouer des Fonds',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Text(
-                            widget.goal.name,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
+                            TrText(
+                              widget.goal.name,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 const SizedBox(height: 24),
                 
                 // Info sur la progression
@@ -1075,8 +1076,8 @@ class _FundGoalModalState extends State<FundGoalModal> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Financé', style: TextStyle(fontSize: 12)),
-                              Text(
+                              const TrText('Financé', style: TextStyle(fontSize: 12)),
+                              TrText(
                                 '${widget.goal.currentAmount.toStringAsFixed(2)} €',
                                 style: const TextStyle(
                                   fontSize: 18,
@@ -1089,8 +1090,8 @@ class _FundGoalModalState extends State<FundGoalModal> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              const Text('Reste', style: TextStyle(fontSize: 12)),
-                              Text(
+                              const TrText('Reste', style: TextStyle(fontSize: 12)),
+                              TrText(
                                 '${remaining.toStringAsFixed(2)} €',
                                 style: const TextStyle(
                                   fontSize: 18,
@@ -1115,7 +1116,7 @@ class _FundGoalModalState extends State<FundGoalModal> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      TrText(
                         '${(progress * 100).toStringAsFixed(1)}% atteint',
                         style: const TextStyle(fontSize: 12),
                       ),
@@ -1127,24 +1128,24 @@ class _FundGoalModalState extends State<FundGoalModal> {
                 // Compte source
                 DropdownButtonFormField<Account>(
                   value: _selectedAccount,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Compte source',
                     prefixIcon: Icon(Icons.account_balance_wallet),
                   ),
-                  hint: const Text('Sélectionner un compte'),
+                  hint: const TrText('Sélectionner un compte'),
                   items: widget.accounts.map((account) {
                     return DropdownMenuItem(
                       value: account,
                       child: Row(
                         children: [
-                          Text(account.icon ?? '💳', style: const TextStyle(fontSize: 20)),
+                          TrText(account.icon ?? '💳', style: const TextStyle(fontSize: 20)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(account.name),
-                                Text(
+                                TrText(account.name),
+                                TrText(
                                   '${account.balance.toStringAsFixed(2)} ${account.currency}',
                                   style: TextStyle(
                                     fontSize: 12,
@@ -1176,9 +1177,9 @@ class _FundGoalModalState extends State<FundGoalModal> {
                 TextFormField(
                   controller: _amountController,
                   decoration: InputDecoration(
-                    labelText: 'Montant à allouer',
+                    labelText: t('Montant à allouer'),
                     prefixIcon: const Icon(Icons.euro, color: AppDesign.incomeColor),
-                    suffixText: '€',
+                    suffixText: t('€'),
                     helperText: _selectedAccount != null
                         ? 'Disponible: ${_selectedAccount!.balance.toStringAsFixed(2)} €'
                         : null,
@@ -1207,7 +1208,7 @@ class _FundGoalModalState extends State<FundGoalModal> {
                 const SizedBox(height: 16),
                 
                 // Boutons rapides
-                const Text(
+                const TrText(
                   'Montants rapides',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
@@ -1242,7 +1243,7 @@ class _FundGoalModalState extends State<FundGoalModal> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
+                        : const TrText(
                             'Allouer les Fonds',
                             style: TextStyle(
                               fontSize: 16,
@@ -1256,12 +1257,12 @@ class _FundGoalModalState extends State<FundGoalModal> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildQuickAmountButton(String label, double amount) {
     return ActionChip(
-      label: Text(label),
+      label: TrText(label),
       onPressed: () {
         setState(() {
           _amountController.text = amount.toStringAsFixed(2);

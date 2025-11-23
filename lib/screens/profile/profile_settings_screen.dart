@@ -9,6 +9,8 @@ import '../admin/admin_dashboard_screen.dart';
 import '../onboarding/onboarding_wizard_screen.dart';
 import '../auth/auth_screen.dart';
 import '../../widgets/revolutionary_logo.dart';
+import 'package:budget/l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 /// Écran de profil et paramètres utilisateur
 /// Affiche les informations du profil et permet de gérer les préférences
@@ -154,13 +156,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               size: 24,
             ),
           ),
-          title: const Text(
+          title: const TrText(
             'Purger les données démo',
             style: TextStyle(
               fontWeight: FontWeight.w700,
             ),
           ),
-          subtitle: const Text(
+          subtitle: const TrText(
             'Efface toutes les données démo puis déconnecte.',
             style: TextStyle(fontSize: 12),
           ),
@@ -240,7 +242,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     ],
                   ),
                   child: Center(
-                    child: Text(
+                    child: TrText(
                       initials,
                       style: const TextStyle(
                         fontSize: 40,
@@ -254,7 +256,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 const SizedBox(height: 16),
                 
                 // Nom
-                Text(
+                TrText(
                   fullName,
                   style: const TextStyle(
                     fontSize: 24,
@@ -285,7 +287,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                         size: 16,
                       ),
                       const SizedBox(width: 6),
-                      Text(
+                      TrText(
                         status,
                         style: const TextStyle(
                           fontSize: 14,
@@ -308,7 +310,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Text(
+      child: TrText(
         title,
         style: const TextStyle(
           fontSize: 14,
@@ -351,14 +353,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 size: 24,
               ),
             ),
-            title: const Text(
+            title: const TrText(
               'Bilan de fin de journée',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
               ),
             ),
-            subtitle: const Text(
+            subtitle: const TrText(
               'Notification à 20h pour saisir vos dépenses',
               style: TextStyle(fontSize: 13),
             ),
@@ -381,7 +383,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Rappel quotidien activé à 20h'),
+                      content: TrText('Rappel quotidien activé à 20h'),
                       duration: Duration(seconds: 2),
                     ),
                   );
@@ -406,14 +408,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 size: 24,
               ),
             ),
-            title: const Text(
+            title: const TrText(
               'Dépassement de Budget',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
               ),
             ),
-            subtitle: const Text(
+            subtitle: const TrText(
               'Alerte immédiate si une catégorie passe au rouge',
               style: TextStyle(fontSize: 13),
             ),
@@ -431,7 +433,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
+                    content: TrText(
                       value
                           ? 'Alertes budget activées'
                           : 'Alertes budget désactivées',
@@ -451,11 +453,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      const TrText(
                         'Seuil d\'alerte',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      Text(
+                      TrText(
                         '${(_budgetAlertThreshold * 100).toStringAsFixed(0)}%',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
@@ -476,7 +478,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     activeColor: AppDesign.expenseColor,
                     inactiveColor: AppDesign.expenseColor.withValues(alpha: 0.2),
                   ),
-                  const Text(
+                  const TrText(
                     'Alerte quand une poche dépasse ce pourcentage de son budget.',
                     style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
@@ -500,14 +502,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 size: 24,
               ),
             ),
-            title: const Text(
+            title: const TrText(
               'Succès d\'Épargne',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
               ),
             ),
-            subtitle: const Text(
+            subtitle: const TrText(
               'Célébration quand un objectif est atteint',
               style: TextStyle(fontSize: 13),
             ),
@@ -525,7 +527,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
+                    content: TrText(
                       value
                           ? 'Alertes objectifs activées'
                           : 'Alertes objectifs désactivées',
@@ -553,7 +555,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 size: 24,
               ),
             ),
-            title: const Text(
+            title: const TrText(
               'Paramètres avancés',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
@@ -577,6 +579,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   /// Section système et compte
   Widget _buildSystemSection() {
+    final localeProvider = context.watch<LocaleProvider>();
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -606,7 +610,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 size: 24,
               ),
             ),
-            title: const Text(
+            title: const TrText(
               'Devise',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
@@ -616,7 +620,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                TrText(
                   _currentCurrency,
                   style: TextStyle(
                     color: Colors.grey[600],
@@ -648,7 +652,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 size: 24,
               ),
             ),
-            title: const Text(
+            title: const TrText(
               'Langue',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
@@ -658,8 +662,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Français',
+                TrText(
+                  localeProvider.locale.languageCode == 'en' ? 'Anglais' : 'Français',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 14,
@@ -670,13 +674,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               ],
             ),
             onTap: () {
-              // TODO: Implémenter la sélection de langue
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Changement de langue à venir'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              _showLanguagePicker(localeProvider);
             },
           ),
           
@@ -696,14 +694,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 size: 24,
               ),
             ),
-            title: const Text(
+            title: const TrText(
               'Sécurité',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
               ),
             ),
-            subtitle: const Text(
+            subtitle: const TrText(
               'Changer le mot de passe',
               style: TextStyle(fontSize: 13),
             ),
@@ -729,7 +727,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 size: 24,
               ),
             ),
-            title: const Text(
+            title: const TrText(
               'Informations personnelles',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
@@ -775,7 +773,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             size: 24,
           ),
         ),
-        title: const Text(
+        title: const TrText(
           'Admin Panel',
           style: TextStyle(
             fontWeight: FontWeight.bold,
@@ -783,7 +781,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             color: AppDesign.expenseColor,
           ),
         ),
-        subtitle: const Text(
+        subtitle: const TrText(
           'Accès au tableau de bord administrateur',
           style: TextStyle(fontSize: 13),
         ),
@@ -824,7 +822,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           children: const [
             Icon(Icons.logout, size: 20),
             SizedBox(width: 12),
-            Text(
+            TrText(
               'Se déconnecter',
               style: TextStyle(
                 fontSize: 16,
@@ -871,7 +869,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            const TrText(
               'Sélectionner la devise',
               style: TextStyle(
                 fontSize: 18,
@@ -880,7 +878,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             ),
             const SizedBox(height: 16),
             ...currencies.map((currency) => ListTile(
-                  title: Text(currency),
+                  title: TrText(currency),
                   trailing: _currentCurrency == currency
                       ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
                       : null,
@@ -890,11 +888,63 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     });
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Devise changée en $currency')),
+                      SnackBar(content: TrText('Devise changée en $currency')),
                     );
                   },
                 )),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguagePicker(LocaleProvider localeProvider) {
+    final current = localeProvider.locale.languageCode;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const TrText(
+                'Langue',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.flag),
+                title: const TrText('Français'),
+                trailing: current == 'fr'
+                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
+                    : null,
+                onTap: () async {
+                  await localeProvider.setLocale(const Locale('fr'));
+                  if (mounted) Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.flag_circle),
+                title: const TrText('Anglais'),
+                trailing: current == 'en'
+                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
+                    : null,
+                onTap: () async {
+                  await localeProvider.setLocale(const Locale('en'));
+                  if (mounted) Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -905,27 +955,27 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Changer le mot de passe'),
+        title: const TrText('Changer le mot de passe'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            TextField(
+          children: [
+            const TextField(
               obscureText: true,
               decoration: InputDecoration(
                 labelText: 'Mot de passe actuel',
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 12),
-            TextField(
+            const SizedBox(height: 12),
+            const TextField(
               obscureText: true,
               decoration: InputDecoration(
                 labelText: 'Nouveau mot de passe',
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 12),
-            TextField(
+            const SizedBox(height: 12),
+            const TextField(
               obscureText: true,
               decoration: InputDecoration(
                 labelText: 'Confirmer le mot de passe',
@@ -937,19 +987,19 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: const TrText('Annuler'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Mot de passe modifié avec succès'),
+                  content: TrText('Mot de passe modifié avec succès'),
                   backgroundColor: AppDesign.incomeColor,
                 ),
               );
             },
-            child: const Text('Confirmer'),
+            child: const TrText('Confirmer'),
           ),
         ],
       ),
@@ -964,22 +1014,22 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Modifier le profil'),
+        title: const TrText('Modifier le profil'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: firstNameController,
-              decoration: const InputDecoration(
-                labelText: 'Prénom',
+              decoration: InputDecoration(
+                labelText: t('Prénom'),
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: lastNameController,
-              decoration: const InputDecoration(
-                labelText: 'Nom',
+              decoration: InputDecoration(
+                labelText: t('Nom'),
                 border: OutlineInputBorder(),
               ),
             ),
@@ -988,7 +1038,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: const TrText('Annuler'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -998,12 +1048,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Profil mis à jour'),
+                  content: TrText('Profil mis à jour'),
                   backgroundColor: AppDesign.incomeColor,
                 ),
               );
             },
-            child: const Text('Enregistrer'),
+            child: const TrText('Enregistrer'),
           ),
         ],
       ),
@@ -1015,19 +1065,19 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Déconnexion'),
-        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+        title: const TrText('Déconnexion'),
+        content: const TrText('Êtes-vous sûr de vouloir vous déconnecter ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: const TrText('Annuler'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppDesign.expenseColor,
             ),
-            child: const Text('Déconnexion'),
+            child: const TrText('Déconnexion'),
           ),
         ],
       ),

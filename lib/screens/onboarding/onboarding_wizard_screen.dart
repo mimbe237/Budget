@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/account.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/revolutionary_logo.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran d'onboarding wizard en 3 étapes
 /// Étape 1: Profil utilisateur (nom + devise)
@@ -54,7 +55,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     // Validation de l'étape 2
     if (_currentPage == 1 && _initialAccounts.any((a) => a.name.isEmpty || a.balance.isNaN)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez renseigner tous les champs')),
+        const SnackBar(content: TrText('Veuillez renseigner tous les champs')),
       );
       return;
     }
@@ -85,13 +86,13 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     final totalAllocation = _budgetAllocation.values.reduce((a, b) => a + b);
     if ((totalAllocation * 100).round() != 100) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('L\'allocation budgétaire doit totaliser 100%')),
+        const SnackBar(content: TrText('L\'allocation budgétaire doit totaliser 100%')),
       );
       return;
     }
     
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sauvegarde en cours...'), duration: Duration(seconds: 1)),
+      const SnackBar(content: TrText('Sauvegarde en cours...'), duration: Duration(seconds: 1)),
     );
 
     try {
@@ -136,7 +137,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), duration: const Duration(seconds: 4)),
+          SnackBar(content: TrText('Erreur: $e'), duration: const Duration(seconds: 4)),
         );
       }
     }
@@ -184,7 +185,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         ),
         title: Column(
           children: [
-            Text(
+            TrText(
               'Configuration ${_currentPage + 1}/3',
               style: const TextStyle(fontSize: 14),
             ),
@@ -242,7 +243,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
             TextButton.icon(
               onPressed: _previousPage,
               icon: const Icon(Icons.arrow_back),
-              label: const Text('Précédent'),
+              label: const TrText('Précédent'),
               style: TextButton.styleFrom(
                 foregroundColor: Colors.grey[600],
               ),
@@ -262,7 +263,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                TrText(
                   _currentPage == 2 ? 'Terminer' : 'Suivant',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
@@ -284,12 +285,12 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const TrText(
               '👋 Bienvenue !',
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(
+            TrText(
               'Commençons par quelques informations de base',
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
@@ -297,8 +298,8 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
             
             TextFormField(
               decoration: InputDecoration(
-                labelText: 'Votre prénom',
-                hintText: 'ex: Marie',
+                labelText: t('Votre prénom'),
+                hintText: t('ex: Marie'),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 prefixIcon: const Icon(Icons.person_outline),
                 filled: true,
@@ -309,7 +310,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
             ),
             
             const SizedBox(height: 32),
-            const Text(
+            const TrText(
               'Votre devise par défaut',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
@@ -346,7 +347,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         ),
         child: Column(
           children: [
-            Text(
+            TrText(
               symbol,
               style: TextStyle(
                 fontSize: 28,
@@ -355,7 +356,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
+            TrText(
               code,
               style: TextStyle(
                 fontSize: 12,
@@ -374,12 +375,12 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const TrText(
             '💰 Vos Comptes',
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          Text(
+          TrText(
             'Où se trouve votre argent ?',
             style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
@@ -398,7 +399,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
           Center(
             child: TextButton.icon(
               icon: const Icon(Icons.add_circle_outline, size: 28),
-              label: const Text('Ajouter un Compte', style: TextStyle(fontSize: 16)),
+              label: const TrText('Ajouter un Compte', style: TextStyle(fontSize: 16)),
               onPressed: () {
                 setState(() {
                   _initialAccounts.add(_AccountInput(
@@ -436,13 +437,13 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
           children: [
             Row(
               children: [
-                Text(account.icon, style: const TextStyle(fontSize: 32)),
+                TrText(account.icon, style: const TextStyle(fontSize: 32)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
                     initialValue: account.name,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom du compte',
+                    decoration: InputDecoration(
+                      labelText: t('Nom du compte'),
                       border: InputBorder.none,
                       isDense: true,
                     ),
@@ -462,7 +463,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
               initialValue: account.balance.toString(),
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Solde Actuel',
+                labelText: t('Solde Actuel'),
                 suffixText: _currency,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
@@ -487,12 +488,12 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const TrText(
               '📊 Plan Budgétaire',
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(
+            TrText(
               'Définissez votre allocation (doit totaliser 100%)',
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
@@ -501,7 +502,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
             TextFormField(
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Revenu Mensuel Prévu',
+                labelText: t('Revenu Mensuel Prévu'),
                 suffixText: _currency,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
@@ -528,11 +529,11 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  const TrText(
                     'Total de la Répartition',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Text(
+                  TrText(
                     '${(totalPercentage * 100).toStringAsFixed(0)}%',
                     style: TextStyle(
                       fontSize: 20,
@@ -565,14 +566,14 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
+                          TrText(
                             category,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 16,
                             ),
                           ),
-                          Text(
+                          TrText(
                             '${(percentage * 100).toStringAsFixed(0)}%',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
@@ -584,7 +585,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                       ),
                       if (_monthlyIncome > 0) ...[
                         const SizedBox(height: 4),
-                        Text(
+                        TrText(
                           '${amount.toStringAsFixed(2)} $_currency',
                           style: TextStyle(
                             color: Colors.grey[600],
@@ -659,7 +660,7 @@ class _SuccessScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              const Text(
+              const TrText(
                 '🎉 Félicitations !',
                 style: TextStyle(
                   fontSize: 32,
@@ -667,7 +668,7 @@ class _SuccessScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
+              TrText(
                 'Votre budget est configuré et prêt à l\'emploi',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -680,7 +681,7 @@ class _SuccessScreen extends StatelessWidget {
                 onPressed: () {
                   // TODO: Navigation vers le dashboard principal
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Redirection vers le dashboard...')),
+                    const SnackBar(content: TrText('Redirection vers le dashboard...')),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -692,7 +693,7 @@ class _SuccessScreen extends StatelessWidget {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
+                child: const TrText(
                   'Accéder au Dashboard',
                   style: TextStyle(
                     fontSize: 16,

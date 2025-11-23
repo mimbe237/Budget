@@ -13,6 +13,9 @@ import '../reports/analysis_hub_screen.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
 import '../profile/profile_settings_screen.dart';
+import 'package:budget/l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+import 'package:provider/provider.dart';
 
 /// Shell de navigation principal avec BottomNavigationBar et menu d'actions rapides
 class MainNavigationShell extends StatefulWidget {
@@ -43,6 +46,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = context.watch<LocaleProvider>();
+
     return Scaffold(
       body: Stack(
         children: [
@@ -61,7 +66,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 elevation: 4,
                 child: IconButton(
                   icon: const Icon(Icons.person_outline_rounded, color: AppDesign.primaryIndigo),
-                  tooltip: 'Compte & paramètres',
+                  tooltip: t('Compte & paramètres'),
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
@@ -92,30 +97,30 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         unselectedFontSize: 11,
         elevation: 0,
         backgroundColor: Colors.white,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home_rounded),
-            label: 'Accueil',
+            icon: const Icon(Icons.home_outlined),
+            activeIcon: const Icon(Icons.home_rounded),
+            label: t('Accueil'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            activeIcon: Icon(Icons.account_balance_wallet_rounded),
-            label: 'Comptes',
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            activeIcon: const Icon(Icons.account_balance_wallet_rounded),
+            label: t('Comptes'),
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: SizedBox.shrink(), // Espace vide pour le FAB
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.pie_chart_outline_rounded),
-            activeIcon: Icon(Icons.pie_chart_rounded),
-            label: 'Budget',
+            icon: const Icon(Icons.pie_chart_outline_rounded),
+            activeIcon: const Icon(Icons.pie_chart_rounded),
+            label: t('Budget'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_rounded),
-            activeIcon: Icon(Icons.bar_chart),
-            label: 'Analyses',
+            icon: const Icon(Icons.bar_chart_rounded),
+            activeIcon: const Icon(Icons.bar_chart),
+            label: t('Analyses'),
           ),
         ],
       ),
@@ -213,7 +218,7 @@ class QuickActionsMenu extends StatelessWidget {
                       const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          TrText(
                             'Actions Rapides',
                             style: TextStyle(
                               fontSize: 26,
@@ -222,7 +227,7 @@ class QuickActionsMenu extends StatelessWidget {
                             ),
                           ),
                           SizedBox(height: 4),
-                          Text(
+                          TrText(
                             'Que souhaitez-vous faire ?',
                             style: TextStyle(
                               fontSize: 14,
@@ -257,7 +262,7 @@ class QuickActionsMenu extends StatelessWidget {
                         icon: Icons.trending_up_rounded,
                         iconColor: AppDesign.incomeColor,
                         iconBackgroundColor: AppDesign.incomeColor.withValues(alpha: 0.12),
-                        title: 'Revenu',
+                        title: t('Revenu'),
                         description: 'Enregistrez un nouveau revenu...',
                         onTap: () {
                           Navigator.pop(context);
@@ -278,7 +283,7 @@ class QuickActionsMenu extends StatelessWidget {
                         icon: Icons.trending_down_rounded,
                         iconColor: AppDesign.expenseColor,
                         iconBackgroundColor: AppDesign.expenseColor.withValues(alpha: 0.12),
-                        title: 'Dépense',
+                        title: t('Dépense'),
                         description: 'Suivez instantanément une dépense...',
                         onTap: () {
                           Navigator.pop(context);
@@ -299,7 +304,7 @@ class QuickActionsMenu extends StatelessWidget {
                         icon: Icons.flag_rounded,
                         iconColor: AppDesign.primaryPurple,
                         iconBackgroundColor: AppDesign.primaryPurple.withValues(alpha: 0.12),
-                        title: 'Objectif',
+                        title: t('Objectif'),
                         description: 'Définissez un objectif d\'épargne...',
                         onTap: () {
                           Navigator.pop(context);
@@ -315,7 +320,7 @@ class QuickActionsMenu extends StatelessWidget {
                                 onGoalCreated: (_) {
                                   Navigator.pop(modalCtx);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Objectif créé avec succès')),
+                                    const SnackBar(content: TrText('Objectif créé avec succès')),
                                   );
                                 },
                               ),
@@ -329,7 +334,7 @@ class QuickActionsMenu extends StatelessWidget {
                         icon: Icons.handshake_rounded,
                         iconColor: const Color(0xFFFB8C00),
                         iconBackgroundColor: const Color(0xFFFB8C00).withValues(alpha: 0.12),
-                        title: 'Dettes',
+                        title: t('Dettes'),
                         description: 'Enregistrez un nouvel emprunt...',
                         onTap: () {
                           Navigator.pop(context);
@@ -345,7 +350,7 @@ class QuickActionsMenu extends StatelessWidget {
                                 onIOUAdded: (_) {
                                   Navigator.pop(modalCtx);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Dette/Créance enregistrée')),
+                                    const SnackBar(content: TrText('Dette/Créance enregistrée')),
                                   );
                                 },
                               ),
@@ -415,7 +420,7 @@ class QuickActionsMenu extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TrText(
                         title,
                         style: const TextStyle(
                           fontSize: 17,
@@ -424,7 +429,7 @@ class QuickActionsMenu extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 5),
-                      Text(
+                      TrText(
                         description,
                         style: TextStyle(
                           fontSize: 13,
@@ -460,7 +465,7 @@ class QuickActionsMenu extends StatelessWidget {
       width: double.infinity,
       child: OutlinedButton.icon(
         icon: const Icon(Icons.logout, color: AppDesign.expenseColor),
-        label: const Text(
+        label: const TrText(
           'Se déconnecter',
           style: TextStyle(
             color: AppDesign.expenseColor,
@@ -495,7 +500,7 @@ class ProfilePlaceholderScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: AppBar(
-        title: const Text(
+        title: const TrText(
           'Profil',
           style: TextStyle(
             fontWeight: FontWeight.bold,
@@ -525,12 +530,12 @@ class ProfilePlaceholderScreen extends StatelessWidget {
             children: const [
               Icon(Icons.person_outline_rounded, size: 48, color: AppDesign.primaryIndigo),
               SizedBox(height: 12),
-              Text(
+              TrText(
                 'Profil à venir',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 6),
-              Text(
+              TrText(
                 'Cet écran sera bientôt personnalisé pour vous.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey),
@@ -552,7 +557,7 @@ class _ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: AppBar(
-        title: const Text(
+        title: const TrText(
           'Profil',
           style: TextStyle(
             fontWeight: FontWeight.bold,
@@ -587,7 +592,7 @@ class _ProfileScreen extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: const Center(
-                      child: Text(
+                      child: TrText(
                         'U',
                         style: TextStyle(
                           fontSize: 48,
@@ -598,7 +603,7 @@ class _ProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  const TrText(
                     'Utilisateur',
                     style: TextStyle(
                       fontSize: 24,
@@ -606,7 +611,7 @@ class _ProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  TrText(
                     'user@example.com',
                     style: TextStyle(
                       fontSize: 14,
@@ -621,21 +626,21 @@ class _ProfileScreen extends StatelessWidget {
             
             // Sections du profil
             _buildSection(
-              title: 'Compte',
+              title: t('Compte'),
               items: [
                 _buildListItem(
                   icon: Icons.person_outline,
-                  title: 'Informations personnelles',
+                  title: t('Informations personnelles'),
                   onTap: () {},
                 ),
                 _buildListItem(
                   icon: Icons.lock_outline,
-                  title: 'Sécurité',
+                  title: t('Sécurité'),
                   onTap: () {},
                 ),
                 _buildListItem(
                   icon: Icons.notifications_outlined,
-                  title: 'Notifications',
+                  title: t('Notifications'),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -647,12 +652,12 @@ class _ProfileScreen extends StatelessWidget {
                 ),
                 _buildListItem(
                   icon: Icons.auto_graph,
-                  title: 'Analyses IA',
+                  title: t('Analyses IA'),
                   trailing: const Icon(Icons.stars, size: 16, color: AppDesign.primaryPurple),
                   onTap: () {
                     // Placeholder pour l'écran d'analyse IA
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Module IA bientôt disponible')),
+                      const SnackBar(content: TrText('Module IA bientôt disponible')),
                     );
                     /*
                     Navigator.push(
@@ -670,23 +675,25 @@ class _ProfileScreen extends StatelessWidget {
             const SizedBox(height: 16),
             
             _buildSection(
-              title: 'Préférences',
+              title: t('Préférences'),
               items: [
                 _buildListItem(
                   icon: Icons.palette_outlined,
-                  title: 'Thème',
+                  title: t('Thème'),
                   onTap: () {},
                 ),
                 _buildListItem(
                   icon: Icons.language,
-                  title: 'Langue',
-                  trailing: const Text('Français'),
-                  onTap: () {},
+                  title: t('Langue'),
+                  trailing: const TrText('Français'),
+                  onTap: () {
+                    // TODO: Implement language switcher
+                  },
                 ),
                 _buildListItem(
                   icon: Icons.euro,
-                  title: 'Devise',
-                  trailing: const Text('EUR (€)'),
+                  title: t('Devise'),
+                  trailing: const TrText('EUR (€)'),
                   onTap: () {},
                 ),
               ],
@@ -695,21 +702,21 @@ class _ProfileScreen extends StatelessWidget {
             const SizedBox(height: 16),
             
             _buildSection(
-              title: 'Support',
+              title: t('Support'),
               items: [
                 _buildListItem(
                   icon: Icons.help_outline,
-                  title: 'Centre d\'aide',
+                  title: t("Centre d'aide"),
                   onTap: () {},
                 ),
                 _buildListItem(
                   icon: Icons.info_outline,
-                  title: 'À propos',
+                  title: t('À propos'),
                   onTap: () {},
                 ),
                 _buildListItem(
                   icon: Icons.privacy_tip_outlined,
-                  title: 'Politique de confidentialité',
+                  title: t('Politique de confidentialité'),
                   onTap: () {},
                 ),
               ],
@@ -727,12 +734,12 @@ class _ProfileScreen extends StatelessWidget {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: const Text('Déconnexion'),
-                        content: const Text('Voulez-vous vraiment vous déconnecter ?'),
+                        title: const TrText('Déconnexion'),
+                        content: const TrText('Voulez-vous vraiment vous déconnecter ?'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: const Text('Annuler'),
+                            child: const TrText('Annuler'),
                           ),
                           ElevatedButton(
                             onPressed: () {
@@ -742,7 +749,7 @@ class _ProfileScreen extends StatelessWidget {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppDesign.expenseColor,
                             ),
-                            child: const Text('Déconnexion'),
+                            child: const TrText('Déconnexion'),
                           ),
                         ],
                       ),
@@ -753,7 +760,7 @@ class _ProfileScreen extends StatelessWidget {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text(
+                  child: const TrText(
                     'Se déconnecter',
                     style: TextStyle(
                       fontSize: 16,
@@ -767,7 +774,7 @@ class _ProfileScreen extends StatelessWidget {
             const SizedBox(height: 16),
             
             // Version
-            Text(
+            TrText(
               'Version 1.0.0',
               style: TextStyle(
                 fontSize: 12,
@@ -792,7 +799,7 @@ class _ProfileScreen extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(
+            child: TrText(
               title,
               style: const TextStyle(
                 fontSize: 14,
@@ -815,9 +822,61 @@ class _ProfileScreen extends StatelessWidget {
   }) {
     return ListTile(
       leading: Icon(icon, color: AppDesign.primaryIndigo),
-      title: Text(title),
+      title: TrText(title),
       trailing: trailing ?? const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: onTap,
+    );
+  }
+
+  void _showLanguageSheet(
+    BuildContext context,
+    LocaleProvider localeProvider,
+  ) {
+    final current = localeProvider.locale.languageCode;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const TrText(
+                'Langue',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.flag_outlined),
+                title: const TrText('Français'),
+                trailing: current == 'fr'
+                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
+                    : null,
+                onTap: () async {
+                  await localeProvider.setLocale(const Locale('fr'));
+                  Navigator.pop(sheetContext);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.flag_circle_outlined),
+                title: const TrText('Anglais'),
+                trailing: current == 'en'
+                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
+                    : null,
+                onTap: () async {
+                  await localeProvider.setLocale(const Locale('en'));
+                  Navigator.pop(sheetContext);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

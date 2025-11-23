@@ -4,6 +4,7 @@ import '../../constants/app_design.dart';
 import '../../models/user_profile.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/revolutionary_logo.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran d'administration (ADMIN SEULEMENT)
 /// Permet de superviser la plateforme et gérer les utilisateurs
@@ -177,7 +178,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           children: [
             const RevolutionaryLogo(size: 32),
             const SizedBox(width: 12),
-            const Text(
+            const TrText(
               'Administration',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -201,7 +202,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               children: [
                 Icon(Icons.admin_panel_settings, size: 18, color: AppDesign.expenseColor),
                 SizedBox(width: 6),
-                Text(
+                TrText(
                   'ADMIN',
                   style: TextStyle(
                     color: AppDesign.expenseColor,
@@ -230,14 +231,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         },
         selectedItemColor: AppDesign.expenseColor,
         unselectedItemColor: Colors.grey,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Statistiques',
+            icon: const Icon(Icons.bar_chart),
+            label: t('Statistiques'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Utilisateurs',
+            icon: const Icon(Icons.people),
+            label: t('Utilisateurs'),
           ),
         ],
       ),
@@ -254,7 +255,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const TrText(
             'Vue d\'ensemble',
             style: TextStyle(
               fontSize: 24,
@@ -269,21 +270,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             children: [
               Expanded(
                 child: _buildKPICard(
-                  title: 'Utilisateurs',
+                  title: t('Utilisateurs'),
                   value: _totalUsers.toString(),
                   icon: Icons.people,
                   color: AppDesign.primaryIndigo,
-                  subtitle: 'Total inscrits',
+                  subtitle: t('Total inscrits'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildKPICard(
-                  title: 'Bloqués',
+                  title: t('Bloqués'),
                   value: _blockedUsers.toString(),
                   icon: Icons.block,
                   color: AppDesign.expenseColor,
-                  subtitle: 'Comptes bloqués',
+                  subtitle: t('Comptes bloqués'),
                 ),
               ),
             ],
@@ -295,21 +296,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             children: [
               Expanded(
                 child: _buildKPICard(
-                  title: 'Désactivés',
+                  title: t('Désactivés'),
                   value: _disabledUsers.toString(),
                   icon: Icons.pause_circle,
                   color: Colors.orange,
-                  subtitle: 'Comptes inactifs',
+                  subtitle: t('Comptes inactifs'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildKPICard(
-                  title: 'Volume',
+                  title: t('Volume'),
                   value: '${(_totalTransactionVolume / 1000).toStringAsFixed(0)}K€',
                   icon: Icons.euro,
                   color: AppDesign.incomeColor,
-                  subtitle: 'Transactions',
+                  subtitle: t('Transactions'),
                 ),
               ),
             ],
@@ -318,7 +319,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           const SizedBox(height: 32),
           
           // Graphique de croissance
-          const Text(
+          const TrText(
             'Croissance des inscriptions',
             style: TextStyle(
               fontSize: 18,
@@ -332,7 +333,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           const SizedBox(height: 32),
           
           // Répartition par rôle
-          const Text(
+          const TrText(
             'Répartition par rôle',
             style: TextStyle(
               fontSize: 18,
@@ -379,7 +380,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(height: 16),
-          Text(
+          TrText(
             value,
             style: TextStyle(
               fontSize: 28,
@@ -388,7 +389,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          TrText(
             subtitle,
             style: TextStyle(
               fontSize: 12,
@@ -446,7 +447,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   if (value.toInt() >= 0 && value.toInt() < months.length) {
                     return Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text(
+                      child: TrText(
                         months[value.toInt()],
                         style: TextStyle(
                           color: Colors.grey[600],
@@ -455,7 +456,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ),
                     );
                   }
-                  return const Text('');
+                  return const TrText('');
                 },
               ),
             ),
@@ -465,7 +466,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 reservedSize: 35,
                 interval: 2,
                 getTitlesWidget: (value, meta) {
-                  return Text(
+                  return TrText(
                     value.toInt().toString(),
                     style: TextStyle(
                       color: Colors.grey[600],
@@ -562,7 +563,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(
+          child: TrText(
             label,
             style: const TextStyle(
               fontSize: 14,
@@ -570,7 +571,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
         ),
-        Text(
+        TrText(
           count.toString(),
           style: TextStyle(
             fontSize: 16,
@@ -579,7 +580,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        Text(
+        TrText(
           '($percentage%)',
           style: TextStyle(
             fontSize: 12,
@@ -609,7 +610,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               });
             },
             decoration: InputDecoration(
-              hintText: 'Rechercher un utilisateur...',
+              hintText: t('Rechercher un utilisateur...'),
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
@@ -639,7 +640,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
-              Text(
+              TrText(
                 '${_filteredUsers.length} utilisateur${_filteredUsers.length > 1 ? 's' : ''}',
                 style: TextStyle(
                   fontSize: 14,
@@ -666,7 +667,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         color: Colors.grey[400],
                       ),
                       const SizedBox(height: 16),
-                      Text(
+                      TrText(
                         'Aucun utilisateur trouvé',
                         style: TextStyle(
                           fontSize: 16,
@@ -696,7 +697,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       leading: CircleAvatar(
         radius: 24,
         backgroundColor: _getUserRoleColor(user.role ?? 'user').withValues(alpha: 0.1),
-        child: Text(
+        child: TrText(
           '${(user.firstName ?? 'U')[0]}${(user.lastName ?? 'U')[0]}'.toUpperCase(),
           style: TextStyle(
             fontWeight: FontWeight.bold,
@@ -707,7 +708,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       title: Row(
         children: [
           Expanded(
-            child: Text(
+            child: TrText(
               '${user.firstName ?? 'Unknown'} ${user.lastName ?? 'User'}',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
@@ -722,7 +723,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 4),
-          Text(
+          TrText(
             user.email ?? 'No email',
             style: TextStyle(
               fontSize: 13,
@@ -734,7 +735,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             children: [
               _buildRoleBadge(user.role ?? 'user'),
               const SizedBox(width: 8),
-              Text(
+              TrText(
                 'Inscrit: ${DateFormat('dd/MM/yyyy').format(user.createdAt)}',
                 style: TextStyle(
                   fontSize: 11,
@@ -791,7 +792,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         children: [
           Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
-          Text(
+          TrText(
             label,
             style: TextStyle(
               fontSize: 11,
@@ -814,7 +815,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
+      child: TrText(
         label,
         style: TextStyle(
           fontSize: 10,
@@ -858,7 +859,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 CircleAvatar(
                   radius: 28,
                   backgroundColor: _getUserRoleColor(user.role ?? 'user').withValues(alpha: 0.1),
-                  child: Text(
+                  child: TrText(
                     '${(user.firstName ?? 'U')[0]}${(user.lastName ?? 'U')[0]}'.toUpperCase(),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -872,7 +873,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TrText(
                         '${user.firstName ?? 'Unknown'} ${user.lastName ?? 'User'}',
                         style: const TextStyle(
                           fontSize: 18,
@@ -880,7 +881,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      TrText(
                         user.email ?? 'No email',
                         style: TextStyle(
                           fontSize: 13,
@@ -899,7 +900,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             
             const SizedBox(height: 24),
             
-            const Text(
+            const TrText(
               'Actions administrateur',
               style: TextStyle(
                 fontSize: 14,
@@ -914,7 +915,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             if (user.status != 'blocked')
               _buildActionButton(
                 icon: Icons.block,
-                label: 'Bloquer l\'utilisateur',
+                label: t("Bloquer l'utilisateur"),
                 color: AppDesign.expenseColor,
                 onPressed: () {
                   _changeUserStatus(user, 'blocked');
@@ -925,7 +926,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             if (user.status != 'disabled')
               _buildActionButton(
                 icon: Icons.pause_circle,
-                label: 'Désactiver le compte',
+                label: t('Désactiver le compte'),
                 color: Colors.orange,
                 onPressed: () {
                   _changeUserStatus(user, 'disabled');
@@ -936,7 +937,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             if (user.status != 'active')
               _buildActionButton(
                 icon: Icons.check_circle,
-                label: 'Réactiver le compte',
+                label: t('Réactiver le compte'),
                 color: AppDesign.incomeColor,
                 onPressed: () {
                   _changeUserStatus(user, 'active');
@@ -948,7 +949,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             
             _buildActionButton(
               icon: Icons.info_outline,
-              label: 'Voir les détails',
+              label: t('Voir les détails'),
               color: AppDesign.primaryIndigo,
               onPressed: () {
                 Navigator.pop(context);
@@ -984,7 +985,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 Icon(icon, color: color, size: 24),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Text(
+                  child: TrText(
                     label,
                     style: TextStyle(
                       fontSize: 15,
@@ -1032,7 +1033,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: TrText(message),
         backgroundColor: AppDesign.incomeColor,
         duration: const Duration(seconds: 2),
       ),
@@ -1043,7 +1044,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Détails de l\'utilisateur'),
+        title: const TrText('Détails de l\'utilisateur'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1060,7 +1061,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
+            child: const TrText('Fermer'),
           ),
         ],
       ),
@@ -1075,7 +1076,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         children: [
           SizedBox(
             width: 100,
-            child: Text(
+            child: TrText(
               '$label:',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
@@ -1084,7 +1085,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
           Expanded(
-            child: Text(
+            child: TrText(
               value,
               style: TextStyle(
                 fontSize: 13,

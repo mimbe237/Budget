@@ -15,6 +15,7 @@
         "flutter",
         "flutter_animate",
         "flutter_local_notifications",
+        "flutter_localizations",
         "flutter_svg",
         "google_fonts",
         "intl",
@@ -116,7 +117,7 @@
     },
     {
       "name": "intl",
-      "version": "0.19.0",
+      "version": "0.20.2",
       "dependencies": [
         "clock",
         "meta",
@@ -207,6 +208,15 @@
         "firebase_core_web",
         "flutter",
         "meta"
+      ]
+    },
+    {
+      "name": "flutter_localizations",
+      "version": "0.0.0",
+      "dependencies": [
+        "flutter",
+        "intl",
+        "path"
       ]
     },
     {

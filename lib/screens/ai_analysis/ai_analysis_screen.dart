@@ -9,6 +9,7 @@ import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../widgets/revolutionary_logo.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran d'analyse intelligente des finances personnelles
 /// Fournit des insights, détection d'anomalies et recommandations
@@ -398,7 +399,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           children: [
             const RevolutionaryLogo(size: 32),
             const SizedBox(width: 12),
-            const Text(
+            const TrText(
               'Analyses IA',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -494,7 +495,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                TrText(
                   'Conseils Financiers',
                   style: TextStyle(
                     fontSize: 20,
@@ -503,7 +504,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                   ),
                 ),
                 SizedBox(height: 4),
-                Text(
+                TrText(
                   'Analyse intelligente de vos finances',
                   style: TextStyle(
                     fontSize: 14,
@@ -543,7 +544,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
+                child: TrText(
                   message,
                   style: TextStyle(
                     color: badgeColor.withValues(alpha: 0.9),
@@ -555,7 +556,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           ),
           if (error != null) ...[
             const SizedBox(height: 6),
-            Text(
+            TrText(
               'Dernière erreur : $error',
               style: const TextStyle(color: Colors.orange, fontSize: 11),
             ),
@@ -570,7 +571,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        TrText(
           title,
           style: const TextStyle(
             fontSize: 20,
@@ -579,7 +580,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
+        TrText(
           subtitle,
           style: TextStyle(
             fontSize: 13,
@@ -629,7 +630,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
+            child: TrText(
               anomaly,
               style: TextStyle(
                 fontSize: 14,
@@ -656,7 +657,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           color: Colors.grey[100],
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Text(
+        child: const TrText(
           'Aucune transaction exceptionnelle détectée pour le moment.',
           style: TextStyle(color: Colors.grey),
         ),
@@ -689,7 +690,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    TrText(
                       tx.description ?? 'Transaction',
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
@@ -697,14 +698,14 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    TrText(
                       DateFormat('dd MMM').format(tx.date),
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ],
                 ),
               ),
-              Text(
+              TrText(
                 _currencyFormat.format(tx.amount),
                 style: const TextStyle(
                   color: AppDesign.expenseColor,
@@ -729,7 +730,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           border: Border.all(color: Colors.grey[300]!),
         ),
         child: const Center(
-          child: Text('Projection indisponible. Rafraîchissez pour relancer le calcul.'),
+          child: TrText('Projection indisponible. Rafraîchissez pour relancer le calcul.'),
         ),
       );
     }
@@ -767,7 +768,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
               ),
               const SizedBox(width: 12),
               const Expanded(
-                child: Text(
+                child: TrText(
                   'Solde de Fin de Mois Estimé',
                   style: TextStyle(
                     fontSize: 16,
@@ -779,7 +780,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          Text(
+          TrText(
             _currencyFormat.format(projection.estimatedEndOfMonthBalance),
             style: TextStyle(
               fontSize: 42,
@@ -792,14 +793,14 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           Column(
             children: [
               _buildProjectionDetail(
-                label: 'Dépenses fixes restantes',
+                label: t('Dépenses fixes restantes'),
                 value: projection.upcomingFixedExpensesTotal,
                 icon: Icons.calendar_month,
                 color: AppDesign.expenseColor,
               ),
               const SizedBox(height: 8),
               _buildProjectionDetail(
-                label: 'Transactions exceptionnelles surveillées',
+                label: t('Transactions exceptionnelles surveillées'),
                 value: projection.exceptionalTransactions.length.toDouble(),
                 icon: Icons.report,
                 color: AppDesign.primaryIndigo,
@@ -808,7 +809,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
+          TrText(
             isPositive
                 ? 'Votre solde devrait rester positif en fin de mois ✅'
                 : 'Attention : risque de solde négatif ⚠️',
@@ -826,7 +827,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                 color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
+              child: const TrText(
                 'Projection basée sur des données mockées (offline)',
                 style: TextStyle(color: Colors.orange, fontSize: 11),
               ),
@@ -850,14 +851,14 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         Icon(icon, color: color, size: 18),
         const SizedBox(width: 8),
         Flexible(
-          child: Text(
+          child: TrText(
             label,
             style: const TextStyle(fontSize: 13, color: Colors.grey),
             overflow: TextOverflow.ellipsis,
           ),
         ),
         const SizedBox(width: 8),
-        Text(
+        TrText(
           isCount ? value.toInt().toString() : _currencyFormat.format(value),
           style: TextStyle(
             fontSize: 14,
@@ -917,7 +918,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
               color: iconBgColor,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(
+            child: TrText(
               recommendation['icon'],
               style: const TextStyle(fontSize: 24),
             ),
@@ -927,7 +928,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                TrText(
                   recommendation['title'],
                   style: TextStyle(
                     fontSize: 15,
@@ -936,7 +937,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
+                TrText(
                   recommendation['description'],
                   style: TextStyle(
                     fontSize: 13,

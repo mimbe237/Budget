@@ -6,6 +6,7 @@ import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
 import 'global_financial_flow_block.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 enum ReportPeriod { currentMonth, lastMonth, quarter, year, custom }
 
@@ -84,7 +85,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur de chargement: $e')),
+          SnackBar(content: TrText('Erreur de chargement: $e')),
         );
       }
     }
@@ -230,7 +231,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              const TrText(
                 'Période :',
                 style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
               ),
@@ -246,11 +247,11 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                       fontSize: 15,
                     ),
                     items: const [
-                      DropdownMenuItem(value: ReportPeriod.currentMonth, child: Text('Mois en cours')),
-                      DropdownMenuItem(value: ReportPeriod.lastMonth, child: Text('Dernier mois')),
-                      DropdownMenuItem(value: ReportPeriod.quarter, child: Text('Trimestre')),
-                      DropdownMenuItem(value: ReportPeriod.year, child: Text('Année')),
-                      DropdownMenuItem(value: ReportPeriod.custom, child: Text('Personnalisé')),
+                      DropdownMenuItem(value: ReportPeriod.currentMonth, child: TrText('Mois en cours')),
+                      DropdownMenuItem(value: ReportPeriod.lastMonth, child: TrText('Dernier mois')),
+                      DropdownMenuItem(value: ReportPeriod.quarter, child: TrText('Trimestre')),
+                      DropdownMenuItem(value: ReportPeriod.year, child: TrText('Année')),
+                      DropdownMenuItem(value: ReportPeriod.custom, child: TrText('Personnalisé')),
                     ],
                     onChanged: _onPeriodChanged,
                   ),
@@ -259,7 +260,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                     IconButton(
                       icon: const Icon(Icons.edit_calendar, color: AppDesign.primaryIndigo, size: 20),
                       onPressed: _selectCustomDateRange,
-                      tooltip: 'Modifier les dates',
+                      tooltip: t('Modifier les dates'),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -283,7 +284,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                   children: [
                     const Icon(Icons.date_range, size: 14, color: AppDesign.primaryIndigo),
                     const SizedBox(width: 8),
-                    Text(
+                    TrText(
                       dateRangeString,
                       style: const TextStyle(
                         fontSize: 13,
@@ -344,14 +345,14 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const TrText(
             'Évolution du Cashflow',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           Expanded(
             child: spots.isEmpty
-                ? const Center(child: Text('Pas assez de données'))
+                ? const Center(child: TrText('Pas assez de données'))
                 : LineChart(
                     LineChartData(
                       gridData: FlGridData(show: false),
@@ -367,7 +368,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                               final date = range.start.add(Duration(days: value.toInt()));
                               return Padding(
                                 padding: const EdgeInsets.only(top: 8.0),
-                                child: Text(
+                                child: TrText(
                                   DateFormat('dd/MM').format(date),
                                   style: const TextStyle(fontSize: 10, color: Colors.grey),
                                 ),
@@ -426,14 +427,14 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const TrText(
             'Top Dépenses',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           Expanded(
             child: top5.isEmpty
-                ? const Center(child: Text('Aucune dépense'))
+                ? const Center(child: TrText('Aucune dépense'))
                 : BarChart(
                     BarChartData(
                       alignment: BarChartAlignment.spaceAround,
@@ -471,7 +472,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                               if (value.toInt() >= top5.length) return const SizedBox();
                               return Padding(
                                 padding: const EdgeInsets.only(top: 8.0),
-                                child: Text(
+                                child: TrText(
                                   top5[value.toInt()].key.length > 6 
                                       ? '${top5[value.toInt()].key.substring(0, 6)}...' 
                                       : top5[value.toInt()].key,
@@ -537,7 +538,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const TrText(
             'Détail par Catégorie',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
@@ -545,7 +546,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
           if (sortedEntries.isEmpty)
             const Padding(
               padding: EdgeInsets.all(16.0),
-              child: Center(child: Text('Aucune donnée')),
+              child: Center(child: TrText('Aucune donnée')),
             )
           else
             ListView.separated(
@@ -561,7 +562,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                   onTap: () {
                     // TODO: Navigation vers le détail de la catégorie
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Détail de ${entry.key} à venir')),
+                      SnackBar(content: TrText('Détail de ${entry.key} à venir')),
                     );
                   },
                   child: Row(
@@ -574,7 +575,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
-                          child: Text(
+                          child: TrText(
                             entry.key.isNotEmpty ? entry.key[0].toUpperCase() : '?',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
@@ -588,7 +589,7 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            TrText(
                               entry.key,
                               style: const TextStyle(fontWeight: FontWeight.w600),
                             ),
@@ -609,11 +610,11 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text(
+                          TrText(
                             '${entry.value.toStringAsFixed(2)} €',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          Text(
+                          TrText(
                             '${(percentage * 100).toStringAsFixed(1)}%',
                             style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                           ),

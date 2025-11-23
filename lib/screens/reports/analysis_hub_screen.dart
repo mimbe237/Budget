@@ -3,6 +3,7 @@ import '../../constants/app_design.dart';
 import '../ai_analysis/ai_analysis_screen.dart';
 import 'advanced_reports_screen.dart';
 import '../../widgets/modern_page_app_bar.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 class AnalysisHubScreen extends StatefulWidget {
   const AnalysisHubScreen({super.key});
@@ -30,8 +31,8 @@ class _AnalysisHubScreenState extends State<AnalysisHubScreen> with SingleTicker
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ModernPageAppBar(
-        title: 'Analyses & Rapports',
-        subtitle: 'Visualisez vos données et insights IA',
+        title: t('Analyses & Rapports'),
+        subtitle: t('Visualisez vos données et insights IA'),
         icon: Icons.bar_chart_rounded,
         showProfile: true,
         bottom: TabBar(

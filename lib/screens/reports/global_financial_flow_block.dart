@@ -5,6 +5,7 @@ import '../../models/iou.dart';
 import '../../models/account.dart';
 import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 class GlobalFinancialFlowBlock extends StatefulWidget {
   final String userId;
@@ -177,12 +178,12 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const TrText(
               'Vue 360° des flux financiers',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
-            Text(
+            TrText(
               'Tous les mouvements d\'argent sur la période sélectionnée',
               style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w600),
             ),
@@ -235,7 +236,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
             SizedBox(
               width: cardWidth,
               child: _flowCard(
-                label: 'Revenus',
+                label: t('Revenus'),
                 amount: _totalIncome,
                 color: AppDesign.successGreen,
                 icon: Icons.arrow_upward_rounded,
@@ -245,7 +246,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
             SizedBox(
               width: cardWidth,
               child: _flowCard(
-                label: 'Dépenses',
+                label: t('Dépenses'),
                 amount: _totalExpense,
                 color: AppDesign.dangerRed,
                 icon: Icons.arrow_downward_rounded,
@@ -273,7 +274,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
             SizedBox(
               width: cardWidth,
               child: _flowCard(
-                label: 'Épargne Directe',
+                label: t('Épargne Directe'),
                 amount: _totalSavings,
                 color: AppDesign.primaryIndigo,
                 emoji: '🏦',
@@ -285,7 +286,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
             SizedBox(
               width: cardWidth,
               child: _flowCard(
-                label: 'Objectifs Financés',
+                label: t('Objectifs Financés'),
                 amount: _totalGoalFunding,
                 color: AppDesign.primaryIndigo,
                 emoji: '🎯',
@@ -323,7 +324,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
             SizedBox(
               width: cardWidth,
               child: _flowCard(
-                label: 'Emprunté',
+                label: t('Emprunté'),
                 amount: _totalBorrowed,
                 color: AppDesign.warningOrange,
                 icon: Icons.trending_up_rounded,
@@ -333,7 +334,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
             SizedBox(
               width: cardWidth,
               child: _flowCard(
-                label: 'Prêté',
+                label: t('Prêté'),
                 amount: _totalLent,
                 color: Colors.blueGrey,
                 icon: Icons.outbond_rounded,
@@ -343,7 +344,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
             SizedBox(
               width: cardWidth,
               child: _flowCard(
-                label: 'Remboursé',
+                label: t('Remboursé'),
                 amount: _totalRepaid,
                 color: Colors.grey[800]!,
                 icon: Icons.check_circle_outline_rounded,
@@ -360,7 +361,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        TrText(
           title.toUpperCase(),
           style: TextStyle(
             fontSize: 12,
@@ -370,7 +371,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
           ),
         ),
         const SizedBox(height: 2),
-        Text(
+        TrText(
           subtitle,
           style: TextStyle(
             color: Colors.grey[600],
@@ -414,10 +415,10 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
             ),
             child: icon != null
                 ? Icon(icon, color: color, size: 20)
-                : Text(emoji ?? '', style: TextStyle(fontSize: 18, color: color)),
+                : TrText(emoji ?? '', style: TextStyle(fontSize: 18, color: color)),
           ),
           const SizedBox(height: 10),
-          Text(
+          TrText(
             label,
             style: TextStyle(
               color: textColor,
@@ -426,7 +427,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          TrText(
             _formatAmount(amount),
             style: TextStyle(
               color: valueColor,

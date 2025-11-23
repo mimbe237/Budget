@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'services/mock_data_service.dart';
-import 'screens/onboarding/onboarding_wizard_screen.dart';
-import 'screens/transactions/transaction_form_screen.dart';
-import 'screens/dashboard/dashboard_screen.dart';
-import 'screens/accounts/account_management_screen.dart';
-import 'screens/budget/budget_planner_screen.dart';
-import 'screens/ious/iou_tracking_screen.dart';
-import 'screens/goals/goal_funding_screen.dart';
+import 'package:provider/provider.dart';
+import 'l10n/app_localizations.dart';
 import 'screens/navigation/main_navigation_shell.dart';
 import 'screens/auth/auth_screen.dart';
+import 'screens/dashboard/dashboard_screen.dart';
+import 'screens/transactions/transaction_form_screen.dart';
 import 'models/transaction.dart' as app_transaction;
 
 void main() async {
@@ -30,7 +27,19 @@ void main() async {
       print('⚠️ Exécutez "flutterfire configure" pour configurer Firebase correctement');
     }
   
-  runApp(const BudgetApp());
+  runApp(const AppBootstrap());
+}
+
+class AppBootstrap extends StatelessWidget {
+  const AppBootstrap({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => LocaleProvider()..loadLocale(),
+      child: const BudgetApp(),
+    );
+  }
 }
 
 class BudgetApp extends StatelessWidget {
@@ -38,9 +47,19 @@ class BudgetApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = context.watch<LocaleProvider>();
+
     return MaterialApp(
-      title: 'Budget Pro',
+      title: t('Budget Pro'),
       debugShowCheckedModeBanner: false,
+      locale: localeProvider.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -160,12 +179,12 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: const DashboardScreen(),
+      body: const MainNavigationShell(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showTransactionTypeDialog(context),
         backgroundColor: const Color(0xFF6366F1),
         icon: const Icon(Icons.add),
-        label: const Text('Transaction'),
+        label: const TrText('Transaction'),
       ),
     );
   }
@@ -181,7 +200,7 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            const TrText(
               'Nouvelle Transaction',
               style: TextStyle(
                 fontSize: 20,
@@ -256,7 +275,7 @@ class HomeScreen extends StatelessWidget {
         children: [
           Icon(icon, size: 32),
           const SizedBox(height: 8),
-          Text(
+          TrText(
             label,
             style: const TextStyle(
               fontSize: 16,

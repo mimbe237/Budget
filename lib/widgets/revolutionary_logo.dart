@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../constants/app_design.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 class RevolutionaryLogo extends StatelessWidget {
   final double size;
@@ -28,7 +29,7 @@ class RevolutionaryLogo extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
+              TrText(
                 'Budget',
                 style: TextStyle(
                   fontSize: size * 0.35,
@@ -38,7 +39,7 @@ class RevolutionaryLogo extends StatelessWidget {
                   height: 1.0,
                 ),
               ),
-              Text(
+              TrText(
                 'Pro',
                 style: TextStyle(
                   fontSize: size * 0.32,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_design.dart';
 import '../screens/navigation/main_navigation_shell.dart';
 import 'revolutionary_logo.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -43,7 +44,7 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (showHome) {
       combinedActions.add(
         IconButton(
-          tooltip: 'Accueil',
+          tooltip: t('Accueil'),
           icon: const Icon(Icons.home_outlined, color: AppDesign.primaryIndigo),
           onPressed: onHomeTap ??
               () {
@@ -63,17 +64,17 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
         Padding(
           padding: const EdgeInsets.only(right: 8),
           child: PopupMenuButton<int>(
-            tooltip: 'Profil',
+            tooltip: t('Profil'),
             offset: const Offset(0, 42),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             itemBuilder: (context) => const [
               PopupMenuItem<int>(
                 value: 0,
-                child: Text('Profil'),
+                child: TrText('Profil'),
               ),
               PopupMenuItem<int>(
                 value: 1,
-                child: Text('Paramètres'),
+                child: TrText('Paramètres'),
               ),
             ],
             onSelected: (_) {},
@@ -99,7 +100,7 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
               children: [
                 const RevolutionaryLogo(size: 48),
                 const SizedBox(height: 10),
-                Text(
+                TrText(
                   title,
                   style: const TextStyle(
                     fontSize: 20,
@@ -110,7 +111,7 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                Text(
+                TrText(
                   subtitle,
                   style: const TextStyle(
                     fontSize: 13,
@@ -130,7 +131,7 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      TrText(
                         title,
                         style: const TextStyle(
                           fontSize: 20,
@@ -141,7 +142,7 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      Text(
+                      TrText(
                         subtitle,
                         style: const TextStyle(
                           fontSize: 13,

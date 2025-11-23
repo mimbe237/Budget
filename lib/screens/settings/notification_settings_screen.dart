@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/notification_service.dart';
 import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran de paramètres des notifications
 class NotificationSettingsScreen extends StatefulWidget {
@@ -28,7 +29,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           children: [
             const RevolutionaryLogo(size: 32),
             const SizedBox(width: 12),
-            const Text(
+            const TrText(
               'Notifications',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -47,8 +48,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           // Section Alertes
           _buildSectionHeader('Alertes Automatiques'),
           _buildSwitchTile(
-            title: 'Alertes Budget',
-            subtitle: 'Recevoir une notification lors d\'un dépassement',
+            title: t('Alertes Budget'),
+            subtitle: t("Recevoir une notification lors d'un dépassement"),
             icon: Icons.warning_amber,
             iconColor: AppDesign.expenseColor,
             value: _budgetAlertsEnabled,
@@ -63,8 +64,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             },
           ),
           _buildSwitchTile(
-            title: 'Alertes Objectifs',
-            subtitle: 'Notification quand un objectif est atteint',
+            title: t('Alertes Objectifs'),
+            subtitle: t('Notification quand un objectif est atteint'),
             icon: Icons.flag,
             iconColor: AppDesign.primaryPurple,
             value: _goalAlertsEnabled,
@@ -84,7 +85,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           // Section Rappels
           _buildSectionHeader('Rappels'),
           _buildSwitchTile(
-            title: 'Rappel Quotidien',
+            title: t('Rappel Quotidien'),
             subtitle: 'Recevoir un rappel chaque jour à ${_reminderTime.format(context)}',
             icon: Icons.schedule,
             iconColor: AppDesign.primaryIndigo,
@@ -108,19 +109,19 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           // Section Tests
           _buildSectionHeader('Tests'),
           _buildTestButton(
-            title: 'Tester Alerte Budget',
+            title: t('Tester Alerte Budget'),
             icon: Icons.notifications_active,
             color: AppDesign.expenseColor,
             onPressed: () => _showTestNotification('budget'),
           ),
           _buildTestButton(
-            title: 'Tester Alerte Objectif',
+            title: t('Tester Alerte Objectif'),
             icon: Icons.emoji_events,
             color: AppDesign.incomeColor,
             onPressed: () => _showTestNotification('goal'),
           ),
           _buildTestButton(
-            title: 'Tester Rappel Quotidien',
+            title: t('Tester Rappel Quotidien'),
             icon: Icons.alarm,
             color: AppDesign.primaryIndigo,
             onPressed: () => _showTestNotification('daily'),
@@ -131,26 +132,26 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           // Section Actions
           _buildSectionHeader('Actions'),
           _buildActionButton(
-            title: 'Voir notifications en attente',
+            title: t('Voir notifications en attente'),
             icon: Icons.pending_actions,
             onPressed: _showPendingNotifications,
           ),
           _buildActionButton(
-            title: 'Paramètres système',
+            title: t('Paramètres système'),
             icon: Icons.settings,
             onPressed: () async {
               await _notificationService.openNotificationSettings();
             },
           ),
           _buildActionButton(
-            title: 'Annuler toutes les notifications',
+            title: t('Annuler toutes les notifications'),
             icon: Icons.clear_all,
             color: AppDesign.expenseColor,
             onPressed: () async {
               await _notificationService.cancelAllNotifications();
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Toutes les notifications annulées')),
+                  const SnackBar(content: TrText('Toutes les notifications annulées')),
                 );
               }
             },
@@ -165,7 +166,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Text(
+      child: TrText(
         title,
         style: const TextStyle(
           fontSize: 14,
@@ -187,11 +188,11 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: SwitchListTile(
-        title: Text(
+        title: TrText(
           title,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(subtitle),
+        subtitle: TrText(subtitle),
         secondary: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -219,11 +220,11 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           ),
           child: const Icon(Icons.access_time, color: AppDesign.primaryIndigo),
         ),
-        title: const Text(
+        title: const TrText(
           'Heure du rappel',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(_reminderTime.format(context)),
+        subtitle: TrText(_reminderTime.format(context)),
         trailing: const Icon(Icons.edit),
         onTap: () async {
           final TimeOfDay? picked = await showTimePicker(
@@ -237,7 +238,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             await _notificationService.scheduleDailyReminder(picked);
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Rappel programmé à ${picked.format(context)}')),
+                SnackBar(content: TrText('Rappel programmé à ${picked.format(context)}')),
               );
             }
           }
@@ -263,7 +264,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           ),
           child: Icon(icon, color: color),
         ),
-        title: Text(title),
+        title: TrText(title),
         trailing: const Icon(Icons.play_arrow),
         onTap: onPressed,
       ),
@@ -280,7 +281,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
         leading: Icon(icon, color: color ?? AppDesign.primaryIndigo),
-        title: Text(title),
+        title: TrText(title),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: onPressed,
       ),
@@ -306,7 +307,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Notification test envoyée !'),
+          content: TrText('Notification test envoyée !'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -321,9 +322,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Notifications en attente'),
+        title: const TrText('Notifications en attente'),
         content: pending.isEmpty
-            ? const Text('Aucune notification programmée')
+            ? const TrText('Aucune notification programmée')
             : SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
@@ -333,8 +334,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     final notif = pending[index];
                     return ListTile(
                       leading: const Icon(Icons.schedule),
-                      title: Text(notif.title ?? 'Sans titre'),
-                      subtitle: Text(notif.body ?? 'Sans description'),
+                      title: TrText(notif.title ?? 'Sans titre'),
+                      subtitle: TrText(notif.body ?? 'Sans description'),
                     );
                   },
                 ),
@@ -342,7 +343,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
+            child: const TrText('Fermer'),
           ),
         ],
       ),

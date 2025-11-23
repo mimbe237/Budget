@@ -5,6 +5,7 @@ import '../../services/mock_data_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/modern_page_app_bar.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran de suivi des dettes (je dois) et créances (on me doit)
 class IOUTrackingScreen extends StatefulWidget {
@@ -114,9 +115,9 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
 
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
-      appBar: const ModernPageAppBar(
-        title: 'Suivi Dettes & Créances',
-        subtitle: 'Ce que je dois et ce qu’on me doit',
+      appBar: ModernPageAppBar(
+        title: t('Suivi Dettes & Créances'),
+        subtitle: t('Ce que je dois et ce qu’on me doit'),
         icon: Icons.handshake_rounded,
         showProfile: true,
       ),
@@ -159,7 +160,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
         backgroundColor: AppDesign.primaryIndigo,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text(
+        label: const TrText(
           'Nouvelle dette / créance',
           style: TextStyle(
             color: Colors.white,
@@ -193,7 +194,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     size: 32,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  const TrText(
                     'Je dois',
                     style: TextStyle(
                       fontSize: 14,
@@ -202,7 +203,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  TrText(
                     '${totalDebt.toStringAsFixed(2)} €',
                     style: const TextStyle(
                       fontSize: 22,
@@ -234,7 +235,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     size: 32,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  const TrText(
                     'On me doit',
                     style: TextStyle(
                       fontSize: 14,
@@ -243,7 +244,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  TrText(
                     '${totalReceivable.toStringAsFixed(2)} €',
                     style: const TextStyle(
                       fontSize: 22,
@@ -265,7 +266,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
       children: [
         Icon(icon, color: color.withValues(alpha: 0.8), size: 22),
         const SizedBox(width: 8),
-        Text(
+        TrText(
           title,
           style: TextStyle(
             fontSize: 20,
@@ -280,7 +281,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
             color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(
+          child: TrText(
             '$count actif${count > 1 ? 's' : ''}',
             style: TextStyle(
               fontSize: 12,
@@ -333,7 +334,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: Center(
-                      child: Text(
+                      child: TrText(
                         iou.partyName[0].toUpperCase(),
                         style: TextStyle(
                           fontSize: 24,
@@ -348,7 +349,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        TrText(
                           iou.partyName,
                           style: const TextStyle(
                             fontSize: 18,
@@ -356,7 +357,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                           ),
                         ),
                         if (iou.description != null)
-                          Text(
+                          TrText(
                             iou.description!,
                             style: TextStyle(
                               fontSize: 12,
@@ -372,7 +373,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     Icon(Icons.warning_amber_rounded, color: Colors.orange.withValues(alpha: 0.9), size: 24),
                   IconButton(
                     icon: const Icon(Icons.receipt_long_outlined, color: Colors.grey),
-                    tooltip: 'Historique',
+                    tooltip: t('Historique'),
                     onPressed: () {
                       setState(() {
                         if (_selectedIOUForHistory == iou.iouId) {
@@ -394,11 +395,11 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TrText(
                         'Montant initial',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
-                      Text(
+                      TrText(
                         '${iou.originalAmount.toStringAsFixed(2)} €',
                         style: const TextStyle(
                           fontSize: 16,
@@ -410,11 +411,11 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
+                      TrText(
                         isCompleted ? 'Soldé' : 'Reste',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
-                      Text(
+                      TrText(
                         '${iou.currentBalance.toStringAsFixed(2)} €',
                         style: TextStyle(
                           fontSize: 22,
@@ -446,13 +447,13 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  TrText(
                     'Remboursé: ${(progress * 100).toStringAsFixed(0)}%',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   if (iou.dueDate != null)
-                    Text(
-                      'Échéance: ${DateFormat('dd/MM/yyyy').format(iou.dueDate!)}',
+                    TrText(
+                      "Échéance: ${DateFormat('dd/MM/yyyy').format(iou.dueDate!)}",
                       style: TextStyle(
                         fontSize: 12,
                         color: isOverdue ? Colors.orange : Colors.grey[600],
@@ -480,7 +481,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                       foregroundColor: Colors.white,
                     ),
                     icon: Icon(isReceivable ? Icons.account_balance_wallet : Icons.payment),
-                    label: Text(isReceivable ? 'Recevoir paiement' : 'Enregistrer paiement'),
+                    label: TrText(isReceivable ? 'Recevoir paiement' : 'Enregistrer paiement'),
                   ),
                 ),
               ],
@@ -493,9 +494,9 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
 
   Widget _buildIOUHistory(IOU iou) {
     final entries = [
-      _IouTx(label: 'Paiement partiel', amount: 100, date: DateTime.now().subtract(const Duration(days: 7))),
-      _IouTx(label: 'Paiement partiel', amount: 150, date: DateTime.now().subtract(const Duration(days: 20))),
-      _IouTx(label: 'Initial', amount: iou.originalAmount, date: iou.createdAt),
+      _IouTx(label: t('Paiement partiel'), amount: 100, date: DateTime.now().subtract(const Duration(days: 7))),
+      _IouTx(label: t('Paiement partiel'), amount: 150, date: DateTime.now().subtract(const Duration(days: 20))),
+      _IouTx(label: t('Initial'), amount: iou.originalAmount, date: iou.createdAt),
     ];
 
     return Container(
@@ -509,7 +510,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const TrText(
             'Historique des mouvements',
             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
           ),
@@ -539,18 +540,18 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        TrText(
                           e.label,
                           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                         ),
-                        Text(
+                        TrText(
                           '${e.date.day}/${e.date.month}/${e.date.year}',
                           style: TextStyle(color: Colors.grey[600], fontSize: 12),
                         ),
                       ],
                     ),
                   ),
-                  Text(
+                  TrText(
                     '$prefix${e.amount.toStringAsFixed(2)} €',
                     style: TextStyle(
                       color: color,
@@ -579,7 +580,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
             _ious.add(newIOU);
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ajout enregistré avec succès !')),
+            const SnackBar(content: TrText('Ajout enregistré avec succès !')),
           );
         },
       ),
@@ -604,7 +605,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
+              content: TrText(
                 updatedIOU.type == IOUType.receivable
                     ? 'Paiement reçu enregistré !'
                     : 'Paiement enregistré !',
@@ -665,14 +666,14 @@ class _AddIOUModalState extends State<AddIOUModal> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                const Text(
-                  'Nouvelle dette ou créance',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                  const TrText(
+                    'Nouvelle dette ou créance',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
                 
                 // Toggle Switch Type
                 Container(
@@ -723,9 +724,9 @@ class _AddIOUModalState extends State<AddIOUModal> {
                 TextFormField(
                   controller: _amountController,
                   decoration: InputDecoration(
-                    labelText: 'Montant',
+                    labelText: t('Montant'),
                     prefixIcon: Icon(Icons.euro, color: color),
-                    suffixText: '€',
+                    suffixText: t('€'),
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
@@ -746,8 +747,8 @@ class _AddIOUModalState extends State<AddIOUModal> {
                 // Description
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (optionnel)',
+                  decoration: InputDecoration(
+                    labelText: t('Description (optionnel)'),
                     prefixIcon: Icon(Icons.note),
                   ),
                   maxLines: 2,
@@ -758,10 +759,10 @@ class _AddIOUModalState extends State<AddIOUModal> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.calendar_today),
-                  title: Text(
+                  title: TrText(
                     _dueDate == null
                         ? 'Date d\'échéance (optionnel)'
-                        : 'Échéance: ${DateFormat('dd/MM/yyyy').format(_dueDate!)}',
+                        : "Échéance: ${DateFormat('dd/MM/yyyy').format(_dueDate!)}",
                   ),
                   trailing: _dueDate != null
                       ? IconButton(
@@ -798,8 +799,8 @@ class _AddIOUModalState extends State<AddIOUModal> {
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: Text(
-                      'Ajouter ${isReceivable ? 'la créance' : 'la dette'}',
+                    child: TrText(
+                      "Ajouter ${isReceivable ? 'la créance' : 'la dette'}",
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -812,7 +813,7 @@ class _AddIOUModalState extends State<AddIOUModal> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildTypeButton(String label, IconData icon, Color color, IOUType type) {
@@ -839,7 +840,7 @@ class _AddIOUModalState extends State<AddIOUModal> {
               size: 20,
             ),
             const SizedBox(width: 8),
-            Text(
+            TrText(
               label,
               style: TextStyle(
                 color: isSelected ? Colors.white : Colors.grey,
@@ -925,44 +926,44 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          isReceivable ? Icons.account_balance_wallet : Icons.payment,
+                          color: color,
+                          size: 28,
+                        ),
                       ),
-                      child: Icon(
-                        isReceivable ? Icons.account_balance_wallet : Icons.payment,
-                        color: color,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isReceivable ? 'Recevoir un paiement' : 'Enregistrer un paiement',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TrText(
+                              isReceivable ? 'Recevoir un paiement' : 'Enregistrer un paiement',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Text(
-                            widget.iou.partyName,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
+                            TrText(
+                              widget.iou.partyName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 const SizedBox(height: 24),
                 
                 // Info sur le solde restant
@@ -978,11 +979,11 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          const TrText(
                             'Solde restant',
                             style: TextStyle(fontSize: 14),
                           ),
-                          Text(
+                          TrText(
                             '${widget.iou.currentBalance.toStringAsFixed(2)} €',
                             style: TextStyle(
                               fontSize: 24,
@@ -1010,9 +1011,9 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
                 TextFormField(
                   controller: _amountController,
                   decoration: InputDecoration(
-                    labelText: 'Montant du paiement',
+                    labelText: t('Montant du paiement'),
                     prefixIcon: Icon(Icons.euro, color: color),
-                    suffixText: '€',
+                    suffixText: t('€'),
                     helperText: 'Maximum: ${widget.iou.currentBalance.toStringAsFixed(2)} €',
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1039,7 +1040,7 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
                 const SizedBox(height: 16),
                 
                 // Boutons rapides
-                const Text(
+                const TrText(
                   'Montants rapides',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
@@ -1074,7 +1075,7 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
                               color: Colors.white,
                             ),
                           )
-                        : Text(
+                        : TrText(
                             isReceivable ? 'Recevoir le paiement' : 'Enregistrer le paiement',
                             style: const TextStyle(
                               fontSize: 16,
@@ -1088,12 +1089,12 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildQuickAmountButton(String label, double amount) {
     return ActionChip(
-      label: Text(label),
+      label: TrText(label),
       onPressed: () {
         setState(() {
           _amountController.text = amount.toStringAsFixed(2);

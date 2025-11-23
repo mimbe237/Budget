@@ -7,6 +7,7 @@ import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
 import '../auth/auth_screen.dart';
 import '../accounts/account_management_screen.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Formulaire pour ajouter une transaction (dépense ou revenu)
 /// Type déterminé par le paramètre transactionType: 'expense' ou 'income'
@@ -107,14 +108,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     
     if (_selectedAccountId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez sélectionner un compte.')),
+        const SnackBar(content: TrText('Veuillez sélectionner un compte.')),
       );
       return;
     }
 
     if (_selectedCategoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez sélectionner une catégorie.')),
+        const SnackBar(content: TrText('Veuillez sélectionner une catégorie.')),
       );
       return;
     }
@@ -122,7 +123,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final userId = _firestoreService.currentUserId;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vous devez être connecté pour ajouter une transaction.')),
+        const SnackBar(content: TrText('Vous devez être connecté pour ajouter une transaction.')),
       );
       return;
     }
@@ -152,15 +153,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Discipline Budgétaire 🛡️'),
-                  content: const Text(
+                  title: const TrText('Discipline Budgétaire 🛡️'),
+                  content: const TrText(
                     'Vous devez enregistrer un revenu ou une entrée de fonds avant d\'ajouter une dépense.\n\n'
                     'Votre solde actuel est insuffisant pour effectuer cette opération.',
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Compris'),
+                      child: const TrText('Compris'),
                     ),
                   ],
                 ),
@@ -176,15 +177,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Solde Insuffisant ⚠️'),
-                  content: Text(
+                  title: const TrText('Solde Insuffisant ⚠️'),
+                  content: TrText(
                     'Cette dépense de ${_amount.toStringAsFixed(2)} € dépasse le solde disponible de ${currentBalance.toStringAsFixed(2)} € sur ce compte.\n\n'
                     'Veuillez choisir un autre compte ou enregistrer un revenu.',
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('OK'),
+                      child: const TrText('OK'),
                     ),
                   ],
                 ),
@@ -214,7 +215,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
+            content: TrText(
               '${_isExpense ? 'Dépense' : 'Revenu'} enregistré${_isExpense ? 'e' : ''} avec succès !',
             ),
             backgroundColor: Colors.green,
@@ -227,7 +228,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         Navigator.of(context).pop(); // Fermer le loader
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur : $e'),
+            content: TrText('Erreur : $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -324,7 +325,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: Text(
+        title: TrText(
           _isExpense ? 'Nouvelle Dépense' : 'Nouveau Revenu',
           style: TextStyle(
             color: _accentColor,
@@ -345,7 +346,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           }
           
           if (accountSnapshot.hasError) {
-            return Center(child: Text('Erreur chargement comptes: ${accountSnapshot.error}'));
+            return Center(child: TrText('Erreur chargement comptes: ${accountSnapshot.error}'));
           }
 
           final accounts = accountSnapshot.data ?? [];
@@ -449,7 +450,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             builder: (context, snapshot) {
               final categories = snapshot.data ?? [];
               return ActionChip(
-                label: Text(template.name),
+                label: TrText(template.name),
                 backgroundColor: isSelected ? _accentColor.withValues(alpha: 0.2) : Colors.grey[100],
                 labelStyle: TextStyle(
                   color: isSelected ? _accentColor : Colors.grey[800],
@@ -478,12 +479,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text(
+                  TrText(
                     'Connexion requise',
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                   SizedBox(height: 4),
-                  Text(
+                  TrText(
                     'Connectez-vous pour enregistrer des revenus ou dépenses.',
                     style: TextStyle(color: Colors.grey),
                   ),
@@ -497,7 +498,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   MaterialPageRoute(builder: (_) => const AuthScreen()),
                 );
               },
-              child: const Text('Se connecter'),
+              child: const TrText('Se connecter'),
             ),
           ],
         ),
@@ -522,7 +523,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   size: 28,
                 ),
                 const SizedBox(width: 12),
-                Text(
+                TrText(
                   'Montant',
                   style: TextStyle(
                     fontSize: 16,
@@ -538,7 +539,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       color: _accentColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
+                    child: TrText(
                       _selectedTemplate!,
                       style: TextStyle(
                         color: _accentColor,
@@ -560,8 +561,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 color: _accentColor,
               ),
               decoration: InputDecoration(
-                hintText: '0.00',
-                suffixText: 'EUR',
+                hintText: t('0.00'),
+                suffixText: t('EUR'),
                 border: InputBorder.none,
                 hintStyle: TextStyle(color: Colors.grey[300]),
               ),
@@ -597,7 +598,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               const Icon(Icons.error_outline, color: Colors.red),
               const SizedBox(width: 12),
               const Expanded(
-                child: Text(
+                child: TrText(
                   'Aucun compte disponible. Créez-en un d\'abord.',
                   style: TextStyle(color: Colors.red),
                 ),
@@ -612,7 +613,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   );
                 },
                 icon: const Icon(Icons.add_circle_outline, color: Colors.red),
-                label: const Text('Créer', style: TextStyle(color: Colors.red)),
+                label: const TrText('Créer', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
@@ -625,7 +626,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       itemHeight: null, // autorise plusieurs lignes sans overflow
       isDense: false,
       decoration: InputDecoration(
-        labelText: 'Compte',
+        labelText: t('Compte'),
         prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
         border: OutlineInputBorder(borderRadius: AppDesign.mediumRadius),
         filled: true,
@@ -640,7 +641,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Row(
               children: [
-                Text(account.icon ?? '💰', style: const TextStyle(fontSize: 24)),
+                TrText(account.icon ?? '💰', style: const TextStyle(fontSize: 24)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -648,12 +649,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
+                      TrText(
                         account.name,
                         style: const TextStyle(fontWeight: FontWeight.w600),
                         overflow: TextOverflow.ellipsis,
                       ),
-                      Text(
+                      TrText(
                         '${account.balance.toStringAsFixed(2)} ${account.currency}',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                         overflow: TextOverflow.ellipsis,
@@ -679,7 +680,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         color: Colors.orange[50],
         child: const Padding(
           padding: EdgeInsets.all(16.0),
-          child: Text(
+          child: TrText(
             'Aucune catégorie disponible.',
             style: TextStyle(color: Colors.orange),
           ),
@@ -692,7 +693,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       itemHeight: null, // autorise plusieurs lignes sans overflow
       isDense: false,
       decoration: InputDecoration(
-        labelText: 'Catégorie',
+        labelText: t('Catégorie'),
         prefixIcon: const Icon(Icons.category_outlined),
         border: OutlineInputBorder(borderRadius: AppDesign.mediumRadius),
         filled: true,
@@ -704,10 +705,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           value: category.categoryId,
           child: Row(
             children: [
-              Text(category.icon, style: const TextStyle(fontSize: 20)),
+              TrText(category.icon, style: const TextStyle(fontSize: 20)),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
+                child: TrText(
                   category.name,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -720,15 +721,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         setState(() => _selectedCategoryId = newValue);
       },
       validator: (value) => value == null ? 'Catégorie requise' : null,
-      hint: _selectedTemplate != null ? const Text('Catégorie liée au template') : null,
+      hint: _selectedTemplate != null ? const TrText('Catégorie liée au template') : null,
     );
   }
 
   Widget _buildDescriptionField() {
     return TextFormField(
       decoration: InputDecoration(
-        labelText: 'Description',
-        hintText: 'Ex: Courses du mois',
+        labelText: t('Description'),
+        hintText: t('Ex: Courses du mois'),
         prefixIcon: const Icon(Icons.description_outlined),
         border: OutlineInputBorder(borderRadius: AppDesign.mediumRadius),
         filled: true,
@@ -742,8 +743,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Widget _buildNoteField() {
     return TextFormField(
       decoration: InputDecoration(
-        labelText: 'Note (optionnel)',
-        hintText: 'Ajoutez une note...',
+        labelText: t('Note (optionnel)'),
+        hintText: t('Ajoutez une note...'),
         prefixIcon: const Icon(Icons.edit_note_outlined),
         border: OutlineInputBorder(borderRadius: AppDesign.mediumRadius),
         filled: true,
@@ -774,7 +775,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  TrText(
                     'Date',
                     style: TextStyle(
                       fontSize: 12,
@@ -782,7 +783,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  TrText(
                     '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
                     style: const TextStyle(
                       fontSize: 16,
@@ -802,8 +803,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Widget _buildTagsField() {
     return TextFormField(
       decoration: InputDecoration(
-        labelText: 'Tags (séparés par des virgules)',
-        hintText: 'Ex: urgent, mensuel, important',
+        labelText: t('Tags (séparés par des virgules)'),
+        hintText: t('Ex: urgent, mensuel, important'),
         prefixIcon: const Icon(Icons.local_offer_outlined),
         border: OutlineInputBorder(borderRadius: AppDesign.mediumRadius),
         filled: true,
@@ -832,7 +833,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         children: [
           const Icon(Icons.check_circle_outline, size: 24),
           const SizedBox(width: 12),
-          Text(
+          TrText(
             _isExpense ? 'ENREGISTRER LA DÉPENSE' : 'ENREGISTRER LE REVENU',
             style: const TextStyle(
               fontSize: 16,
