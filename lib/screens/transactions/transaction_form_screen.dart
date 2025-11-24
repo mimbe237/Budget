@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/account.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../models/category.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
 import '../auth/auth_screen.dart';
 import '../accounts/account_management_screen.dart';
@@ -562,7 +564,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               ),
               decoration: InputDecoration(
                 hintText: t('0.00'),
-                suffixText: t('EUR'),
+                suffixText: context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency),
                 border: InputBorder.none,
                 hintStyle: TextStyle(color: Colors.grey[300]),
               ),

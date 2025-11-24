@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:characters/characters.dart';
+import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/firestore_service.dart';
+import '../../services/currency_service.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../models/account.dart';
 import '../../models/category.dart';
@@ -411,7 +413,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
                     labelText: t('Min'),
-                    prefixText: t('€ '),
+                    prefixText: '${context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency)} ',
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
@@ -429,7 +431,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                   textInputAction: TextInputAction.done,
                   decoration: InputDecoration(
                     labelText: t('Max'),
-                    prefixText: t('€ '),
+                    prefixText: '${context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency)} ',
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),

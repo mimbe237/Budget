@@ -68,10 +68,6 @@ class AppLocalizations {
       });
     }
 
-    if (languageCode == 'en' && value == key) {
-      value = _autoTranslate(key);
-    }
-
     return value;
   }
 

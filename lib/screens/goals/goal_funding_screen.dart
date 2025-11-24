@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../models/models.dart';
 import '../../services/mock_data_service.dart';
+import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/modern_page_app_bar.dart';
@@ -308,12 +310,14 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                       'Économisé',
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
-                    TrText(
-                      '${saved.toStringAsFixed(2)} €',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                    Builder(
+                      builder: (context) => TrText(
+                        context.watch<CurrencyService>().formatAmount(saved),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -325,12 +329,14 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                       'Objectif',
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
-                    TrText(
-                      '${target.toStringAsFixed(2)} €',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                    Builder(
+                      builder: (context) => TrText(
+                        context.watch<CurrencyService>().formatAmount(target),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],

@@ -16,6 +16,7 @@ import '../trash/trash_screen.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:budget/services/currency_service.dart';
 
 /// Dashboard principal affichant le solde global, les performances mensuelles
 /// et l'historique récent des transactions en temps réel
@@ -246,7 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const SizedBox(height: AppDesign.spacingSmall),
       _buildRecentTransactionsList(),
       const SizedBox(height: AppDesign.spacingMedium),
-      _buildNotificationsCard(),
+      _buildSummaryByPocketCard(),
     ];
   }
 
@@ -277,7 +278,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const SizedBox(height: AppDesign.spacingSmall),
       _buildRecentTransactionsList(),
       const SizedBox(height: AppDesign.spacingMedium),
-      _buildNotificationsCard(),
+      _buildSummaryByPocketCard(),
     ];
   }
 
@@ -860,7 +861,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: const TextStyle(color: Colors.grey),
                 ),
                 trailing: TrText(
-                  '$prefix ${tx.amount.toStringAsFixed(2)} €',
+                  '$prefix ${context.watch<CurrencyService>().formatAmount(tx.amount)}',
                   style: TextStyle(
                     color: txColor,
                     fontWeight: FontWeight.bold,
@@ -951,33 +952,94 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildNotificationsCard() {
-    return Card(
-      elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            TrText(
-              'Notifications',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+    // Conservé pour compatibilité, non utilisé après remplacement
+    return const SizedBox.shrink();
+  }
+
+  /// Carte "Summary by pocket" – synthèse des poches avec Prévu / Engagé
+  Widget _buildSummaryByPocketCard() {
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      return CategoryBudgetProgressBlock._placeholderStaticCard(
+        title: t('Synthèse par poche'),
+        message: 'Connectez-vous pour voir vos poches.',
+      );
+    }
+
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+
+    final categories$ = _firestoreService.getCategoriesStream(userId, type: null);
+    final transactions$ = _firestoreService.getTransactionsStream(
+      userId,
+      startDate: startOfMonth,
+      endDate: now,
+      limit: 500,
+    );
+
+    return StreamBuilder<List<dynamic>>(
+      stream: CombineLatestStream.list([categories$, transactions$]),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Padding(
+            padding: EdgeInsets.all(12),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final categories = snapshot.data![0] as List<Category>;
+        final txs = snapshot.data![1] as List<Transaction>;
+
+        const defaultAllocation = 200.0;
+
+        final items = categories
+            .where((c) => c.type == CategoryType.expense && c.isActive)
+            .map((cat) {
+          final engaged = txs
+              .where((t) => t.categoryId == cat.categoryId && t.type == TransactionType.expense)
+              .fold<double>(0, (sum, t) => sum + t.amount);
+          return _PocketSummaryItem(
+            name: cat.name,
+            icon: cat.icon,
+            planned: defaultAllocation,
+            engaged: engaged,
+          );
+        }).toList();
+
+        if (items.isEmpty) {
+          return CategoryBudgetProgressBlock._placeholderStaticCard(
+            title: t('Synthèse par poche'),
+            message: 'Aucune catégorie de dépense active.',
+          );
+        }
+
+        return Card(
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppDesign.paddingMedium),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const TrText(
+                  'Summary by pocket',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                ...items.map((e) => _PocketSummaryRow(item: e)),
+              ],
             ),
-            SizedBox(height: 8),
-            TrText(
-              'Aucune notification pour le moment.',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
+
+  /// Ligne d'une poche avec libellés "Prévu" et "Engagé" et barre de progression
+  // ignore: unused_element
+  Widget _buildPocketRowForPreview(_PocketSummaryItem item) => _PocketSummaryRow(item: item);
 }
 
 /// Widget réutilisable pour les cartes d'insights financiers
@@ -1067,15 +1129,17 @@ class _InsightCard extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          TrText(
-            '${amount.toStringAsFixed(2)} €',
-            style: TextStyle(
-              color: color,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
+          Builder(
+            builder: (context) => TrText(
+              context.watch<CurrencyService>().formatAmount(amount, null, false),
+              style: TextStyle(
+                color: color,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1378,9 +1442,14 @@ class _CategoryProgressRow extends StatelessWidget {
                   ),
                 ],
               ),
-              TrText(
-                '${item.spent.toStringAsFixed(0)}€ / ${item.allocated.toStringAsFixed(0)}€',
-                style: spentStyle,
+              Builder(
+                builder: (context) {
+                  final currencyService = context.watch<CurrencyService>();
+                  return TrText(
+                    '${currencyService.formatAmount(item.spent, null, false)} / ${currencyService.formatAmount(item.allocated)}',
+                    style: spentStyle,
+                  );
+                },
               ),
             ],
           ),
@@ -1389,6 +1458,99 @@ class _CategoryProgressRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: progressValue.clamp(0.0, 1.0).toDouble(),
+              minHeight: 9,
+              backgroundColor: Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation<Color>(barColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PocketSummaryItem {
+  final String name;
+  final String icon;
+  final double planned;
+  final double engaged;
+
+  _PocketSummaryItem({
+    required this.name,
+    required this.icon,
+    required this.planned,
+    required this.engaged,
+  });
+}
+
+class _PocketSummaryRow extends StatelessWidget {
+  final _PocketSummaryItem item;
+
+  const _PocketSummaryRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = item.planned > 0 ? (item.engaged / item.planned) : 0.0;
+    Color barColor;
+    if (ratio >= 1) {
+      barColor = const Color(0xFFEF5350);
+    } else if (ratio >= 0.75) {
+      barColor = const Color(0xFF26A69A); // teal-ish like screenshot
+    } else {
+      barColor = const Color(0xFF26A69A);
+    }
+
+    final currency = context.watch<CurrencyService>();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      shape: BoxShape.circle,
+                    ),
+                    child: TrText(item.icon, style: const TextStyle(fontSize: 16)),
+                  ),
+                  const SizedBox(width: 10),
+                  TrText(
+                    item.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  TrText(
+                    '${t('Prévu')} ${currency.formatAmount(item.planned)}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  TrText(
+                    '${t('Engagé')} ${currency.formatAmount(item.engaged)}',
+                    style: const TextStyle(
+                      color: AppDesign.incomeColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: ratio.clamp(0.0, 1.0),
               minHeight: 9,
               backgroundColor: Colors.grey.shade200,
               valueColor: AlwaysStoppedAnimation<Color>(barColor),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../models/models.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
+import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
 import '../transactions/transactions_list_screen.dart';
@@ -81,9 +83,17 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
 
           final totalBalance = accounts.fold<double>(0.0, (sum, acc) => sum + acc.balance);
           final currency = accounts.isNotEmpty ? accounts.first.currency : 'EUR';
+          final extraBottomPadding = kBottomNavigationBarHeight +
+              MediaQuery.of(context).padding.bottom +
+              140; // espace pour la bottom bar + FABs
 
           return ListView.builder(
-            padding: const EdgeInsets.all(AppDesign.paddingMedium),
+            padding: EdgeInsets.fromLTRB(
+              AppDesign.paddingMedium,
+              AppDesign.paddingMedium,
+              AppDesign.paddingMedium,
+              AppDesign.paddingMedium + extraBottomPadding,
+            ),
             itemCount: accounts.length + 1,
             itemBuilder: (context, index) {
               if (index == 0) {
@@ -106,40 +116,47 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           );
         },
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          StreamBuilder<List<Account>>(
-            stream: _accountsStream,
-            builder: (context, snapshot) {
-              final accounts = snapshot.data ?? [];
-              if (accounts.length < 2) return const SizedBox.shrink();
-              
-              return FloatingActionButton(
-                heroTag: 'transfer',
-                onPressed: () => _showTransferModal(accounts),
-                backgroundColor: AppDesign.transferColor,
-                foregroundColor: Colors.white,
-                child: const Icon(Icons.swap_horiz),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton.extended(
-            heroTag: 'add',
-            onPressed: () => _showAddAccountModal(),
-            backgroundColor: AppDesign.primaryIndigo,
-            foregroundColor: Colors.white,
-            icon: const Icon(Icons.add),
-            label: const TrText(
-              'Compte',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 12,
+          right: 4,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StreamBuilder<List<Account>>(
+              stream: _accountsStream,
+              builder: (context, snapshot) {
+                final accounts = snapshot.data ?? [];
+                if (accounts.length < 2) return const SizedBox.shrink();
+                
+                return FloatingActionButton(
+                  heroTag: 'transfer',
+                  onPressed: () => _showTransferModal(accounts),
+                  backgroundColor: AppDesign.transferColor,
+                  foregroundColor: Colors.white,
+                  child: const Icon(Icons.swap_horiz),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            FloatingActionButton.extended(
+              heroTag: 'add',
+              onPressed: () => _showAddAccountModal(),
+              backgroundColor: AppDesign.primaryIndigo,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const TrText(
+                'Compte',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1243,106 +1260,112 @@ class _TransferModalState extends State<TransferModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppDesign.transferColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.swap_horiz,
-                        color: AppDesign.transferColor,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const TrText(
-                      'Transférer de l\'argent',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                
-                // Compte source
-                DropdownButtonFormField<Account>(
-                  value: _sourceAccount,
-                  decoration: InputDecoration(
-                    labelText: t('Depuis le compte'),
-                    prefixIcon: Icon(Icons.account_balance_wallet),
-                  ),
-                  hint: const TrText('Sélectionner un compte'),
-                  items: _availableSourceAccounts.map((account) {
-                    return DropdownMenuItem(
-                      value: account,
-                      child: Row(
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          TrText(account.icon ?? '❓', style: const TextStyle(fontSize: 20)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TrText(account.name),
-                                TrText(
-                                  '${account.balance.toStringAsFixed(2)} ${account.currency}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppDesign.transferColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.swap_horiz,
+                              color: AppDesign.transferColor,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const TrText(
+                            'Transférer de l\'argent',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _sourceAccount = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Veuillez sélectionner un compte source';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                
-                // Icône de transfert
-                Center(
-                  child: Icon(
-                    Icons.arrow_downward,
-                    color: Colors.grey[400],
-                    size: 32,
-                  ),
-                ),
+                      const SizedBox(height: 24),
+                      
+                      // Compte source
+                      DropdownButtonFormField<Account>(
+                        value: _sourceAccount,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: t('Depuis le compte'),
+                          prefixIcon: Icon(Icons.account_balance_wallet),
+                        ),
+                        hint: const TrText('Sélectionner un compte'),
+                        items: _availableSourceAccounts.map((account) {
+                          return DropdownMenuItem(
+                            value: account,
+                            child: Row(
+                              children: [
+                                TrText(account.icon ?? '❓', style: const TextStyle(fontSize: 20)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      TrText(account.name),
+                                      TrText(
+                                        '${account.balance.toStringAsFixed(2)} ${account.currency}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _sourceAccount = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Veuillez sélectionner un compte source';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Icône de transfert
+                      Center(
+                        child: Icon(
+                          Icons.arrow_downward,
+                          color: Colors.grey[400],
+                          size: 32,
+                        ),
+                      ),
                 const SizedBox(height: 16),
                 
                 // Compte destination
                 DropdownButtonFormField<Account>(
                   value: _destinationAccount,
+                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: t('Vers le compte'),
                     prefixIcon: Icon(Icons.account_balance),
@@ -1394,7 +1417,7 @@ class _TransferModalState extends State<TransferModal> {
                   decoration: InputDecoration(
                     labelText: t('Montant à transférer'),
                     prefixIcon: const Icon(Icons.euro),
-                    suffixText: t('EUR'),
+                    suffixText: context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency),
                     helperText: _sourceAccount != null
                         ? 'Solde disponible: ${_sourceAccount!.balance.toStringAsFixed(2)} EUR'
                         : null,
@@ -1451,6 +1474,9 @@ class _TransferModalState extends State<TransferModal> {
                   ),
                 ),
               ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),

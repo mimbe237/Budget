@@ -3,11 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:characters/characters.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:provider/provider.dart';
 import '../../models/budget_plan.dart';
 import '../../models/transaction.dart';
 import '../../models/category.dart';
 import '../../services/firestore_service.dart';
 import '../../services/mock_data_service.dart';
+import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
 import '../transactions/transaction_form_screen.dart';
@@ -655,7 +657,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               controller: _incomeController,
               decoration: InputDecoration(
                 prefixIcon: Icon(Icons.euro, color: AppDesign.incomeColor),
-                suffixText: t('€'),
+                suffixText: context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency),
                 hintText: t('Ex: 3000'),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -800,7 +802,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 const SizedBox(width: 8),
                 _healthChip(
                   label: t('Total prévu'),
-                  value: '${_totalIncome.toStringAsFixed(0)} €',
+                  value: context.watch<CurrencyService>().formatAmount(_totalIncome),
                   color: Colors.black54,
                   icon: Icons.stacked_bar_chart_rounded,
                 ),
@@ -1044,11 +1046,11 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     TrText(
-                      'Prévu ${planned.toStringAsFixed(2)} €',
+                      'Prévu ${context.watch<CurrencyService>().formatAmount(planned)}',
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                     TrText(
-                      'Engagé ${engaged.toStringAsFixed(2)} €',
+                      'Engagé ${context.watch<CurrencyService>().formatAmount(engaged)}',
                       style: TextStyle(
                         color: barColor,
                         fontWeight: FontWeight.w700,
@@ -1203,7 +1205,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                         style: const TextStyle(color: Colors.grey),
                       ),
                       trailing: TrText(
-                        '$prefix${tx.amount.toStringAsFixed(2)} €',
+                        '$prefix${context.watch<CurrencyService>().formatAmount(tx.amount, null, false)}',
                         style: TextStyle(
                           color: color,
                           fontWeight: FontWeight.bold,

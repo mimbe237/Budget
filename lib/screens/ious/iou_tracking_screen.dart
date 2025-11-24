@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../models/models.dart';
 import '../../services/mock_data_service.dart';
+import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/modern_page_app_bar.dart';
@@ -727,7 +729,7 @@ class _AddIOUModalState extends State<AddIOUModal> {
                   decoration: InputDecoration(
                     labelText: t('Montant'),
                     prefixIcon: Icon(Icons.euro, color: color),
-                    suffixText: t('€'),
+                    suffixText: context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency),
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
@@ -1014,8 +1016,8 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
                   decoration: InputDecoration(
                     labelText: t('Montant du paiement'),
                     prefixIcon: Icon(Icons.euro, color: color),
-                    suffixText: t('€'),
-                    helperText: 'Maximum: ${widget.iou.currentBalance.toStringAsFixed(2)} €',
+                    suffixText: context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency),
+                    helperText: 'Maximum: ${context.read<CurrencyService>().formatAmount(widget.iou.currentBalance)}',
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
