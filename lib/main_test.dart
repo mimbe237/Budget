@@ -21,15 +21,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SelectionArea(
-      child: MaterialApp(
-        title: t('Budget Pro - Test'),
-        theme: ThemeData(
-          primarySwatch: Colors.indigo,
-          useMaterial3: true,
-        ),
-        home: const TestHomeScreen(),
+    return MaterialApp(
+      title: t('Budget Pro - Test'),
+      theme: ThemeData(
+        primarySwatch: Colors.indigo,
+        useMaterial3: true,
       ),
+      home: const TestHomeScreen(),
     );
   }
 }

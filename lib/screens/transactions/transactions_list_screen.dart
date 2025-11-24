@@ -254,10 +254,13 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
             stream: _categoriesStream,
             builder: (context, categorySnapshot) {
               final categories = categorySnapshot.data ?? [];
-              return Column(
-                children: [
-                  _buildFilters(accounts, categories),
-                  Expanded(
+              return CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _buildFilters(accounts, categories),
+                  ),
+                  SliverFillRemaining(
+                    hasScrollBody: true,
                     child: RefreshIndicator(
                       onRefresh: _loadInitialData,
                       child: filteredTransactions.isEmpty && !_isLoading

@@ -49,98 +49,96 @@ class BudgetApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final localeProvider = context.watch<LocaleProvider>();
 
-    return SelectionArea(
-      child: MaterialApp(
-        title: t('Budget Pro'),
-        debugShowCheckedModeBanner: false,
-        locale: localeProvider.locale,
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-        ],
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF6366F1), // Indigo moderne
-            brightness: Brightness.light,
-          ),
-          
-          // Typographie moderne avec Google Fonts
-          textTheme: GoogleFonts.interTextTheme(),
-          
-          // Coins arrondis pour tout
-          cardTheme: CardThemeData(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-          
-          // Boutons modernes
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              elevation: 0,
-            ),
-          ),
-          
-          // Input fields arrondis
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
-            ),
-          ),
-          
-          // AppBar moderne
-          appBarTheme: AppBarTheme(
-            elevation: 0,
-            centerTitle: true,
-            backgroundColor: Colors.transparent,
-            foregroundColor: Colors.black87,
-            titleTextStyle: GoogleFonts.inter(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+    return MaterialApp(
+      title: t('Budget Pro'),
+      debugShowCheckedModeBanner: false,
+      locale: localeProvider.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6366F1), // Indigo moderne
+          brightness: Brightness.light,
+        ),
+        
+        // Typographie moderne avec Google Fonts
+        textTheme: GoogleFonts.interTextTheme(),
+        
+        // Coins arrondis pour tout
+        cardTheme: CardThemeData(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
         
-        // Theme sombre
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF6366F1),
-            brightness: Brightness.dark,
-          ),
-          textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-          cardTheme: CardThemeData(
-            elevation: 0,
+        // Boutons modernes
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
             ),
+            elevation: 0,
           ),
         ),
         
-        themeMode: ThemeMode.system,
-        // Utiliser AuthWrapper pour gérer l'authentification
-        home: const AuthWrapper(),
+        // Input fields arrondis
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+          ),
+        ),
+        
+        // AppBar moderne
+        appBarTheme: AppBarTheme(
+          elevation: 0,
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.black87,
+          titleTextStyle: GoogleFonts.inter(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
       ),
+      
+      // Theme sombre
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6366F1),
+          brightness: Brightness.dark,
+        ),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      ),
+      
+      themeMode: ThemeMode.system,
+      // Utiliser AuthWrapper pour gérer l'authentification
+      home: const AuthWrapper(),
     );
   }
 }
