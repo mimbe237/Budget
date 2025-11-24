@@ -232,10 +232,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _buildTotalBalanceCard(),
       const SizedBox(height: AppDesign.spacingMedium),
       _buildBudgetExcellenceCard(),
-      const SizedBox(height: AppDesign.spacingMedium),
-      CategoryBudgetProgressBlock(
-        firestoreService: _firestoreService,
-      ),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildPerformanceHeader(context),
       const SizedBox(height: AppDesign.spacingSmall),
@@ -1013,6 +1009,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         }
 
+        final overflowCount = items.where((i) => i.engaged > i.planned).length;
+        final isHealthy = overflowCount == 0;
+        final footerColor = isHealthy
+            ? const Color(0xFF4CAF50).withValues(alpha: 0.08)
+            : const Color(0xFFEF5350).withValues(alpha: 0.08);
+        final footerTextColor = isHealthy ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+        final footerIcon = isHealthy ? Icons.check_circle_rounded : Icons.warning_amber_rounded;
+        final footerText = isHealthy
+            ? 'Tout est sous contrôle. Excellente gestion !'
+            : 'Attention : $overflowCount poches budgétaires sont en alerte rouge.';
+
         return Card(
           elevation: 6,
           shape: RoundedRectangleBorder(
@@ -1029,6 +1036,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 ...items.map((e) => _PocketSummaryRow(item: e)),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: footerColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(footerIcon, color: footerTextColor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TrText(
+                          footerText,
+                          style: TextStyle(
+                            color: footerTextColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
