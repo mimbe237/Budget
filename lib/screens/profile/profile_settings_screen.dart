@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_design.dart';
 import '../../services/notification_service.dart';
+import '../../services/currency_service.dart';
+import '../../services/notification_preferences_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/firestore_service.dart';
 import '../../models/user_profile.dart';
@@ -9,6 +11,7 @@ import '../admin/admin_dashboard_screen.dart';
 import '../onboarding/onboarding_wizard_screen.dart';
 import '../auth/auth_screen.dart';
 import '../../widgets/revolutionary_logo.dart';
+import '../../widgets/currency_conversion_dialog.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -22,26 +25,15 @@ class ProfileSettingsScreen extends StatefulWidget {
 }
 
 class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
-  final NotificationService _notificationService = NotificationService.instance;
   final MockDataService _dataService = MockDataService();
   
   UserProfile? _userProfile;
   bool _isLoading = true;
 
-  // États des notifications (synchronisés avec NotificationService)
-  bool _dailyReminderEnabled = true;
-  bool _budgetAlertsEnabled = true;
-  bool _goalAlertsEnabled = true;
-  double _budgetAlertThreshold = 0.85;
-
-  // Devise actuelle
-  String _currentCurrency = 'EUR (€)';
-
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
-    _loadNotificationPreferences();
   }
 
   /// Charge le profil utilisateur
@@ -61,24 +53,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     });
   }
 
-  /// Charge les préférences de notification
-  Future<void> _loadNotificationPreferences() async {
-    // TODO: Charger depuis SharedPreferences en production
-    // Pour l'instant, on utilise les valeurs par défaut
-    setState(() {
-      _dailyReminderEnabled = true;
-      _budgetAlertsEnabled = _notificationService.budgetAlertsEnabled;
-      _budgetAlertThreshold = _notificationService.budgetAlertThreshold;
-      _goalAlertsEnabled = true;
-    });
-  }
 
-  /// Sauvegarde une préférence de notification
-  Future<void> _saveNotificationPreference(String key, bool value) async {
-    // TODO: Sauvegarder dans SharedPreferences en production
-    // await SharedPreferences.getInstance().then((prefs) => prefs.setBool(key, value));
-    debugPrint('Préférence sauvegardée: $key = $value');
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -364,30 +339,22 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               'Notification à 20h pour saisir vos dépenses',
               style: TextStyle(fontSize: 13),
             ),
-            value: _dailyReminderEnabled,
+            value: context.watch<NotificationPreferencesService>().dailyReminderEnabled,
             activeTrackColor: AppDesign.primaryIndigo,
             activeThumbColor: AppDesign.primaryIndigo,
             onChanged: (value) async {
-              setState(() {
-                _dailyReminderEnabled = value;
-              });
+              await context.read<NotificationPreferencesService>().setDailyReminderEnabled(value);
               
-              await _notificationService.setDailyRemindersEnabled(value);
-              await _saveNotificationPreference('daily_reminder', value);
-              
-              if (value) {
-                await _notificationService.scheduleDailyReminder(
-                  const TimeOfDay(hour: 20, minute: 0),
-                );
-                
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: TrText('Rappel quotidien activé à 20h'),
-                      duration: Duration(seconds: 2),
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: TrText(value 
+                      ? 'Rappel quotidien activé à 20h' 
+                      : 'Rappel quotidien désactivé'
                     ),
-                  );
-                }
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
               }
             },
           ),
@@ -419,16 +386,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               'Alerte immédiate si une catégorie passe au rouge',
               style: TextStyle(fontSize: 13),
             ),
-            value: _budgetAlertsEnabled,
+            value: context.watch<NotificationPreferencesService>().budgetAlertsEnabled,
             activeTrackColor: AppDesign.primaryIndigo,
             activeThumbColor: AppDesign.primaryIndigo,
             onChanged: (value) async {
-              setState(() {
-                _budgetAlertsEnabled = value;
-              });
-              
-              await _notificationService.setBudgetAlertsEnabled(value);
-              await _saveNotificationPreference('budget_alerts', value);
+              await context.read<NotificationPreferencesService>().setBudgetAlertsEnabled(value);
               
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -444,7 +406,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               }
             },
           ),
-          if (_budgetAlertsEnabled)
+          if (context.watch<NotificationPreferencesService>().budgetAlertsEnabled)
             Padding(
               padding: const EdgeInsets.fromLTRB(72, 0, 16, 16),
               child: Column(
@@ -458,22 +420,19 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       TrText(
-                        '${(_budgetAlertThreshold * 100).toStringAsFixed(0)}%',
+                        '${(context.watch<NotificationPreferencesService>().budgetAlertThreshold * 100).toStringAsFixed(0)}%',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
                   Slider(
-                    value: _budgetAlertThreshold,
+                    value: context.watch<NotificationPreferencesService>().budgetAlertThreshold,
                     min: 0.5,
                     max: 1.2,
                     divisions: 7,
-                    label: '${(_budgetAlertThreshold * 100).toStringAsFixed(0)}%',
+                    label: '${(context.watch<NotificationPreferencesService>().budgetAlertThreshold * 100).toStringAsFixed(0)}%',
                     onChanged: (v) {
-                      setState(() => _budgetAlertThreshold = v);
-                    },
-                    onChangeEnd: (v) async {
-                      await _notificationService.setBudgetAlertThreshold(v);
+                      context.read<NotificationPreferencesService>().setBudgetAlertThreshold(v);
                     },
                     activeColor: AppDesign.expenseColor,
                     inactiveColor: AppDesign.expenseColor.withValues(alpha: 0.2),
@@ -513,16 +472,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               'Célébration quand un objectif est atteint',
               style: TextStyle(fontSize: 13),
             ),
-            value: _goalAlertsEnabled,
+            value: context.watch<NotificationPreferencesService>().goalAlertsEnabled,
             activeTrackColor: AppDesign.primaryIndigo,
             activeThumbColor: AppDesign.primaryIndigo,
             onChanged: (value) async {
-              setState(() {
-                _goalAlertsEnabled = value;
-              });
-              
-              await _notificationService.setGoalAlertsEnabled(value);
-              await _saveNotificationPreference('goal_alerts', value);
+              await context.read<NotificationPreferencesService>().setGoalAlertsEnabled(value);
               
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -621,7 +575,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TrText(
-                  _currentCurrency,
+                  '${context.watch<CurrencyService>().currentCurrency} (${context.watch<CurrencyService>().currencySymbol})',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 14,
@@ -841,58 +795,84 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   /// Affiche le sélecteur de devise
   void _showCurrencyPicker() {
-    final currencies = [
-      'EUR (€)',
-      'USD (\$)',
-      'GBP (£)',
-      'CHF (Fr)',
-      'JPY (¥)',
-      'CAD (C\$)',
-    ];
+    final currencyService = context.read<CurrencyService>();
+    final currencies = currencyService.getFormattedCurrencyList();
+    final rootContext = context;
 
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
+      builder: (sheetContext) => Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(sheetContext).size.height * 0.7,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            const TrText(
-              'Sélectionner la devise',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 20),
+              const TrText(
+                'Sélectionner la devise',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            ...currencies.map((currency) => ListTile(
-                  title: TrText(currency),
-                  trailing: _currentCurrency == currency
-                      ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
-                      : null,
-                  onTap: () {
-                    setState(() {
-                      _currentCurrency = currency;
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: TrText('Devise changée en $currency')),
-                    );
-                  },
-                )),
-          ],
+              const SizedBox(height: 16),
+              ...currencies.map((currencyFormatted) {
+                  final currencyCode = currencyService.parseCurrencyCode(currencyFormatted);
+                  final currentCode = sheetContext.watch<CurrencyService>().currentCurrency;
+                  
+                  return ListTile(
+                    title: TrText(currencyFormatted),
+                    trailing: currentCode == currencyCode
+                        ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
+                        : null,
+                    onTap: () async {
+                      final oldCurrency = currencyService.currentCurrency;
+
+                      Navigator.pop(sheetContext);
+                      if (!mounted || oldCurrency == currencyCode) return;
+
+                      await showCurrencyConversionDialog(
+                        context: rootContext,
+                        oldCurrency: oldCurrency,
+                        newCurrency: currencyCode,
+                        onConvert: () async {
+                          // TODO: Implement full conversion of all transactions, goals, budgets
+                          await currencyService.setCurrency(currencyCode);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(rootContext).showSnackBar(
+                            SnackBar(
+                              content: TrText('Montants convertis en $currencyCode'),
+                              backgroundColor: AppDesign.incomeColor,
+                            ),
+                          );
+                        },
+                        onDisplayOnly: () async {
+                          await currencyService.setCurrency(currencyCode);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(rootContext).showSnackBar(
+                            SnackBar(content: TrText('Affichage changé en $currencyCode')),
+                          );
+                        },
+                      );
+                    },
+                  );
+                }),
+            ],
+          ),
         ),
       ),
     );
@@ -1084,8 +1064,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
 
     if (confirmed == true) {
-      // Annuler toutes les notifications
-      await _notificationService.cancelAllNotifications();
+      // Annuler toutes les notifications via le service
+      await NotificationService().cancelAllNotifications();
       
       if (!mounted) return;
 

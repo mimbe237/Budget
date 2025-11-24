@@ -45,6 +45,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
 
 flutter:
   uses-material-design: true
@@ -53,4 +55,35 @@ flutter:
   assets:
     - assets/images/logo-full.svg
     - assets/images/logo-icon.svg
+    - assets/images/logo-icon.png
     - assets/images/budget-pro-icon.svg
+
+flutter_launcher_icons:
+  image_path: assets/images/logo-icon.png
+  adaptive_icon_background: "#6C5CF7"
+  adaptive_icon_foreground: assets/images/logo-icon.png
+  android: true
+  ios: true
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: assets/images/logo-icon.png
+    background_color: "#6C5CF7"
+    theme_color: "#6C5CF7"
+  windows:
+    generate: true
+    image_path: assets/images/logo-icon.png
+  macos:
+    generate: true
+    image_path: assets/images/logo-icon.png
+
+flutter_native_splash:
+  color: "#F5F7FA"
+  color_dark: "#0F172A"
+  image: assets/images/logo-icon.png
+  android: true
+  ios: true
+  web: true
+  android_12:
+    icon_background_color: "#F5F7FA"
+    image: assets/images/logo-icon.png

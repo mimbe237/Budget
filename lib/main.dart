@@ -6,11 +6,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'l10n/app_localizations.dart';
+import 'services/currency_service.dart';
+import 'services/notification_preferences_service.dart';
 import 'screens/navigation/main_navigation_shell.dart';
 import 'screens/auth/auth_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/transactions/transaction_form_screen.dart';
 import 'models/transaction.dart' as app_transaction;
+import 'widgets/branding_splash.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,8 +38,12 @@ class AppBootstrap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => LocaleProvider()..loadLocale(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LocaleProvider()..loadLocale()),
+        ChangeNotifierProvider(create: (_) => CurrencyService()..loadCurrency()),
+        ChangeNotifierProvider(create: (_) => NotificationPreferencesService()..loadPreferences()),
+      ],
       child: const BudgetApp(),
     );
   }
@@ -63,7 +70,7 @@ class BudgetApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1), // Indigo moderne
+          seedColor: const Color(0xFF6C5CF7), // Couleur principale du logo
           brightness: Brightness.light,
         ),
         
@@ -124,7 +131,7 @@ class BudgetApp extends StatelessWidget {
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1),
+          seedColor: const Color(0xFF6C5CF7),
           brightness: Brightness.dark,
         ),
         textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
@@ -152,13 +159,9 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // En attente de la vérification de l'état
+        // En attente de la vérification de l'état → splash brandé
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
+          return const BrandingSplash();
         }
 
         // Utilisateur connecté → MainNavigationShell

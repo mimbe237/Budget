@@ -16,6 +16,10 @@ class OnboardingWizardScreen extends StatefulWidget {
 }
 
 class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
+  static const Color _brandPrimary = Color(0xFF6C5CF7);
+  static const Color _brandSecondary = Color(0xFFC542C1);
+  static const Color _brandSurface = Color(0xFFF1EEFF);
+
   final PageController _pageController = PageController();
   int _currentPage = 0;
   
@@ -195,7 +199,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
               child: LinearProgressIndicator(
                 value: progress,
                 backgroundColor: Colors.grey[200],
-                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                valueColor: const AlwaysStoppedAnimation<Color>(_brandPrimary),
                 minHeight: 6,
               ),
             ),
@@ -254,7 +258,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
           ElevatedButton(
             onPressed: _currentPage == 2 ? _completeOnboarding : _nextPage,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: _brandPrimary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -285,16 +289,24 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const TrText(
-              '👋 Bienvenue !',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+            Center(
+              child: Column(
+                children: [
+                  const RevolutionaryLogo(size: 80, withText: true),
+                  const SizedBox(height: 12),
+                  const TrText(
+                    '👋 Bienvenue !',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 6),
+                  TrText(
+                    'Commençons par quelques informations de base',
+                    style: TextStyle(fontSize: 15, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            TrText(
-              'Commençons par quelques informations de base',
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
             
             TextFormField(
               decoration: InputDecoration(
@@ -338,10 +350,10 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         width: 100,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF6366F1).withValues(alpha: 0.1) : Colors.grey[100],
+          color: isSelected ? _brandSurface : Colors.grey[100],
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,
+            color: isSelected ? _brandPrimary : Colors.transparent,
             width: 2,
           ),
         ),
@@ -352,7 +364,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? const Color(0xFF6366F1) : Colors.black87,
+                color: isSelected ? _brandPrimary : Colors.black87,
               ),
             ),
             const SizedBox(height: 4),
@@ -360,7 +372,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
               code,
               style: TextStyle(
                 fontSize: 12,
-                color: isSelected ? const Color(0xFF6366F1) : Colors.grey[600],
+                color: isSelected ? _brandPrimary : Colors.grey[600],
               ),
             ),
           ],
@@ -412,7 +424,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                 });
               },
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF6366F1),
+                foregroundColor: _brandPrimary,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
@@ -578,7 +590,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
-                              color: Color(0xFF6366F1),
+                              color: _brandPrimary,
                             ),
                           ),
                         ],
@@ -598,7 +610,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                         min: 0.0,
                         max: 1.0,
                         divisions: 100,
-                        activeColor: const Color(0xFF6366F1),
+                        activeColor: _brandPrimary,
                         inactiveColor: Colors.grey[200],
                         onChanged: (newValue) {
                           _updateAllocation(category, newValue);
@@ -685,7 +697,7 @@ class _SuccessScreen extends StatelessWidget {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
+                  backgroundColor: const Color(0xFF6C5CF7),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
                   shape: RoundedRectangleBorder(

@@ -15,6 +15,7 @@ import '../transactions/transactions_list_screen.dart';
 import '../trash/trash_screen.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 /// Dashboard principal affichant le solde global, les performances mensuelles
 /// et l'historique récent des transactions en temps réel
@@ -30,7 +31,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final NumberFormat _currencyFormat =
       NumberFormat.currency(locale: 'fr_FR', symbol: '€', decimalDigits: 2);
   final Color _brandTeal = const Color(0xFF00796B);
-  String _currentLang = 'fr';
 
   @override
   void initState() {
@@ -44,6 +44,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = context.watch<LocaleProvider>();
+    final currentLang = localeProvider.locale.languageCode;
+    final targetLang = currentLang == 'fr' ? 'en' : 'fr';
+    final targetLabel = targetLang == 'fr' ? 'FR 🇫🇷' : 'EN 🇬🇧';
+    final selectedLabel = targetLang == 'fr' ? 'Français' : 'English';
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
@@ -107,11 +113,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                _currentLang = _currentLang == 'fr' ? 'en' : 'fr';
-              });
-              final selectedLabel = _currentLang == 'fr' ? 'Français' : 'English';
+            onPressed: () async {
+              await localeProvider.setLocale(Locale(targetLang));
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: TrText('Langue sélectionnée : $selectedLabel')),
               );
@@ -120,8 +124,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               minimumSize: const Size(44, 44),
             ),
-            child: TrText(
-              _currentLang == 'fr' ? 'EN 🇬🇧' : 'FR 🇫🇷',
+            child: Text(
+              targetLabel,
               style: const TextStyle(
                 color: AppDesign.primaryIndigo,
                 fontWeight: FontWeight.w700,
@@ -258,10 +262,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _buildTotalBalanceCard(),
       const SizedBox(height: AppDesign.spacingMedium),
       _buildBudgetExcellenceCard(),
-      const SizedBox(height: AppDesign.spacingMedium),
-      CategoryBudgetProgressBlock(
-        firestoreService: _firestoreService,
-      ),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildPerformanceHeader(context),
       const SizedBox(height: AppDesign.spacingSmall),
@@ -1017,26 +1017,26 @@ class _InsightCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                 ),
                 child: TrText(
                   emoji,
-                  style: const TextStyle(fontSize: 18),
+                  style: const TextStyle(fontSize: 16),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1045,10 +1045,10 @@ class _InsightCard extends StatelessWidget {
                       title,
                       style: const TextStyle(
                         color: Colors.black87,
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (subtitle.isNotEmpty)
@@ -1056,22 +1056,26 @@ class _InsightCard extends StatelessWidget {
                         subtitle,
                         style: TextStyle(
                           color: Colors.grey[700],
-                          fontSize: 12,
+                          fontSize: 11,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const Spacer(),
           TrText(
             '${amount.toStringAsFixed(2)} €',
             style: TextStyle(
               color: color,
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

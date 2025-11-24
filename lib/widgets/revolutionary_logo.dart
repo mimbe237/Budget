@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../constants/app_design.dart';
 import 'package:budget/l10n/app_localizations.dart';
 
 class RevolutionaryLogo extends StatelessWidget {
@@ -15,44 +14,23 @@ class RevolutionaryLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SvgPicture.asset(
-          'assets/images/logo-icon.svg',
-          width: size,
-          height: size,
-        ),
-        if (withText) ...[
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TrText(
-                'Budget',
-                style: TextStyle(
-                  fontSize: size * 0.35,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.2,
-                  color: AppDesign.primaryIndigo,
-                  height: 1.0,
-                ),
-              ),
-              TrText(
-                'Pro',
-                style: TextStyle(
-                  fontSize: size * 0.32,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
-                  color: AppDesign.primaryIndigo,
-                  height: 1.0,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
+    final semantics = t('Budget Pro');
+    if (withText) {
+      // Full lockup (icône + texte) for marketing/hero contexts.
+      return SvgPicture.asset(
+        'assets/images/logo-full.svg',
+        height: size * 1.6,
+        semanticsLabel: semantics,
+        fit: BoxFit.fitHeight,
+      );
+    }
+
+    // Icon-only for compact UI (app bars, badges, splash).
+    return SvgPicture.asset(
+      'assets/images/logo-icon.svg',
+      width: size,
+      height: size,
+      semanticsLabel: semantics,
     );
   }
 }

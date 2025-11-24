@@ -15,6 +15,9 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   static const String _demoEmail = FirestoreService.demoEmail;
   static const String _demoPassword = FirestoreService.demoPassword;
+  static const Color _brandPrimary = Color(0xFF6C5CF7);
+  static const Color _brandSecondary = Color(0xFFC542C1);
+  static const Color _brandSurface = Color(0xFFF1EEFF);
 
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -149,20 +152,20 @@ class _AuthScreenState extends State<AuthScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF00796B).withValues(alpha: 0.08),
+            color: _brandSurface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF00796B).withValues(alpha: 0.2)),
+            border: Border.all(color: _brandPrimary.withValues(alpha: 0.18)),
           ),
           child: Column(
             children: [
-              const Icon(Icons.flash_on_rounded, size: 40, color: Color(0xFF00796B)),
+              const Icon(Icons.flash_on_rounded, size: 40, color: _brandPrimary),
               const SizedBox(height: 16),
               const TrText(
                 'Accès Instantané',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
-                  color: Color(0xFF00796B),
+                  color: _brandPrimary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -185,7 +188,7 @@ class _AuthScreenState extends State<AuthScreen> {
           child: ElevatedButton.icon(
             onPressed: _isLoading ? null : _handleDemoLogin,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00796B),
+              backgroundColor: _brandPrimary,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -210,7 +213,7 @@ class _AuthScreenState extends State<AuthScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF00796B).withValues(alpha: 0.15)),
+        border: Border.all(color: _brandPrimary.withValues(alpha: 0.15)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -226,7 +229,7 @@ class _AuthScreenState extends State<AuthScreen> {
           SelectableTrText(
             value,
             style: const TextStyle(
-              color: Color(0xFF00796B),
+              color: _brandPrimary,
               fontWeight: FontWeight.w700,
               fontSize: 14,
             ),
@@ -345,7 +348,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     }
                   },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00796B),
+              backgroundColor: _brandPrimary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -392,7 +395,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 TextSpan(
                   text: _isLogin ? 'Créer un compte' : 'Se connecter',
                   style: const TextStyle(
-                    color: Color(0xFF00796B),
+                    color: _brandPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -441,34 +444,20 @@ class _AuthScreenState extends State<AuthScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Row(
+                        Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const RevolutionaryLogo(size: 60),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const TrText(
-                                  'Budget Pro',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.black87,
-                                    letterSpacing: 0.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                TrText(
-                                  'Gère tes finances comme un Pro',
-                                  style: TextStyle(
-                                    color: Colors.black.withValues(alpha: 0.65),
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.2,
-                                  ),
-                                ),
-                              ],
+                            const RevolutionaryLogo(size: 72, withText: true),
+                            const SizedBox(height: 12),
+                            TrText(
+                              'Gère tes finances comme un Pro',
+                              style: TextStyle(
+                                color: Colors.black.withValues(alpha: 0.7),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.2,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
@@ -477,9 +466,9 @@ class _AuthScreenState extends State<AuthScreen> {
                         Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F3F6),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE0E6ED)),
+                            border: Border.all(color: const Color(0xFFE4E7F1)),
                           ),
                           child: Row(
                             children: [
@@ -490,12 +479,12 @@ class _AuthScreenState extends State<AuthScreen> {
                                     duration: const Duration(milliseconds: 180),
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                     decoration: BoxDecoration(
-                                      color: _currentTabIndex == 0 ? const Color(0xFFE8F5EF) : Colors.transparent,
+                                      color: _currentTabIndex == 0 ? _brandSurface : Colors.transparent,
                                       borderRadius: BorderRadius.circular(12),
                                       boxShadow: _currentTabIndex == 0
                                           ? [
                                               BoxShadow(
-                                                color: const Color(0xFF00796B).withValues(alpha: 0.08),
+                                                color: _brandPrimary.withValues(alpha: 0.10),
                                                 blurRadius: 10,
                                                 offset: const Offset(0, 3),
                                               ),
@@ -507,7 +496,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontWeight: _currentTabIndex == 0 ? FontWeight.w800 : FontWeight.w600,
-                                        color: _currentTabIndex == 0 ? const Color(0xFF00796B) : Colors.grey.shade600,
+                                        color: _currentTabIndex == 0 ? _brandPrimary : Colors.grey.shade600,
                                       ),
                                     ),
                                   ),
@@ -520,12 +509,12 @@ class _AuthScreenState extends State<AuthScreen> {
                                     duration: const Duration(milliseconds: 180),
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                     decoration: BoxDecoration(
-                                      color: _currentTabIndex == 1 ? const Color(0xFFE8F5EF) : Colors.transparent,
+                                      color: _currentTabIndex == 1 ? _brandSurface : Colors.transparent,
                                       borderRadius: BorderRadius.circular(12),
                                       boxShadow: _currentTabIndex == 1
                                           ? [
                                               BoxShadow(
-                                                color: const Color(0xFF00796B).withValues(alpha: 0.08),
+                                                color: _brandPrimary.withValues(alpha: 0.10),
                                                 blurRadius: 10,
                                                 offset: const Offset(0, 3),
                                               ),
@@ -537,7 +526,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontWeight: _currentTabIndex == 1 ? FontWeight.w800 : FontWeight.w600,
-                                        color: _currentTabIndex == 1 ? const Color(0xFF00796B) : Colors.grey.shade600,
+                                        color: _currentTabIndex == 1 ? _brandPrimary : Colors.grey.shade600,
                                       ),
                                     ),
                                   ),
