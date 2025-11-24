@@ -47,7 +47,8 @@ service cloud.firestore {
     }
 
     match /admin_logs/{logId} {
-      allow read, write: if isAdmin();
+      // Lecture réservée aux admins. Écriture côté client refusée (backend Admin SDK uniquement)
+      allow read: if isAdmin();
     }
   }
 }

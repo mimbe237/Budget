@@ -40,6 +40,21 @@ export async function POST(req: NextRequest) {
 
     const newClaims = makeAdmin ? { admin: true, role: 'admin' } : { admin: false, role: 'user' };
     await admin.auth().setCustomUserClaims(uid, newClaims);
+
+    // Audit log (Firestore) - backend only (rules bypassed by Admin SDK)
+    try {
+      const logEntry = {
+        actorUid: decoded.uid,
+        targetUid: uid,
+        action: makeAdmin ? 'PROMOTE' : 'REVOKE',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      await admin.firestore().collection('admin_logs').add(logEntry);
+    } catch (logError: any) {
+      // Non-fatal: continue even if logging fails
+      console.error('Audit log failed:', logError?.message || logError);
+    }
+
     return new Response(JSON.stringify({ ok: true, uid, admin: makeAdmin }), { status: 200 });
   } catch (e: any) {
     return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500 });

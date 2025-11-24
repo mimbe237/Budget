@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, Mail, Shield, MoreVertical, Check, X, Crown, Sparkles, ArrowLeft, ArrowRight, SortAsc, RefreshCw, UserMinus, UserPlus } from 'lucide-react';
 import { collection, getDocs, updateDoc, doc, query, orderBy, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { fetchAdminAPI } from '@/lib/adminAPI';
@@ -21,6 +21,7 @@ interface User {
 function UsersContent() {
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [pageSize, setPageSize] = useState(20);
   const [sortField, setSortField] = useState<'createdAt' | 'balance' | 'email'>('createdAt');
@@ -30,8 +31,18 @@ function UsersContent() {
   const [isLoadingPage, setIsLoadingPage] = useState(false);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [claimStatus, setClaimStatus] = useState<{ loading: boolean; admin: boolean; role: string; error: string | null }>({ loading: true, admin: false, role: 'user', error: null });
 
-  const loadPage = useCallback(async (initial = false, direction: 'next' | 'prev' | 'stay' = 'stay') => {
+  // Debounce search input (400ms delay)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  async function loadPage(initial = false, direction: 'next' | 'prev' | 'stay' = 'stay') {
     setIsLoadingPage(true);
     try {
       let qBase = query(
@@ -97,11 +108,18 @@ function UsersContent() {
     } finally {
       setIsLoadingPage(false);
     }
-  }, [sortField, sortDir, pageSize, lastDoc, pageHistory]);
+  }
+  // Chargement initial une seule fois
+  useEffect(() => {
+    loadPage(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  useEffect(() => { 
-    loadPage(true); 
-  }, [sortField, sortDir, pageSize, refreshTrigger, loadPage]);
+  // Rafraîchissements manuels ou changements de tri / pagination
+  useEffect(() => {
+    loadPage(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortField, sortDir, pageSize, refreshTrigger]);
 
   async function toggleSuspend(user: User) {
     const newStatus = user.status === 'active' ? 'suspended' : 'active';
@@ -170,8 +188,9 @@ function UsersContent() {
   }
 
   const filteredUsers = users.filter((user) => {
-    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.displayName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = debouncedSearch === '' || 
+      user.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      user.displayName.toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchesRole = filterRole === 'all' || user.role === filterRole;
     return matchesSearch && matchesRole;
   });
@@ -197,7 +216,19 @@ function UsersContent() {
       : <Badge variant="neutral" subtle>inactive</Badge>;
   }
 
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    async function loadClaim() {
+      try {
+        const res = await fetchAdminAPI('/api/admin/claim-status');
+        if (!cancelled) setClaimStatus({ loading: false, admin: !!res.admin, role: res.role || (res.admin ? 'admin' : 'user'), error: null });
+      } catch (e: any) {
+        if (!cancelled) setClaimStatus({ loading: false, admin: false, role: 'user', error: e.message || 'Erreur claims' });
+      }
+    }
+    loadClaim();
+    return () => { cancelled = true; };
+  }, []);
   function toggleMenu(id: string) {
     setOpenMenu(prev => prev === id ? null : id);
   }
@@ -218,9 +249,19 @@ function UsersContent() {
           <p className="text-gray-600 dark:text-gray-300">
             Surveillez les rôles, statuts et soldes clients. Actions rapides pour activer, promouvoir ou suspendre.
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             <Badge variant="brand" subtle icon={<Shield className="h-3 w-3" />}>Sécu claims</Badge>
             <Badge variant="info" subtle icon={<Mail className="h-3 w-3" />}>Contact direct</Badge>
+            {claimStatus.loading && <Badge variant="neutral" subtle>Vérification…</Badge>}
+            {!claimStatus.loading && claimStatus.admin && (
+              <Badge variant="success" subtle icon={<Crown className="h-3 w-3" />}>Vous êtes admin</Badge>
+            )}
+            {!claimStatus.loading && !claimStatus.admin && !claimStatus.error && (
+              <Badge variant="warning" subtle>Accès standard</Badge>
+            )}
+            {claimStatus.error && (
+              <Badge variant="danger" subtle>{claimStatus.error}</Badge>
+            )}
           </div>
         </div>
       </section>

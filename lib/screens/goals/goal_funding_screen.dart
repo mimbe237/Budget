@@ -5,6 +5,7 @@ import '../../services/mock_data_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/modern_page_app_bar.dart';
+import '../../widgets/screen_header.dart';
 import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran de suivi et financement des objectifs d'épargne
@@ -208,7 +209,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: ModernPageAppBar(
-        title: t("Objectifs d'Épargne"),
+        title: t('Objectifs'),
         subtitle: t('Suivez et financez vos projets'),
         icon: Icons.flag_rounded,
         showProfile: true,
@@ -745,14 +746,14 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: Padding(
+      child: SingleChildScrollView(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
+        child: Form(
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -932,12 +933,12 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
         ),
-      ),
-    ));
+      );
   }
 
   void _createGoal() {

@@ -5,6 +5,7 @@ import '../../services/mock_data_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/modern_page_app_bar.dart';
+import '../../widgets/screen_header.dart';
 import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran de suivi des dettes (je dois) et créances (on me doit)
@@ -116,7 +117,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: ModernPageAppBar(
-        title: t('Suivi Dettes & Créances'),
+        title: t('Dettes & Créances'),
         subtitle: t('Ce que je dois et ce qu’on me doit'),
         icon: Icons.handshake_rounded,
         showProfile: true,
@@ -653,14 +654,14 @@ class _AddIOUModalState extends State<AddIOUModal> {
 
     return SafeArea(
       top: false,
-      child: Padding(
+      child: SingleChildScrollView(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
+        child: Form(
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -808,12 +809,12 @@ class _AddIOUModalState extends State<AddIOUModal> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
         ),
-      ),
-    ));
+      );
   }
 
   Widget _buildTypeButton(String label, IconData icon, Color color, IOUType type) {

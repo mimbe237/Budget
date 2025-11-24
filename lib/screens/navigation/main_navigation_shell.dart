@@ -49,11 +49,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     final localeProvider = context.watch<LocaleProvider>();
 
     return Scaffold(
+      extendBody: true,
       body: Stack(
         children: [
-          IndexedStack(
-            index: _selectedNavIndex,
-            children: _stackScreens,
+          SafeArea(
+            bottom: false,
+            child: IndexedStack(
+              index: _selectedNavIndex,
+              children: _stackScreens,
+            ),
           ),
           // Bouton profil global en haut à droite
           Positioned(
