@@ -38,9 +38,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   // Aligne exactement les index avec la BottomNavigationBar (5 items, slot 2 réservé au FAB)
   final List<Widget> _stackScreens = const [
     DashboardScreen(),                 // 0 Accueil
-    AccountManagementScreen(),         // 1 Comptes
+    BudgetPlannerScreen(),             // 1 Budget
     SizedBox.shrink(),                 // 2 emplacement FAB (non utilisé)
-    BudgetPlannerScreen(),             // 3 Budget
+    AccountManagementScreen(),         // 3 Comptes
     AnalysisHubScreen(),               // 4 Analyses & Rapports
   ];
 
@@ -108,18 +108,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             label: t('Accueil'),
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.account_balance_wallet_outlined),
-            activeIcon: const Icon(Icons.account_balance_wallet_rounded),
-            label: t('Comptes'),
+            icon: const Icon(Icons.pie_chart_outline_rounded),
+            activeIcon: const Icon(Icons.pie_chart_rounded),
+            label: t('Budget'),
           ),
           const BottomNavigationBarItem(
             icon: SizedBox.shrink(), // Espace vide pour le FAB
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.pie_chart_outline_rounded),
-            activeIcon: const Icon(Icons.pie_chart_rounded),
-            label: t('Budget'),
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            activeIcon: const Icon(Icons.account_balance_wallet_rounded),
+            label: t('Comptes'),
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.bar_chart_rounded),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:characters/characters.dart';
 import '../../models/transaction.dart' as app_transaction;
+import '../../models/category.dart';
 import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
 import 'package:budget/l10n/app_localizations.dart';
@@ -43,6 +44,12 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
       final startOfYear = DateTime(_selectedYear, 1, 1);
       final endOfYear = DateTime(_selectedYear, 12, 31, 23, 59, 59);
 
+      // Récupération des catégories pour avoir toutes les catégories même sans transactions
+      final categories = await _firestoreService.getCategories(
+        widget.userId,
+        type: _isIncome ? CategoryType.income : CategoryType.expense,
+      );
+
       // Récupération des transactions pour l'année sélectionnée
       final transactions = await _firestoreService.getTransactions(
         widget.userId,
@@ -52,7 +59,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
         type: _isIncome ? app_transaction.TransactionType.income : app_transaction.TransactionType.expense,
       );
 
-      _processTransactionsToMatrix(transactions);
+      _processTransactionsToMatrix(transactions, categories);
     } catch (e) {
       debugPrint('Erreur lors du chargement de la matrice: $e');
     } finally {
@@ -62,18 +69,26 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
     }
   }
 
-  void _processTransactionsToMatrix(List<app_transaction.Transaction> transactions) {
+  void _processTransactionsToMatrix(List<app_transaction.Transaction> transactions, List<Category> categories) {
     final Map<String, Map<int, double>> matrix = {};
     final Map<String, String> icons = {};
 
+    // Initialiser toutes les catégories avec des valeurs nulles
+    for (var category in categories) {
+      if (category.isActive) {
+        final categoryName = category.name;
+        matrix[categoryName] = {};
+        icons[categoryName] = category.icon;
+      }
+    }
+
+    // Remplir avec les transactions réelles
     for (var tx in transactions) {
       final categoryName = tx.category ?? 'Autre';
       final monthIndex = tx.date.month; // 1..12
       
       // Extraction de l'icône si présente dans le nom (ex: "🍔 Nourriture")
       if (!icons.containsKey(categoryName)) {
-        // Simple heuristique : prend le premier caractère si c'est potentiellement un emoji, sinon icône par défaut
-        // Ici on suppose que le nom de catégorie peut contenir l'icône ou on utilise une par défaut
         icons[categoryName] = _extractIcon(categoryName);
       }
 
@@ -312,8 +327,8 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
   Widget _buildStickyCell(String text, {String? icon, bool isHeader = false, bool isBold = false}) {
     return Container(
       width: _categoryColumnWidth,
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
         color: isHeader ? Colors.grey[50] : Colors.white,
@@ -348,7 +363,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
     final monthName = DateFormat('MMM', 'fr_FR').format(DateTime(2024, monthIndex));
     return Container(
       width: _monthColumnWidth,
-      height: 40,
+      height: 48,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.grey[50],
@@ -371,7 +386,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
   Widget _buildTotalHeaderCell() {
     return Container(
       width: _totalColumnWidth,
-      height: 40,
+      height: 48,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.grey[100],
@@ -394,7 +409,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
     if (amount == 0) {
       return Container(
         width: _monthColumnWidth,
-        height: 40,
+        height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           border: Border(
@@ -417,7 +432,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
     
     return Container(
       width: _monthColumnWidth,
-      height: 40,
+      height: 48,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: baseColor.withValues(alpha: opacity),
@@ -440,7 +455,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
   Widget _buildTotalCell(double amount, {bool isFooter = false, bool isBold = false}) {
     return Container(
       width: _totalColumnWidth,
-      height: 40,
+      height: 48,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: isFooter ? Colors.grey[50] : Colors.white,

@@ -144,6 +144,8 @@ class BudgetApp extends StatelessWidget {
       ),
       
       themeMode: ThemeMode.system,
+      // Rendre tout le texte sélectionnable sur Web/Desktop
+      builder: (context, child) => SelectionArea(child: child ?? const SizedBox.shrink()),
       // Utiliser AuthWrapper pour gérer l'authentification
       home: const AuthWrapper(),
     );
