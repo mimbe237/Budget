@@ -209,7 +209,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: ModernPageAppBar(
-        title: t('Objectifs'),
+        title: t("Objectifs d'Épargne"),
         subtitle: t('Suivez et financez vos projets'),
         icon: Icons.flag_rounded,
         showProfile: true,

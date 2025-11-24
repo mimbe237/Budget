@@ -187,7 +187,6 @@ class AppLocalizations {
     "Avoirs financiers": "Financial assets",
     "Bilan de fin de journée": "End-of-day balance",
     "Bloquer l'utilisateur": "Block user",
-    "Budget": "Budget",
     "Budget Déséquilibré": "Unbalanced budget",
     "Budget enregistré avec succès !": "Budget saved successfully!",
     "Budget mensuel total": "Total monthly budget",
@@ -195,7 +194,6 @@ class AppLocalizations {
     "Budget réinitialisé avec succès !": "Budget reset successfully!",
     "CSV (données chargées) copié dans le presse-papiers":
         "CSV (loaded data) copied to clipboard",
-    "Cadrez vos revenus et poches": "Frame your income and pockets",
     "Cadrez vos revenus et poches en un clin d'œil":
         "Frame your income and pockets at a glance",
     "Arrondi automatique": "Automatic rounding",
@@ -306,7 +304,6 @@ class AppLocalizations {
     "Notification quand un objectif est atteint":
         "Notification when a goal is reached",
     "Notifications en attente": "Pending notifications",
-    "Objectifs": "Goals",
     "Objectifs d'Épargne": "Saving goals",
     "Objectifs financés": "Funded goals",
     "On me doit": "I'm owed",
@@ -342,7 +339,6 @@ class AppLocalizations {
     "Sélectionner la devise": "Select currency",
     "Sélectionner un compte": "Select an account",
     "Solde Insuffisant ⚠️": "Insufficient balance ⚠️",
-    "Dettes & Créances": "Debts & Receivables",
     "Suivi Dettes & Créances": "Debt & Receivable tracking",
     "Suivi des poches et limites": "Pocket tracking and limits",
     "Suivre objectifs": "Track goals",

@@ -117,7 +117,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: ModernPageAppBar(
-        title: t('Dettes & Créances'),
+        title: t('Suivi Dettes & Créances'),
         subtitle: t('Ce que je dois et ce qu’on me doit'),
         icon: Icons.handshake_rounded,
         showProfile: true,
