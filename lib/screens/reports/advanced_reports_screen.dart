@@ -147,36 +147,39 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                         _buildPeriodSelector(),
                         const SizedBox(height: 20),
                         if (isWide)
-                          Row(
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                flex: 4,
-                                child: Column(
-                                  children: [
-                                    if (_firestoreService.currentUserId != null)
-                                      GlobalFinancialFlowBlock(
-                                        userId: _firestoreService.currentUserId!,
-                                        transactions: _transactions,
-                                        dateRange: _getDateRange(),
-                                      ),
-                                    const SizedBox(height: 20),
-                                    _buildTrendChart(),
-                                  ],
-                                ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 4,
+                                    child: Column(
+                                      children: [
+                                        if (_firestoreService.currentUserId != null)
+                                          GlobalFinancialFlowBlock(
+                                            userId: _firestoreService.currentUserId!,
+                                            transactions: _transactions,
+                                            dateRange: _getDateRange(),
+                                          ),
+                                        const SizedBox(height: 20),
+                                        _buildTrendChart(),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                flex: 3,
-                                child: Column(
-                                  children: [
-                                    if (_firestoreService.currentUserId != null)
-                                      ComparativeFinancialMatrix(
-                                        userId: _firestoreService.currentUserId!,
-                                      ),
-                                  ],
-                                ),
+                              const SizedBox(height: 20),
+                              const TrText(
+                                'Synthèse des dépenses et revenus',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                               ),
+                              const SizedBox(height: 12),
+                              if (_firestoreService.currentUserId != null)
+                                ComparativeFinancialMatrix(
+                                  userId: _firestoreService.currentUserId!,
+                                ),
                             ],
                           )
                         else
@@ -192,7 +195,12 @@ class _AdvancedReportsScreenState extends State<AdvancedReportsScreen> {
                               _buildTrendChart(),
                               const SizedBox(height: 20),
                               // Suppression des blocs "Top Dépenses" et "Détail par Catégorie"
-                              // remplacés par la matrice comparative ci-dessous
+                              // Matrice comparative en section dédiée
+                              const TrText(
+                                'Synthèse des dépenses et revenus',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 12),
                               if (_firestoreService.currentUserId != null)
                                 ComparativeFinancialMatrix(userId: _firestoreService.currentUserId!),
                             ],
