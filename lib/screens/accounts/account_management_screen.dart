@@ -623,7 +623,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     labelText: t('Montant'),
-                    prefixIcon: const Icon(Icons.euro),
+                    prefixIcon: const Icon(Icons.payments_outlined),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -905,7 +905,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: TrText('Transfert de ${amount.toStringAsFixed(2)} € effectué avec succès !'),
+                    content: TrText('Transfert de ${context.read<CurrencyService>().formatAmount(amount)} effectué avec succès !'),
                     backgroundColor: AppDesign.incomeColor,
                   ),
                 );
@@ -962,6 +962,7 @@ class _AddAccountModalState extends State<AddAccountModal> {
 
   @override
   Widget build(BuildContext context) {
+    final currencySymbol = context.watch<CurrencyService>().currencySymbol;
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -1026,8 +1027,8 @@ class _AddAccountModalState extends State<AddAccountModal> {
                   controller: _balanceController,
                   decoration: InputDecoration(
                     labelText: t('Solde initial'),
-                    prefixIcon: Icon(Icons.euro),
-                    suffixText: t('€'),
+                    prefixIcon: const Icon(Icons.payments_outlined),
+                    suffixText: currencySymbol,
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
@@ -1628,7 +1629,7 @@ class _TransferModalState extends State<TransferModal> {
                   controller: _amountController,
                   decoration: InputDecoration(
                     labelText: t('Montant à transférer'),
-                    prefixIcon: const Icon(Icons.euro),
+                    prefixIcon: const Icon(Icons.payments_outlined),
                     suffixText: context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency),
                     helperText: _sourceAccount != null
                         ? 'Solde disponible: ${_sourceAccount!.balance.toStringAsFixed(2)} ${context.watch<CurrencyService>().currentCurrency}'

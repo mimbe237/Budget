@@ -14,6 +14,7 @@ import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/transactions/transaction_form_screen.dart';
 import 'models/transaction.dart' as app_transaction;
 import 'widgets/branding_splash.dart';
+import 'services/theme_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +44,7 @@ class AppBootstrap extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LocaleProvider()..loadLocale()),
         ChangeNotifierProvider(create: (_) => CurrencyService()..loadCurrency()),
         ChangeNotifierProvider(create: (_) => NotificationPreferencesService()..loadPreferences()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()..loadTheme()),
       ],
       child: const BudgetApp(),
     );
@@ -55,6 +57,7 @@ class BudgetApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localeProvider = context.watch<LocaleProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
 
     return MaterialApp(
       title: t('Budget Pro'),
@@ -133,19 +136,71 @@ class BudgetApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF6C5CF7),
           brightness: Brightness.dark,
+          surface: const Color(0xFF111827),
+          background: const Color(0xFF0B1220),
+          tertiary: const Color(0xFF8B5CF6),
         ),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+        scaffoldBackgroundColor: const Color(0xFF0B1220),
+        canvasColor: const Color(0xFF0B1220),
+        cardColor: const Color(0xFF111827),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).apply(
+          bodyColor: Colors.grey[100],
+          displayColor: Colors.grey[100],
+        ),
+        appBarTheme: AppBarTheme(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.grey[100],
+          titleTextStyle: GoogleFonts.inter(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[50],
+          ),
+        ),
         cardTheme: CardThemeData(
           elevation: 0,
+          color: const Color(0xFF111827),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
         ),
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: const Color(0xFF0F172A),
+          selectedItemColor: const Color(0xFF8B5CF6),
+          unselectedItemColor: Colors.grey[500],
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF8B5CF6),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 0,
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF111827),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.25)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 2),
+          ),
+          labelStyle: TextStyle(color: Colors.grey[300]),
+          hintStyle: TextStyle(color: Colors.grey[500]),
+        ),
       ),
       
-      themeMode: ThemeMode.system,
-      // Rendre tout le texte sélectionnable sur Web/Desktop
-      builder: (context, child) => SelectionArea(child: child ?? const SizedBox.shrink()),
+      themeMode: themeProvider.themeMode,
       // Utiliser AuthWrapper pour gérer l'authentification
       home: const AuthWrapper(),
     );

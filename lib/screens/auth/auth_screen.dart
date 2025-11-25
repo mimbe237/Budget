@@ -447,7 +447,12 @@ class _AuthScreenState extends State<AuthScreen> {
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const RevolutionaryLogo(size: 72, withText: true),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final logoSize = MediaQuery.of(context).size.width < 400 ? 52.0 : 72.0;
+                                return RevolutionaryLogo(size: logoSize, withText: true);
+                              },
+                            ),
                             const SizedBox(height: 12),
                             TrText(
                               'Gère tes finances comme un Pro',

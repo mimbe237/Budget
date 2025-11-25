@@ -13,6 +13,7 @@ import '../ious/iou_tracking_screen.dart';
 import '../transactions/transaction_form_screen.dart';
 import '../transactions/transactions_list_screen.dart';
 import '../trash/trash_screen.dart';
+import '../profile/profile_settings_screen.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
@@ -29,8 +30,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  final NumberFormat _currencyFormat =
-      NumberFormat.currency(locale: 'fr_FR', symbol: '€', decimalDigits: 2);
   final Color _brandTeal = const Color(0xFF00796B);
 
   @override
@@ -148,22 +147,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
                 const SizedBox(width: 10),
-                PopupMenuButton<int>(
+                IconButton(
                   tooltip: t('Profil'),
-                  offset: const Offset(0, 42),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  itemBuilder: (context) => const [
-                    PopupMenuItem<int>(
-                      value: 0,
-                      child: TrText('Profil'),
-                    ),
-                    PopupMenuItem<int>(
-                      value: 1,
-                      child: TrText('Paramètres'),
-                    ),
-                  ],
-                  onSelected: (_) {},
-                  child: CircleAvatar(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                    );
+                  },
+                  icon: CircleAvatar(
                     backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                     child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
                   ),
@@ -472,6 +464,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         final accounts = snapshot.data!;
         final totalBalance = accounts.fold<double>(0.0, (sum, acc) => sum + acc.balance);
+        final currency = context.watch<CurrencyService>();
 
         return Container(
           decoration: BoxDecoration(
@@ -496,7 +489,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 10),
                   TrText(
-                    '${totalBalance.toStringAsFixed(2)} €',
+                    currency.formatAmount(totalBalance),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 38,

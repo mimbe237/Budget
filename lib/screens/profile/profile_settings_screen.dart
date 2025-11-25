@@ -5,6 +5,7 @@ import '../../services/currency_service.dart';
 import '../../services/notification_preferences_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/theme_service.dart';
 import '../../models/user_profile.dart';
 import '../settings/notification_settings_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
@@ -634,6 +635,51 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           
           const Divider(height: 1, indent: 72),
           
+          // Thème
+          Builder(builder: (context) {
+            final themeProvider = context.watch<ThemeProvider>();
+            final modeLabel = themeProvider.label(context);
+            final isDark = themeProvider.themeMode == ThemeMode.dark;
+            return ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isDark ? Icons.nightlight_round : Icons.wb_sunny_outlined,
+                  color: AppDesign.primaryIndigo,
+                  size: 24,
+                ),
+              ),
+              title: const TrText(
+                'Thème',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TrText(
+                    modeLabel,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_ios, size: 16),
+                ],
+              ),
+              onTap: () => _showThemePicker(themeProvider),
+            );
+          }),
+          
+          const Divider(height: 1, indent: 72),
+          
           // Sécurité
           ListTile(
             leading: Container(
@@ -920,6 +966,69 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     : null,
                 onTap: () async {
                   await localeProvider.setLocale(const Locale('en'));
+                  if (mounted) Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showThemePicker(ThemeProvider themeProvider) {
+    final current = themeProvider.themeMode;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const TrText(
+                'Mode d\'affichage',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.brightness_auto),
+                title: const TrText('Système'),
+                trailing: current == ThemeMode.system
+                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
+                    : null,
+                onTap: () async {
+                  await themeProvider.setTheme(ThemeMode.system);
+                  if (mounted) Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.wb_sunny_outlined),
+                title: const TrText('Clair'),
+                trailing: current == ThemeMode.light
+                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
+                    : null,
+                onTap: () async {
+                  await themeProvider.setTheme(ThemeMode.light);
+                  if (mounted) Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.nightlight_round),
+                title: const TrText('Sombre'),
+                trailing: current == ThemeMode.dark
+                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
+                    : null,
+                onTap: () async {
+                  await themeProvider.setTheme(ThemeMode.dark);
                   if (mounted) Navigator.pop(context);
                 },
               ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../models/transaction.dart';
 import '../../services/firestore_service.dart';
+import '../../services/currency_service.dart';
 import 'package:budget/l10n/app_localizations.dart';
 
 class TrashScreen extends StatelessWidget {
@@ -76,7 +78,12 @@ class TrashScreen extends StatelessWidget {
     FirestoreService service,
     String userId,
   ) {
-    final currencyFormat = NumberFormat.currency(locale: 'fr_FR', symbol: '€');
+    final currencyFormat = NumberFormat.currency(
+      locale: 'fr_FR',
+      symbol: context.watch<CurrencyService>().getCurrencySymbol(
+            context.watch<CurrencyService>().currentCurrency,
+          ),
+    );
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
     
     // Calcul du temps restant avant suppression auto (3 jours après deletedAt)

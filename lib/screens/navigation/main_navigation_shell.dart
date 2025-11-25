@@ -16,6 +16,7 @@ import '../profile/profile_settings_screen.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/app_modal.dart';
+import '../../services/currency_service.dart';
 
 /// Shell de navigation principal avec BottomNavigationBar et menu d'actions rapides
 class MainNavigationShell extends StatefulWidget {
@@ -668,7 +669,9 @@ class _ProfileScreen extends StatelessWidget {
                 _buildListItem(
                   icon: Icons.euro,
                   title: t('Devise'),
-                  trailing: const TrText('EUR (€)'),
+                  trailing: TrText(
+                    '${context.watch<CurrencyService>().currentCurrency} (${context.watch<CurrencyService>().currencySymbol})',
+                  ),
                   onTap: () {},
                 ),
               ],

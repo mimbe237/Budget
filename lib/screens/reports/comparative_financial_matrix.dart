@@ -138,25 +138,57 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
     );
   }
 
+  void _openFullScreenMatrix(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => _FullScreenMatrixView(
+          isIncome: _isIncome,
+          selectedYear: _selectedYear,
+          matrixData: _matrixData,
+          categoryIcons: _categoryIcons,
+          onToggleType: () {
+            setState(() {
+              _isIncome = !_isIncome;
+            });
+            _fetchAndProcessData();
+          },
+          onYearChanged: (year) {
+            setState(() {
+              _selectedYear = year;
+            });
+            _fetchAndProcessData();
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader() {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // Toggle Switch
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          padding: const EdgeInsets.all(4),
-          child: Row(
-            children: [
-              _buildToggleOption('Dépenses', !_isIncome, AppDesign.expenseColor),
-              _buildToggleOption('Revenus', _isIncome, AppDesign.incomeColor),
-            ],
+        Flexible(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            padding: const EdgeInsets.all(4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildToggleOption('Dépenses', !_isIncome, AppDesign.expenseColor),
+                _buildToggleOption('Revenus', _isIncome, AppDesign.incomeColor),
+              ],
+            ),
           ),
         ),
+        
+        const SizedBox(width: 8),
         
         // Year Selector
         Container(
@@ -183,6 +215,18 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
             },
           ),
         ),
+        
+        // Bouton plein écran (mobile uniquement)
+        if (isMobile) ...[
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.fullscreen, color: AppDesign.primaryIndigo),
+            onPressed: () => _openFullScreenMatrix(context),
+            tooltip: t('Plein écran'),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
       ],
     );
   }
@@ -494,6 +538,313 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
             TrText(
               'Commencez à ajouter des transactions !',
               style: TextStyle(color: Colors.grey[400], fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Widget pour afficher la matrice en plein écran
+class _FullScreenMatrixView extends StatefulWidget {
+  final bool isIncome;
+  final int selectedYear;
+  final Map<String, Map<int, double>> matrixData;
+  final Map<String, String> categoryIcons;
+  final VoidCallback onToggleType;
+  final Function(int) onYearChanged;
+
+  const _FullScreenMatrixView({
+    required this.isIncome,
+    required this.selectedYear,
+    required this.matrixData,
+    required this.categoryIcons,
+    required this.onToggleType,
+    required this.onYearChanged,
+  });
+
+  @override
+  State<_FullScreenMatrixView> createState() => _FullScreenMatrixViewState();
+}
+
+class _FullScreenMatrixViewState extends State<_FullScreenMatrixView> {
+  final double _categoryColumnWidth = 140.0;
+  final double _monthColumnWidth = 70.0;
+  final double _totalColumnWidth = 80.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: TrText(widget.isIncome ? 'Revenus ${widget.selectedYear}' : 'Dépenses ${widget.selectedYear}'),
+        backgroundColor: AppDesign.primaryIndigo,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: widget.matrixData.isEmpty
+          ? _buildEmptyState()
+          : _buildFullScreenMatrix(),
+    );
+  }
+
+  Widget _buildFullScreenMatrix() {
+    final now = DateTime.now();
+    final isCurrentYear = widget.selectedYear == now.year;
+    final maxMonth = isCurrentYear ? now.month : 12;
+    final months = List.generate(maxMonth, (index) => index + 1);
+
+    // Calculer le max global pour la heatmap
+    double maxAmount = 0;
+    for (var row in widget.matrixData.values) {
+      for (var amount in row.values) {
+        if (amount > maxAmount) maxAmount = amount;
+      }
+    }
+
+    // Trier les catégories par total annuel décroissant
+    final sortedCategories = widget.matrixData.keys.toList()
+      ..sort((a, b) {
+        final totalA = widget.matrixData[a]!.values.fold(0.0, (sum, v) => sum + v);
+        final totalB = widget.matrixData[b]!.values.fold(0.0, (sum, v) => sum + v);
+        return totalB.compareTo(totalA);
+      });
+
+    // Calcul des totaux mensuels
+    final Map<int, double> monthlyTotals = {};
+    for (var m in months) {
+      monthlyTotals[m] = 0;
+      for (var cat in sortedCategories) {
+        monthlyTotals[m] = (monthlyTotals[m] ?? 0) + (widget.matrixData[cat]![m] ?? 0);
+      }
+    }
+    final grandTotal = monthlyTotals.values.fold(0.0, (sum, v) => sum + v);
+
+    return SingleChildScrollView(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row
+              Row(
+                children: [
+                  _buildStickyCell('Catégorie', isHeader: true),
+                  ...months.map((m) => _buildMonthHeaderCell(m)),
+                  _buildTotalHeaderCell(),
+                ],
+              ),
+
+              // Data Rows
+              ...sortedCategories.map((cat) {
+                final rowTotal = widget.matrixData[cat]!.values.fold(0.0, (sum, v) => sum + v);
+                return Row(
+                  children: [
+                    _buildStickyCell(cat, icon: widget.categoryIcons[cat]),
+                    ...months.map((m) {
+                      final amount = widget.matrixData[cat]![m] ?? 0;
+                      return _buildHeatmapCell(amount, maxAmount);
+                    }),
+                    _buildTotalCell(rowTotal),
+                  ],
+                );
+              }),
+
+              // Footer Row (Totals)
+              Container(
+                decoration: const BoxDecoration(
+                  border: Border(top: BorderSide(color: Colors.black12, width: 2)),
+                ),
+                child: Row(
+                  children: [
+                    _buildStickyCell('TOTAL', isBold: true),
+                    ...months.map((m) => _buildTotalCell(monthlyTotals[m] ?? 0, isFooter: true)),
+                    _buildTotalCell(grandTotal, isFooter: true, isBold: true),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStickyCell(String text, {String? icon, bool isHeader = false, bool isBold = false}) {
+    return Container(
+      width: _categoryColumnWidth,
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(
+        color: isHeader ? Colors.grey[50] : Colors.white,
+        border: Border(
+          right: BorderSide(color: Colors.grey[200]!),
+          bottom: BorderSide(color: Colors.grey[100]!),
+        ),
+      ),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            TrText(icon, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: TrText(
+              text,
+              style: TextStyle(
+                fontWeight: isHeader || isBold ? FontWeight.bold : FontWeight.normal,
+                color: isHeader ? Colors.grey[600] : Colors.black87,
+                fontSize: 13,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMonthHeaderCell(int monthIndex) {
+    final monthName = DateFormat('MMM', 'fr_FR').format(DateTime(2024, monthIndex));
+    return Container(
+      width: _monthColumnWidth,
+      height: 48,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        border: Border(
+          right: BorderSide(color: Colors.grey[200]!),
+          bottom: BorderSide(color: Colors.grey[100]!),
+        ),
+      ),
+      child: TrText(
+        monthName.toUpperCase(),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.grey[600],
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTotalHeaderCell() {
+    return Container(
+      width: _totalColumnWidth,
+      height: 48,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        border: Border(
+          bottom: BorderSide(color: Colors.grey[100]!),
+        ),
+      ),
+      child: const TrText(
+        'TOTAL',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeatmapCell(double amount, double maxAmount) {
+    if (amount == 0) {
+      return Container(
+        width: _monthColumnWidth,
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          border: Border(
+            right: BorderSide(color: Colors.grey[100]!),
+            bottom: BorderSide(color: Colors.grey[100]!),
+          ),
+        ),
+        child: TrText(
+          '-',
+          style: TextStyle(color: Colors.grey[300], fontSize: 12),
+        ),
+      );
+    }
+
+    final ratio = maxAmount > 0 ? (amount / maxAmount) : 0.0;
+    final baseColor = widget.isIncome ? AppDesign.incomeColor : AppDesign.expenseColor;
+    final opacity = 0.05 + (ratio * 0.25);
+
+    return Container(
+      width: _monthColumnWidth,
+      height: 48,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: baseColor.withValues(alpha: opacity),
+        border: Border(
+          right: BorderSide(color: Colors.grey[100]!),
+          bottom: BorderSide(color: Colors.grey[100]!),
+        ),
+      ),
+      child: TrText(
+        amount >= 1000 ? '${(amount / 1000).toStringAsFixed(1)}k' : amount.toStringAsFixed(0),
+        style: TextStyle(
+          color: Colors.black87,
+          fontSize: 12,
+          fontWeight: ratio > 0.7 ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTotalCell(double amount, {bool isFooter = false, bool isBold = false}) {
+    return Container(
+      width: _totalColumnWidth,
+      height: 48,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: isFooter ? Colors.grey[50] : Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey[100]!),
+        ),
+      ),
+      child: TrText(
+        amount >= 10000 ? '${(amount / 1000).toStringAsFixed(1)}k' : amount.toStringAsFixed(0),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: isBold ? (widget.isIncome ? AppDesign.incomeColor : AppDesign.expenseColor) : Colors.black87,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          children: [
+            Icon(
+              widget.isIncome ? Icons.savings_outlined : Icons.receipt_long_outlined,
+              size: 64,
+              color: Colors.grey[300],
+            ),
+            const SizedBox(height: 16),
+            TrText(
+              'Aucune donnée pour ${widget.selectedYear}',
+              style: TextStyle(color: Colors.grey[500], fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            const TrText(
+              'Commencez à ajouter des transactions !',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
         ),

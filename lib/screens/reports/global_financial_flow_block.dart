@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../models/iou.dart';
 import '../../models/account.dart';
 import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/services/currency_service.dart';
 
 class GlobalFinancialFlowBlock extends StatefulWidget {
   final String userId;
@@ -428,7 +430,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
           ),
           const SizedBox(height: 4),
           TrText(
-            _formatAmount(amount),
+            _formatAmount(context, amount),
             style: TextStyle(
               color: valueColor,
               fontSize: amountFontSize,
@@ -450,11 +452,16 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
     return (availableWidth - totalSpacing) / desiredPerRow;
   }
 
-  String _formatAmount(double amount) {
+  String _formatAmount(BuildContext context, double amount) {
+    final currency = context.watch<CurrencyService>();
+    final symbol = currency.getCurrencySymbol(currency.currentCurrency);
+    final decimalDigits = currency.currentCurrency == 'JPY'
+        ? 0
+        : (amount.abs() >= 1000 ? 0 : 2);
     final formatter = NumberFormat.currency(
       locale: 'fr_FR',
-      symbol: '€',
-      decimalDigits: amount.abs() >= 1000 ? 0 : 2,
+      symbol: symbol,
+      decimalDigits: decimalDigits,
     );
     return formatter.format(amount);
   }

@@ -51,6 +51,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
   
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final _currency = NumberFormat.currency(locale: 'fr_FR', symbol: '€');
 
   @override
   void initState() {
@@ -251,224 +252,214 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
             },
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppDesign.primaryIndigo,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppDesign.primaryIndigo,
-          tabs: [
-            Tab(text: t('Actives'), icon: const Icon(Icons.list_alt)),
-            Tab(text: t('Corbeille'), icon: const Icon(Icons.delete_outline)),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildActiveTransactionsTab(filteredTransactions),
-          _buildTrashTab(),
+          Material(
+            color: Colors.white,
+            elevation: 2,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: AppDesign.primaryIndigo,
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: AppDesign.primaryIndigo,
+              tabs: [
+                Tab(text: t('Actives'), icon: const Icon(Icons.list_alt)),
+                Tab(text: t('Corbeille'), icon: const Icon(Icons.delete_outline)),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildActiveTransactionsTab(filteredTransactions),
+                _buildTrashTab(),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
+  // Active transactions tab extracted from previous inline body
   Widget _buildActiveTransactionsTab(List<app_transaction.Transaction> filteredTransactions) {
     return StreamBuilder<List<Account>>(
-        stream: _accountsStream,
-        builder: (context, accountSnapshot) {
-          final accounts = accountSnapshot.data ?? [];
-          return StreamBuilder<List<Category>>(
-            stream: _categoriesStream,
-            builder: (context, categorySnapshot) {
-              final categories = categorySnapshot.data ?? [];
-              return CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: _buildFilters(accounts, categories),
-                  ),
-                  SliverFillRemaining(
-                    hasScrollBody: true,
-                    child: RefreshIndicator(
-                      onRefresh: _loadInitialData,
-                      child: filteredTransactions.isEmpty && !_isLoading
-                          ? ListView(
-                              children: const [
-                                SizedBox(height: 100),
-                                Center(
-                                  child: TrText(
-                                    'Aucune transaction trouvée.',
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
+      stream: _accountsStream,
+      builder: (context, accountSnapshot) {
+        final accounts = accountSnapshot.data ?? [];
+        return StreamBuilder<List<Category>>(
+          stream: _categoriesStream,
+          builder: (context, categorySnapshot) {
+            final categories = categorySnapshot.data ?? [];
+            return CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: _buildFilters(accounts, categories)),
+                SliverFillRemaining(
+                  hasScrollBody: true,
+                  child: RefreshIndicator(
+                    onRefresh: _loadInitialData,
+                    child: filteredTransactions.isEmpty && !_isLoading
+                        ? ListView(
+                            children: const [
+                              SizedBox(height: 100),
+                              Center(
+                                child: TrText(
+                                  'Aucune transaction trouvée.',
+                                  style: TextStyle(color: Colors.grey),
                                 ),
-                              ],
-                            )
-                          : ListView.separated(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.all(16),
-                              itemCount: filteredTransactions.length + (_hasMore ? 1 : 0),
-                              separatorBuilder: (_, __) => const SizedBox(height: 8),
-                              itemBuilder: (context, index) {
-                                if (index == filteredTransactions.length) {
-                                  return const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(16.0),
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                }
-
-                                final tx = filteredTransactions[index];
-                                final isIncome = tx.type == app_transaction.TransactionType.income;
-                                final isExpense = tx.type == app_transaction.TransactionType.expense;
-                                final color = isIncome
-                                    ? AppDesign.incomeColor
-                                    : isExpense
-                                        ? AppDesign.expenseColor
-                                        : Colors.blueGrey;
-                                final prefix = isIncome ? '+' : isExpense ? '-' : '';
-                                final dateLabel = DateFormat('dd/MM/yyyy').format(tx.date);
-
-                                final iconText = (tx.category ?? '💳');
-                                final leadingChar = iconText.isNotEmpty ? iconText.characters.first : '💳';
-
-                                return Card(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
-                                  ),
-                                  elevation: 2,
-                                  child: ListTile(
-                                    onTap: () => _openTransactionEditor(tx, categories),
-                                    leading: CircleAvatar(
-                                      backgroundColor: color.withValues(alpha: 0.12),
-                                      child: TrText(
-                                        leadingChar,
-                                        style: const TextStyle(fontSize: 20),
-                                      ),
-                                    ),
-                                    title: TrText(
-                                      tx.description?.isNotEmpty == true ? tx.description! : 'Transaction',
-                                      style: const TextStyle(fontWeight: FontWeight.w700),
-                                    ),
-                                    subtitle: TrText(
-                                      '$dateLabel · ${tx.category ?? 'Sans catégorie'}',
-                                      style: const TextStyle(color: Colors.grey),
-                                    ),
-                                    trailing: TrText(
-                                      '$prefix${context.watch<CurrencyService>().formatAmount(tx.amount)}',
-                                      style: TextStyle(
-                                        color: color,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
+                              ),
+                            ],
+                          )
+                        : ListView.separated(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: filteredTransactions.length + (_hasMore ? 1 : 0),
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              if (index == filteredTransactions.length) {
+                                return const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: CircularProgressIndicator(),
                                   ),
                                 );
-                              },
-                            ),
-                    ),
+                              }
+
+                              final tx = filteredTransactions[index];
+                              final isIncome = tx.type == app_transaction.TransactionType.income;
+                              final isExpense = tx.type == app_transaction.TransactionType.expense;
+                              final color = isIncome
+                                  ? AppDesign.incomeColor
+                                  : isExpense
+                                      ? AppDesign.expenseColor
+                                      : Colors.blueGrey;
+                              final prefix = isIncome ? '+' : isExpense ? '-' : '';
+                              final dateLabel = DateFormat('dd/MM/yyyy').format(tx.date);
+                              final iconText = (tx.category ?? '💳');
+                              final leadingChar = iconText.isNotEmpty ? iconText.characters.first : '💳';
+
+                              return Card(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+                                ),
+                                elevation: 2,
+                                child: ListTile(
+                                  onTap: () => _openTransactionEditor(tx, categories),
+                                  leading: CircleAvatar(
+                                    backgroundColor: color.withValues(alpha: 0.12),
+                                    child: TrText(leadingChar, style: const TextStyle(fontSize: 20)),
+                                  ),
+                                  title: TrText(
+                                    tx.description?.isNotEmpty == true ? tx.description! : 'Transaction',
+                                    style: const TextStyle(fontWeight: FontWeight.w700),
+                                  ),
+                                  subtitle: TrText(
+                                    '$dateLabel · ${tx.category ?? 'Sans catégorie'}',
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                  trailing: TrText(
+                                    '$prefix${_currency.format(tx.amount)}',
+                                    style: TextStyle(
+                                      color: color,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                   ),
-                ],
-              );
-            },
-          );
-        },
-      ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
+  // Trash tab implementation
   Widget _buildTrashTab() {
     final userId = _firestoreService.currentUserId;
-    
     if (userId == null) {
       return const Center(child: TrText('Veuillez vous connecter'));
     }
-
     return StreamBuilder<List<app_transaction.Transaction>>(
       stream: _firestoreService.getDeletedTransactionsStream(userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-
-        if (snapshot.hasError) {
-          return Center(child: TrText('Erreur: ${snapshot.error}'));
-        }
-
-        final transactions = snapshot.data ?? [];
-
-        if (transactions.isEmpty) {
-          return const Center(
+        final deleted = snapshot.data ?? [];
+        if (deleted.isEmpty) {
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.delete_outline, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                TrText(
-                  'La corbeille est vide',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
+              children: const [
+                Icon(Icons.delete_outline, size: 48, color: Colors.grey),
+                SizedBox(height: 12),
+                TrText('Corbeille vide', style: TextStyle(color: Colors.grey)),
               ],
             ),
           );
         }
-
         return ListView.separated(
           padding: const EdgeInsets.all(16),
-          itemCount: transactions.length,
+          itemCount: deleted.length,
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
-            final tx = transactions[index];
-            final deletedAt = tx.deletedAt ?? DateTime.now();
-            final autoDeleteDate = deletedAt.add(const Duration(days: 3));
-            final daysRemaining = autoDeleteDate.difference(DateTime.now()).inDays;
-            final hoursRemaining = autoDeleteDate.difference(DateTime.now()).inHours % 24;
-
-            String remainingText;
-            if (daysRemaining > 0) {
-              remainingText = '$daysRemaining ${t("jours restants")}';
-            } else if (hoursRemaining > 0) {
-              remainingText = '$hoursRemaining ${t("heures restantes")}';
-            } else {
-              remainingText = t('Suppression imminente');
-            }
-
+            final tx = deleted[index];
             final isIncome = tx.type == app_transaction.TransactionType.income;
             final isExpense = tx.type == app_transaction.TransactionType.expense;
-            final color = isIncome ? AppDesign.incomeColor : isExpense ? AppDesign.expenseColor : Colors.blueGrey;
+            final color = isIncome
+                ? AppDesign.incomeColor
+                : isExpense
+                    ? AppDesign.expenseColor
+                    : Colors.blueGrey;
             final prefix = isIncome ? '+' : isExpense ? '-' : '';
             final dateLabel = DateFormat('dd/MM/yyyy').format(tx.date);
-
+            // Temps restant (30 jours - deletedAt)
+            String remainingText = '';
+            if (tx.deletedAt != null) {
+              final limit = tx.deletedAt!.add(const Duration(days: 30));
+              final diff = limit.difference(DateTime.now());
+              if (diff.isNegative) {
+                remainingText = 'Suppression imminente';
+              } else {
+                final days = diff.inDays;
+                final hours = diff.inHours % 24;
+                remainingText = 'Auto dans ${days}j ${hours}h';
+              }
+            }
             return Card(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
               ),
-              elevation: 2,
+              elevation: 1,
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: color.withOpacity(0.1),
-                  child: Icon(Icons.restore_from_trash, color: color),
+                  backgroundColor: color.withValues(alpha: 0.12),
+                  child: TrText(
+                    (tx.category ?? '💳').characters.first,
+                    style: const TextStyle(fontSize: 20),
+                  ),
                 ),
                 title: TrText(
-                  tx.description ?? t('Sans description'),
+                  tx.description?.isNotEmpty == true ? tx.description! : 'Transaction',
                   style: const TextStyle(fontWeight: FontWeight.w600),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TrText(dateLabel, style: const TextStyle(fontSize: 12)),
-                    TrText(
-                      remainingText,
-                      style: TextStyle(fontSize: 11, color: Colors.orange.shade700),
-                    ),
-                  ],
+                subtitle: TrText(
+                  '$dateLabel · $remainingText',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      '$prefix${context.watch<CurrencyService>().format(tx.amount)}',
+                    TrText(
+                      '$prefix${context.watch<CurrencyService>().formatAmount(tx.amount)}',
                       style: TextStyle(
                         color: color,
                         fontWeight: FontWeight.bold,
@@ -480,60 +471,34 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
                       onSelected: (value) async {
                         if (value == 'restore') {
                           await _firestoreService.restoreTransaction(userId, tx.transactionId);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: TrText('Transaction restaurée')),
-                            );
-                          }
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: TrText('Transaction restaurée')),
+                          );
                         } else if (value == 'delete') {
                           final confirm = await showDialog<bool>(
                             context: context,
-                            builder: (context) => AlertDialog(
-                              title: const TrText('Confirmer la suppression'),
-                              content: const TrText('Cette action est irréversible. Continuer ?'),
+                            builder: (ctx) => AlertDialog(
+                              title: const TrText('Supprimer définitivement ?'),
+                              content: const TrText('Cette action est irréversible.'),
                               actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const TrText('Annuler'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const TrText('Supprimer'),
-                                ),
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const TrText('Annuler')),
+                                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const TrText('Supprimer')),
                               ],
                             ),
                           );
                           if (confirm == true) {
-                            await _firestoreService.permanentlyDeleteTransaction(userId, tx.transactionId);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: TrText('Transaction supprimée définitivement')),
-                              );
-                            }
+                            await _firestoreService.deleteTransactionPermanently(userId, tx.transactionId);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: TrText('Transaction supprimée')), 
+                            );
                           }
                         }
                       },
                       itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'restore',
-                          child: Row(
-                            children: [
-                              const Icon(Icons.restore, size: 20),
-                              const SizedBox(width: 8),
-                              TrText(t('Restaurer')),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              const Icon(Icons.delete_forever, size: 20, color: Colors.red),
-                              const SizedBox(width: 8),
-                              TrText(t('Supprimer définitivement'), style: const TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        ),
+                        const PopupMenuItem(value: 'restore', child: TrText('Restaurer')),
+                        const PopupMenuItem(value: 'delete', child: TrText('Supprimer définitivement')),
                       ],
                     ),
                   ],

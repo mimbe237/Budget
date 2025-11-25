@@ -10,6 +10,7 @@ import '../../services/firestore_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../widgets/revolutionary_logo.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/services/currency_service.dart';
 
 /// Écran d'analyse intelligente des finances personnelles
 /// Fournit des insights, détection d'anomalies et recommandations
@@ -23,11 +24,7 @@ class AIAnalysisScreen extends StatefulWidget {
 class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final MockDataService _mockDataService = MockDataService();
-  final NumberFormat _currencyFormat = NumberFormat.currency(
-    locale: 'fr_FR',
-    symbol: '€',
-    decimalDigits: 2,
-  );
+  late final CurrencyService _currencyService;
 
   bool _isLoading = true;
   bool _usingMockData = false;
@@ -44,6 +41,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
   @override
   void initState() {
     super.initState();
+    _currencyService = CurrencyService();
+    _currencyService.addListener(_onCurrencyChanged);
     _loadDataAndAnalyze();
   }
 
@@ -90,6 +89,18 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _onCurrencyChanged() {
+    if (!mounted || _isLoading) return;
+    setState(() {
+      _anomalies = _detectAnomalies();
+      _recommendations = _generateRecommendations();
+    });
+  }
+
+  String _formatAmount(double amount) {
+    return _currencyService.formatAmount(amount);
   }
 
   Future<void> _hydrateFromMock() async {
@@ -200,7 +211,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
 
         if (maxCurrent > avgMax * 2) {
           anomalies.add(
-            '🚨 Transaction inhabituelle détectée : ${_currencyFormat.format(maxCurrent)} (2x supérieure à vos dépenses habituelles).'
+            '🚨 Transaction inhabituelle détectée : ${_formatAmount(maxCurrent)} (2x supérieure à vos dépenses habituelles).'
           );
         }
       }
@@ -211,7 +222,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
       for (final tx in _projectionResult!.exceptionalTransactions) {
         anomalies.add(
           '🚨 Dépense exceptionnelle détectée : ${tx.description ?? 'Transaction'} '
-          '(${_currencyFormat.format(tx.amount)}) le ${DateFormat('dd/MM').format(tx.date)}.',
+          '(${_formatAmount(tx.amount)}) le ${DateFormat('dd/MM').format(tx.date)}.',
         );
       }
     }
@@ -241,7 +252,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           'title': 'Risque de découvert',
           'description':
               'Ajustez vos dépenses variables : le solde projeté de fin de mois est '
-              '${_currencyFormat.format(projected.estimatedEndOfMonthBalance)}.',
+              '${_formatAmount(projected.estimatedEndOfMonthBalance)}.',
           'type': 'danger',
         });
       } else {
@@ -259,7 +270,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           'icon': '📅',
           'title': 'Dépenses fixes à venir',
           'description':
-              'Prévoir ${_currencyFormat.format(projected.upcomingFixedExpensesTotal)} pour vos charges fixes restantes.',
+              'Prévoir ${_formatAmount(projected.upcomingFixedExpensesTotal)} pour vos charges fixes restantes.',
           'type': 'info',
         });
       }
@@ -294,7 +305,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
             'icon': '⏰',
             'title': 'Accélérez vos Économies',
             'description':
-                'Pour atteindre "${goal.name}", économisez ${_currencyFormat.format(monthlyRequired)}/mois.',
+                'Pour atteindre "${goal.name}", économisez ${_formatAmount(monthlyRequired)}/mois.',
             'type': 'warning',
           });
         }
@@ -389,6 +400,12 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
   // =========================================================================
   // UI
   // =========================================================================
+
+  @override
+  void dispose() {
+    _currencyService.removeListener(_onCurrencyChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -706,7 +723,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                 ),
               ),
               TrText(
-                _currencyFormat.format(tx.amount),
+                _formatAmount(tx.amount),
                 style: const TextStyle(
                   color: AppDesign.expenseColor,
                   fontWeight: FontWeight.bold,
@@ -781,7 +798,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           ),
           const SizedBox(height: 20),
           TrText(
-            _currencyFormat.format(projection.estimatedEndOfMonthBalance),
+            _formatAmount(projection.estimatedEndOfMonthBalance),
             style: TextStyle(
               fontSize: 42,
               fontWeight: FontWeight.bold,
@@ -859,7 +876,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         ),
         const SizedBox(width: 8),
         TrText(
-          isCount ? value.toInt().toString() : _currencyFormat.format(value),
+          isCount ? value.toInt().toString() : _formatAmount(value),
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
