@@ -36,16 +36,31 @@ class MockDataService {
   List<Account> getMockAccounts() {
     final now = DateTime.now();
     return [
+      // Compte Demo avec données de test
+      Account(
+        accountId: 'acc_demo',
+        userId: mockUserId,
+        name: 'Demo',
+        type: AccountType.checking,
+        balance: 2450.50,
+        currency: 'EUR',
+        icon: '🎯',
+        color: '#4CAF50',
+        sharedWithUIDs: const [],
+        createdAt: now.subtract(const Duration(days: 30)),
+        updatedAt: now,
+      ),
+      // Autres comptes avec solde à 0
       Account(
         accountId: 'acc_1',
         userId: mockUserId,
         name: 'Compte Courant',
         type: AccountType.checking,
-        balance: 2450.50,
+        balance: 0.0,
         currency: 'EUR',
         icon: '💳',
         color: '#4CAF50',
-        sharedWithUIDs: const ['uid_partenaire', 'uid_comptable'],
+        sharedWithUIDs: const [],
         createdAt: now.subtract(const Duration(days: 30)),
         updatedAt: now,
       ),
@@ -54,11 +69,11 @@ class MockDataService {
         userId: mockUserId,
         name: 'Épargne',
         type: AccountType.savings,
-        balance: 8500.00,
+        balance: 0.0,
         currency: 'EUR',
         icon: '🏦',
         color: '#2196F3',
-        sharedWithUIDs: const ['uid_comptable'],
+        sharedWithUIDs: const [],
         createdAt: now.subtract(const Duration(days: 25)),
         updatedAt: now,
       ),
@@ -67,7 +82,7 @@ class MockDataService {
         userId: mockUserId,
         name: 'Espèces',
         type: AccountType.cash,
-        balance: 125.00,
+        balance: 0.0,
         currency: 'EUR',
         icon: '💵',
         color: '#FF9800',
@@ -80,7 +95,7 @@ class MockDataService {
         userId: mockUserId,
         name: 'Mobile Money',
         type: AccountType.mobileWallet,
-        balance: 500.00,
+        balance: 0.0,
         currency: 'EUR',
         icon: '📱',
         color: '#9C27B0',
@@ -91,14 +106,14 @@ class MockDataService {
     ];
   }
 
-  // Transactions mockées
+  // Transactions mockées - uniquement pour le compte Demo
   List<app_transaction.Transaction> getMockTransactions() {
     final now = DateTime.now();
     return [
       app_transaction.Transaction(
         transactionId: 'trans_1',
         userId: mockUserId,
-        accountId: 'acc_1',
+        accountId: 'acc_demo',
         categoryId: 'cat_1',
         type: app_transaction.TransactionType.expense,
         amount: 45.50,
@@ -111,7 +126,7 @@ class MockDataService {
       app_transaction.Transaction(
         transactionId: 'trans_2',
         userId: mockUserId,
-        accountId: 'acc_1',
+        accountId: 'acc_demo',
         categoryId: 'cat_2',
         type: app_transaction.TransactionType.expense,
         amount: 25.00,
@@ -123,8 +138,8 @@ class MockDataService {
       app_transaction.Transaction(
         transactionId: 'trans_3',
         userId: mockUserId,
-        accountId: 'acc_1',
-        categoryId: 'cat_3',
+        accountId: 'acc_demo',
+        categoryId: 'cat_income_1',
         type: app_transaction.TransactionType.income,
         amount: 2500.00,
         description: 'Salaire',
@@ -135,7 +150,7 @@ class MockDataService {
       app_transaction.Transaction(
         transactionId: 'trans_4',
         userId: mockUserId,
-        accountId: 'acc_1',
+        accountId: 'acc_demo',
         categoryId: 'cat_4',
         type: app_transaction.TransactionType.expense,
         amount: 89.99,
@@ -148,8 +163,8 @@ class MockDataService {
       app_transaction.Transaction(
         transactionId: 'trans_5',
         userId: mockUserId,
-        accountId: 'acc_2',
-        categoryId: 'cat_5',
+        accountId: 'acc_demo',
+        categoryId: 'cat_income_1',
         type: app_transaction.TransactionType.income,
         amount: 500.00,
         description: 'Virement épargne',
@@ -308,34 +323,9 @@ class MockDataService {
     );
   }
 
+  // Objectifs mockés - vide par défaut (peuvent être ajoutés par l'utilisateur)
   Future<List<Goal>> getGoals() async {
-    final now = DateTime.now();
-    return [
-      Goal(
-        goalId: 'goal_1',
-        userId: mockUserId,
-        name: 'Fonds d\'urgence',
-        targetAmount: 3000,
-        currentAmount: 850,
-        targetDate: now.add(const Duration(days: 120)),
-        icon: '🛟',
-        color: '#22C55E',
-        createdAt: now.subtract(const Duration(days: 20)),
-        updatedAt: now,
-      ),
-      Goal(
-        goalId: 'goal_2',
-        userId: mockUserId,
-        name: 'Voyage été',
-        targetAmount: 1500,
-        currentAmount: 450,
-        targetDate: now.add(const Duration(days: 210)),
-        icon: '🧳',
-        color: '#6366F1',
-        createdAt: now.subtract(const Duration(days: 10)),
-        updatedAt: now,
-      ),
-    ];
+    return [];
   }
 
   Future<ProjectionResult> getMockProjection() async {

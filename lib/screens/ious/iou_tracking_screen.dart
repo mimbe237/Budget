@@ -30,79 +30,10 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
   }
 
   void _loadIOUs() {
-    // Créer des données factices
-    final now = DateTime.now();
+    // Pas de données de test pour les dettes/créances
+    // L'utilisateur peut ajouter ses propres dettes et créances
     setState(() {
-      _ious = [
-        // Créances (On me doit)
-        IOU(
-          iouId: 'iou_1',
-          userId: 'user_1',
-          personName: 'Jean Dupont',
-          type: IOUType.receivable,
-          status: IOUStatus.active,
-          amount: 500.0,
-          paidAmount: 300.0,
-          dueDate: now.add(const Duration(days: 30)),
-          description: 'Prêt personnel',
-          createdAt: now.subtract(const Duration(days: 30)),
-          updatedAt: now,
-        ),
-        IOU(
-          iouId: 'iou_2',
-          userId: 'user_1',
-          personName: 'Marie Martin',
-          type: IOUType.receivable,
-          status: IOUStatus.active,
-          amount: 150.0,
-          paidAmount: 0.0,
-          dueDate: now.add(const Duration(days: 15)),
-          description: 'Remboursement restaurant',
-          createdAt: now.subtract(const Duration(days: 15)),
-          updatedAt: now,
-        ),
-        IOU(
-          iouId: 'iou_3',
-          userId: 'user_1',
-          personName: 'Pierre Durand',
-          type: IOUType.receivable,
-          status: IOUStatus.completed,
-          amount: 300.0,
-          paidAmount: 300.0,
-          dueDate: now.subtract(const Duration(days: 30)),
-          description: 'Prêt remboursé',
-          createdAt: now.subtract(const Duration(days: 60)),
-          updatedAt: now.subtract(const Duration(days: 5)),
-        ),
-        
-        // Dettes (Je dois)
-        IOU(
-          iouId: 'iou_4',
-          userId: 'user_1',
-          personName: 'Sophie Bernard',
-          type: IOUType.payable,
-          status: IOUStatus.active,
-          amount: 800.0,
-          paidAmount: 400.0,
-          dueDate: now.add(const Duration(days: 45)),
-          description: 'Prêt à rembourser',
-          createdAt: now.subtract(const Duration(days: 45)),
-          updatedAt: now,
-        ),
-        IOU(
-          iouId: 'iou_5',
-          userId: 'user_1',
-          personName: 'Lucas Petit',
-          type: IOUType.payable,
-          status: IOUStatus.active,
-          amount: 250.0,
-          paidAmount: 0.0,
-          dueDate: now.add(const Duration(days: 20)),
-          description: 'Dette cadeau commun',
-          createdAt: now.subtract(const Duration(days: 10)),
-          updatedAt: now,
-        ),
-      ];
+      _ious = [];
     });
   }
 
