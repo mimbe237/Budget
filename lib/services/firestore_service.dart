@@ -1594,6 +1594,7 @@ class FirestoreService {
     required double amount,
     String? description,
     required DateTime dueDate,
+    String icon = '🤝',
   }) async {
     try {
       final now = DateTime.now();
@@ -1609,6 +1610,7 @@ class FirestoreService {
         amount: amount,
         description: description,
         dueDate: dueDate,
+        icon: icon,
         createdAt: now,
         updatedAt: now,
       );

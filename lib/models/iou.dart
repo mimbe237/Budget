@@ -30,6 +30,7 @@ class IOU {
   final String? description;
   final DateTime dueDate;
   final IOUStatus status;
+  final String icon;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -47,6 +48,7 @@ class IOU {
     this.description,
     required this.dueDate,
     this.status = IOUStatus.pending,
+    this.icon = '🤝',
     required this.createdAt,
     required this.updatedAt,
   })  : partyName = partyName ?? personName,
@@ -78,6 +80,7 @@ class IOU {
       'description': description,
       'dueDate': Timestamp.fromDate(dueDate),
       'status': status.name,
+      'icon': icon,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -103,6 +106,7 @@ class IOU {
         (e) => e.name == map['status'],
         orElse: () => IOUStatus.pending,
       ),
+      icon: map['icon'] ?? '🤝',
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
@@ -121,6 +125,7 @@ class IOU {
     String? description,
     DateTime? dueDate,
     IOUStatus? status,
+    String? icon,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -136,6 +141,7 @@ class IOU {
       description: description ?? this.description,
       dueDate: dueDate ?? this.dueDate,
       status: status ?? this.status,
+      icon: icon ?? this.icon,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

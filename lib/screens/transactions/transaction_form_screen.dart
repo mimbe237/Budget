@@ -386,16 +386,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
               return Form(
                 key: _formKey,
-                child: SafeArea(
-                  child: AnimatedPadding(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOut,
-                    padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                           if (!isLoggedIn) _buildAuthBanner(context),
                           if (!isLoggedIn) const SizedBox(height: 16),
                           
@@ -414,22 +409,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           _buildDescriptionField(),
                           const SizedBox(height: 20),
 
-                          _buildNoteField(),
-                          const SizedBox(height: 20),
-
                           _buildDateSelector(),
-                          const SizedBox(height: 20),
-
-                          _buildTagsField(),
                           const SizedBox(height: 32),
 
                           _buildSaveButton(),
                         ],
                       ),
                     ),
-                  ),
-                ),
-              );
+                  );
             },
           );
         },

@@ -426,133 +426,324 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isWide = width >= 960;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: const Color(0xFFF7F8FB),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.symmetric(horizontal: isWide ? 48 : 20, vertical: 28),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 450),
-              child: Card(
-                elevation: 6,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+              constraints: const BoxConstraints(maxWidth: 1180),
+              child: isWide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final logoSize = MediaQuery.of(context).size.width < 400 ? 52.0 : 72.0;
-                                return RevolutionaryLogo(size: logoSize, withText: true);
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            TrText(
-                              'Gère tes finances comme un Pro',
-                              style: TextStyle(
-                                color: Colors.black.withValues(alpha: 0.7),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.2,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 28),
-                        // Custom Tab Bar
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE4E7F1)),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setState(() => _currentTabIndex = 0),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 180),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: _currentTabIndex == 0 ? _brandSurface : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: _currentTabIndex == 0
-                                          ? [
-                                              BoxShadow(
-                                                color: _brandPrimary.withValues(alpha: 0.10),
-                                                blurRadius: 10,
-                                                offset: const Offset(0, 3),
-                                              ),
-                                            ]
-                                          : null,
-                                    ),
-                                    child: TrText(
-                                      'Connexion',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontWeight: _currentTabIndex == 0 ? FontWeight.w800 : FontWeight.w600,
-                                        color: _currentTabIndex == 0 ? _brandPrimary : Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setState(() => _currentTabIndex = 1),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 180),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: _currentTabIndex == 1 ? _brandSurface : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: _currentTabIndex == 1
-                                          ? [
-                                              BoxShadow(
-                                                color: _brandPrimary.withValues(alpha: 0.10),
-                                                blurRadius: 10,
-                                                offset: const Offset(0, 3),
-                                              ),
-                                            ]
-                                          : null,
-                                    ),
-                                    child: TrText(
-                                      'Démo',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontWeight: _currentTabIndex == 1 ? FontWeight.w800 : FontWeight.w600,
-                                        color: _currentTabIndex == 1 ? _brandPrimary : Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: _currentTabIndex == 0 
-                              ? KeyedSubtree(key: const ValueKey('login'), child: _buildLoginForm())
-                              : KeyedSubtree(key: const ValueKey('demo'), child: _buildDemoContent()),
-                        ),
+                        Expanded(child: _buildHeroPanel()),
+                        const SizedBox(width: 28),
+                        SizedBox(width: 420, child: _buildAuthCard()),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        _buildHeroPanel(),
+                        const SizedBox(height: 20),
+                        _buildAuthCard(),
                       ],
                     ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroPanel() {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFEEF2FF), Color(0xFFF9FAFB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE4E7F1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              RevolutionaryLogo(size: 56, withText: false),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  TrText(
+                    'Budget Pro',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: _brandPrimary,
+                      letterSpacing: -0.3,
+                    ),
                   ),
+                  TrText(
+                    'Finance, budgets, dettes, IA.',
+                    style: TextStyle(color: Colors.black54, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const TrText(
+            'Maîtrisez vos finances en quelques minutes',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: Colors.black87,
+              letterSpacing: -0.2,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const TrText(
+            'Budgets intelligents, poches personnalisées, suivi des dettes et rapports IA en temps réel pour garder le contrôle.',
+            style: TextStyle(fontSize: 14, color: Colors.black54, height: 1.6),
+          ),
+          const SizedBox(height: 18),
+          _buildValueBullet('Répartition automatique des budgets et poches', Icons.auto_graph_rounded),
+          const SizedBox(height: 10),
+          _buildValueBullet('Suivi des dettes / IOU avec paiements partiels', Icons.handshake_rounded),
+          const SizedBox(height: 10),
+          _buildValueBullet('Rapports IA, alertes et projections mensuelles', Icons.smart_toy_outlined),
+          const SizedBox(height: 22),
+          _buildStoreRow(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildValueBullet(String text, IconData icon) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _brandPrimary.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: _brandPrimary, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: TrText(
+            text,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStoreRow() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.smartphone, color: _brandPrimary),
+              SizedBox(width: 8),
+              TrText(
+                'Version mobile en cours',
+                style: TextStyle(fontWeight: FontWeight.w800, color: Colors.black87),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const TrText(
+            'App Store & Google Play bientôt disponibles. Liens inactifs pour le moment.',
+            style: TextStyle(color: Colors.black54, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _storeButton(label: 'App Store', icon: Icons.apple, enabled: false),
+              const SizedBox(width: 10),
+              _storeButton(label: 'Google Play', icon: Icons.android, enabled: false),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _storeButton({required String label, required IconData icon, bool enabled = true}) {
+    return Expanded(
+      child: OutlinedButton.icon(
+        onPressed: enabled ? () {} : null,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+          side: BorderSide(color: enabled ? _brandPrimary : const Color(0xFFD7DBE7)),
+          foregroundColor: enabled ? _brandPrimary : Colors.grey,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        icon: Icon(icon, size: 18),
+        label: TrText(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: enabled ? _brandPrimary : Colors.grey,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAuthCard() {
+    return Card(
+      elevation: 8,
+      shadowColor: Colors.black.withValues(alpha: 0.06),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      RevolutionaryLogo(size: 56, withText: false),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          TrText(
+                            'Connexion',
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          TrText(
+                            'Sécurisée par Firebase',
+                            style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE4E7F1)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _currentTabIndex = 0),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _currentTabIndex == 0 ? _brandSurface : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: _currentTabIndex == 0
+                                ? [
+                                    BoxShadow(
+                                      color: _brandPrimary.withValues(alpha: 0.10),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: TrText(
+                            'Connexion',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: _currentTabIndex == 0 ? FontWeight.w800 : FontWeight.w600,
+                              color: _currentTabIndex == 0 ? _brandPrimary : Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _currentTabIndex = 1),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _currentTabIndex == 1 ? _brandSurface : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: _currentTabIndex == 1
+                                ? [
+                                    BoxShadow(
+                                      color: _brandPrimary.withValues(alpha: 0.10),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: TrText(
+                            'Démo',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: _currentTabIndex == 1 ? FontWeight.w800 : FontWeight.w600,
+                              color: _currentTabIndex == 1 ? _brandPrimary : Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+              const SizedBox(height: 24),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _currentTabIndex == 0
+                    ? KeyedSubtree(key: const ValueKey('login'), child: _buildLoginForm())
+                    : KeyedSubtree(key: const ValueKey('demo'), child: _buildDemoContent()),
+              ),
+            ],
           ),
         ),
       ),

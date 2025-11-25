@@ -360,6 +360,7 @@ class IOU {
   final String? description;
   final DateTime dueDate;
   final IOUStatus status;
+  final String icon;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -375,6 +376,7 @@ class IOU {
     this.description,
     required this.dueDate,
     this.status = IOUStatus.pending,
+    this.icon = '🤝',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -394,6 +396,7 @@ class IOU {
       'description': description,
       'dueDate': fs.Timestamp.fromDate(dueDate),
       'status': status.name,
+      'icon': icon,
       'createdAt': fs.Timestamp.fromDate(createdAt),
       'updatedAt': fs.Timestamp.fromDate(updatedAt),
     };
@@ -418,6 +421,7 @@ class IOU {
         (e) => e.name == map['status'],
         orElse: () => IOUStatus.pending,
       ),
+      icon: map['icon'] ?? '🤝',
       createdAt: (map['createdAt'] as fs.Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as fs.Timestamp).toDate(),
     );

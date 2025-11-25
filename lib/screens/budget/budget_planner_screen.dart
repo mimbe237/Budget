@@ -464,6 +464,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   _buildIncomeCategoriesRecap(),
                   const SizedBox(height: AppDesign.spacingLarge),
                   _buildTransactionsSection(),
+                  const SizedBox(height: 80),
                 ],
               ),
             );
@@ -1171,43 +1172,72 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 }
 
                 return Column(
-                  children: transactions.take(10).map((tx) {
-                    final isIncome = tx.type == TransactionType.income;
-                    final isExpense = tx.type == TransactionType.expense;
-                    final color = isIncome
-                        ? AppDesign.incomeColor
-                        : isExpense
-                            ? AppDesign.expenseColor
-                            : Colors.blueGrey;
-                    final prefix = isIncome ? '+' : isExpense ? '-' : '';
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        backgroundColor: color.withValues(alpha: 0.12),
-                        child: TrText(
-                          (tx.category ?? '💳').isNotEmpty
-                              ? (tx.category ?? '💳').characters.first
-                              : '💳',
-                          style: const TextStyle(fontSize: 18),
+                  children: [
+                    ...transactions.take(5).map((tx) {
+                      final isIncome = tx.type == TransactionType.income;
+                      final isExpense = tx.type == TransactionType.expense;
+                      final color = isIncome
+                          ? AppDesign.incomeColor
+                          : isExpense
+                              ? AppDesign.expenseColor
+                              : Colors.blueGrey;
+                      final prefix = isIncome ? '+' : isExpense ? '-' : '';
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: color.withValues(alpha: 0.12),
+                          child: TrText(
+                            (tx.category ?? '💳').isNotEmpty
+                                ? (tx.category ?? '💳').characters.first
+                                : '💳',
+                            style: const TextStyle(fontSize: 18),
+                          ),
+                        ),
+                        title: TrText(
+                          tx.description?.isNotEmpty == true ? tx.description! : 'Transaction',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        subtitle: TrText(
+                          '${tx.date.day}/${tx.date.month}/${tx.date.year} · ${tx.category ?? 'Sans catégorie'}',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                        trailing: TrText(
+                          '$prefix${context.watch<CurrencyService>().formatAmount(tx.amount, null, false)}',
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    if (transactions.length > 5) ...[
+                      const SizedBox(height: 8),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const TransactionsListScreen(),
+                              ),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppDesign.primaryIndigo,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                          icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                          label: TrText(
+                            'Voir l\'historique complet (${transactions.length})',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                       ),
-                      title: TrText(
-                        tx.description?.isNotEmpty == true ? tx.description! : 'Transaction',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      subtitle: TrText(
-                        '${tx.date.day}/${tx.date.month}/${tx.date.year} · ${tx.category ?? 'Sans catégorie'}',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                      trailing: TrText(
-                        '$prefix${context.watch<CurrencyService>().formatAmount(tx.amount, null, false)}',
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                    ],
+                  ],
                 );
               },
             ),
@@ -1232,6 +1262,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   }
 
   Widget _buildAllocationItem(String categoryKey, String icon, String name) {
+    final currency = context.watch<CurrencyService>();
     final percentage = _allocations[categoryKey] ?? 0.0;
     final amount = _totalIncome * percentage;
     final actualSpent = _actualSpending[categoryKey] ?? 0.0;
@@ -1273,16 +1304,16 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (actualSpent > 0)
+                      TrText(
+                        'Dépensé: ${currency.formatAmount(actualSpent)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isOverBudget ? AppDesign.expenseColor : Colors.grey[600],
                         ),
                       ),
-                      if (actualSpent > 0)
-                        TrText(
-                          'Dépensé: ${actualSpent.toStringAsFixed(2)} €',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isOverBudget ? AppDesign.expenseColor : Colors.grey[600],
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -1344,7 +1375,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   child: TextFormField(
                     controller: _amountControllers[categoryKey],
                     decoration: InputDecoration(
-                      suffixText: t('€'),
+                      suffixText: currency.currencySymbol,
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1365,11 +1396,11 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             ),
             
             // Barre de progression des dépenses
-            if (actualSpent > 0) ...[
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
+              if (actualSpent > 0) ...[
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
                   value: spentPercentage,
                   minHeight: 8,
                   backgroundColor: Colors.grey[300],
@@ -1380,7 +1411,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               ),
               const SizedBox(height: 4),
               TrText(
-                '${actualSpent.toStringAsFixed(2)} € / ${amount.toStringAsFixed(2)} € (${(spentPercentage * 100).toStringAsFixed(0)}%)',
+                '${currency.formatAmount(actualSpent)} / ${currency.formatAmount(amount)} (${(spentPercentage * 100).toStringAsFixed(0)}%)',
                 style: TextStyle(
                   fontSize: 12,
                   color: isOverBudget ? AppDesign.expenseColor : Colors.grey[600],
@@ -1586,7 +1617,7 @@ class _IncomeCategoryRow extends StatelessWidget {
                 ),
               ),
               TrText(
-                '${item.amount.toStringAsFixed(2)} €',
+                context.watch<CurrencyService>().formatAmount(item.amount),
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
               ),
             ],

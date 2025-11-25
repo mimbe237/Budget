@@ -20,12 +20,12 @@ class CurrencyService extends ChangeNotifier {
   /// Liste des devises supportées avec leurs symboles
   static const Map<String, String> supportedCurrencies = {
     'EUR': '€',
+    'XAF': 'FCFA',  // Franc CFA (Afrique Centrale)
     'USD': '\$',
     'GBP': '£',
     'CHF': 'Fr',
     'JPY': '¥',
     'CAD': 'C\$',
-    'XAF': 'FCFA',  // Franc CFA (Afrique Centrale)
     'XOF': 'FCFA',  // Franc CFA (Afrique de l'Ouest)
   };
 

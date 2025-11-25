@@ -233,6 +233,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
   Widget _buildIOUCard(IOU iou) {
     final isReceivable = iou.type == IOUType.receivable;
     final color = isReceivable ? AppDesign.incomeColor : AppDesign.expenseColor;
+    final displayIcon = (iou.icon.isNotEmpty ? iou.icon : '🤝');
     final progress = iou.originalAmount > 0 
         ? 1 - (iou.currentBalance / iou.originalAmount) 
         : 0.0;
@@ -264,19 +265,19 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                 children: [
                   Container(
                     width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    child: Center(
-                      child: TrText(
-                        iou.partyName[0].toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: color,
-                        ),
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: Center(
+                    child: TrText(
+                      displayIcon,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
                       ),
                     ),
                   ),
@@ -570,9 +571,17 @@ class _AddIOUModalState extends State<AddIOUModal> {
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final List<String> _iouIcons = const ['🤝', '💸', '📄', '📆', '💳', '🏠', '🚗', '🎁', '💡', '🍽️', '🎓', '🛍️'];
   
   IOUType _selectedType = IOUType.receivable;
   DateTime? _dueDate;
+  late String _selectedIcon;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIcon = _iouIcons.first;
+  }
 
   @override
   void dispose() {
@@ -677,6 +686,51 @@ class _AddIOUModalState extends State<AddIOUModal> {
                     }
                     return null;
                   },
+                ),
+                const SizedBox(height: 16),
+                
+                const TrText(
+                  'Icône',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 110,
+                  child: GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 6,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                    ),
+                    itemCount: _iouIcons.length,
+                    itemBuilder: (context, index) {
+                      final icon = _iouIcons[index];
+                      final isSelected = icon == _selectedIcon;
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedIcon = icon;
+                          });
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected ? color.withValues(alpha: 0.12) : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isSelected ? color : Colors.transparent, width: 2),
+                          ),
+                          child: Center(
+                            child: TrText(
+                              icon,
+                              style: const TextStyle(fontSize: 22),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(height: 16),
                 
@@ -800,6 +854,7 @@ class _AddIOUModalState extends State<AddIOUModal> {
         personName: _nameController.text,
         type: _selectedType,
         status: IOUStatus.active,
+        icon: _selectedIcon,
         amount: amount,
         paidAmount: 0.0,
         dueDate: _dueDate ?? now.add(const Duration(days: 30)),

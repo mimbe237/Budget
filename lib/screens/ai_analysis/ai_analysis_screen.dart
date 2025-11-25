@@ -9,6 +9,7 @@ import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../widgets/revolutionary_logo.dart';
+import '../transactions/transactions_list_screen.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import 'package:budget/services/currency_service.dart';
 
@@ -422,6 +423,18 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            tooltip: t('Historique des transactions'),
+            icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TransactionsListScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: AppDesign.primaryIndigo),
             onPressed: _loadDataAndAnalyze,

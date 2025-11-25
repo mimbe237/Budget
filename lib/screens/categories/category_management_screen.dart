@@ -5,6 +5,11 @@ import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
 import 'package:budget/l10n/app_localizations.dart';
 
+const List<String> _categoryIcons = [
+  '💳', '🛒', '🍽️', '🏠', '🚗', '🚌', '🎁', '🏖️', '💡', '📱', '🎓', '👨‍👩‍👦',
+  '💼', '💰', '🎯', '⚡️', '🧾', '🏥', '🎮', '✈️'
+];
+
 class CategoryManagementScreen extends StatefulWidget {
   const CategoryManagementScreen({super.key});
 
@@ -163,6 +168,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     final iconController = TextEditingController(text: category?.icon ?? '📁');
     final colorController = TextEditingController(text: category?.color ?? '#4F46E5');
     CategoryType selectedType = category?.type ?? CategoryType.expense;
+    String selectedIcon = iconController.text.isNotEmpty ? iconController.text : _categoryIcons.first;
 
     await showModalBottomSheet(
       context: context,
@@ -228,6 +234,53 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                       labelText: t('Icône (emoji ou texte)'),
                       prefixIcon: Icon(Icons.emoji_emotions_outlined),
                       border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const TrText(
+                    'Icône rapide',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 110,
+                    child: GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 6,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                      ),
+                      itemCount: _categoryIcons.length,
+                      itemBuilder: (context, index) {
+                        final icon = _categoryIcons[index];
+                        final isSelected = icon == selectedIcon;
+                        return InkWell(
+                          onTap: () {
+                            setSheetState(() {
+                              selectedIcon = icon;
+                              iconController.text = icon;
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppDesign.primaryIndigo.withValues(alpha: 0.1)
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? AppDesign.primaryIndigo : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: TrText(
+                                icon,
+                                style: const TextStyle(fontSize: 22),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(height: 12),

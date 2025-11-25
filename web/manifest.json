@@ -1,11 +1,11 @@
 {
-    "name": "budget",
-    "short_name": "budget",
+    "name": "Budget Pro",
+    "short_name": "Budget Pro",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#6C5CF7",
     "theme_color": "#6C5CF7",
-    "description": "A new Flutter project.",
+    "description": "Gère tes finances comme un Pro",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
