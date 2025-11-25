@@ -15,6 +15,10 @@ import '../../widgets/revolutionary_logo.dart';
 import '../transactions/transaction_form_screen.dart';
 import '../transactions/transactions_list_screen.dart';
 import '../categories/category_management_screen.dart';
+import '../profile/profile_settings_screen.dart';
+import '../auth/auth_screen.dart';
+import '../../services/theme_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran de planification budgétaire avec répartition intelligente
@@ -361,16 +365,35 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     offset: const Offset(0, 42),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     itemBuilder: (context) => const [
-                      PopupMenuItem<int>(
-                        value: 0,
-                        child: TrText('Profil'),
-                      ),
-                      PopupMenuItem<int>(
-                        value: 1,
-                        child: TrText('Paramètres'),
-                      ),
+                      PopupMenuItem<int>(value: 0, child: TrText('Profil')),
+                      PopupMenuItem<int>(value: 1, child: TrText('Paramètres')),
+                      PopupMenuItem<int>(value: 2, child: TrText('Déconnexion')),
+                      PopupMenuItem<int>(value: 3, child: TrText('Basculer le thème')),
                     ],
-                    onSelected: (_) {},
+                    onSelected: (value) async {
+                      if (value == 0) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                        );
+                      } else if (value == 1) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                        );
+                      } else if (value == 2) {
+                        await FirestoreService().cleanupDemoDataOnLogout();
+                        await FirebaseAuth.instance.signOut();
+                        if (!mounted) return;
+                        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const AuthScreen()),
+                          (route) => false,
+                        );
+                      } else if (value == 3) {
+                        if (!mounted) return;
+                        await context.read<ThemeProvider>().toggleTheme();
+                      }
+                    },
                     child: CircleAvatar(
                       backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.12),
                       child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),

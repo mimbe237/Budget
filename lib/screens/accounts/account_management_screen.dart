@@ -12,6 +12,9 @@ import '../../widgets/app_modal.dart';
 import '../transactions/transactions_list_screen.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import '../profile/profile_settings_screen.dart';
+import '../auth/auth_screen.dart';
+import '../../services/theme_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Écran de gestion des comptes bancaires avec liste, ajout, édition et transfert
 class AccountManagementScreen extends StatefulWidget {
@@ -77,15 +80,36 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           if (MediaQuery.of(context).size.width < 600)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: IconButton(
+              child: PopupMenuButton<int>(
                 tooltip: t('Profil'),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
-                  );
+                offset: const Offset(0, 42),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                itemBuilder: (context) => const [
+                  PopupMenuItem<int>(value: 0, child: TrText('Profil')),
+                  PopupMenuItem<int>(value: 1, child: TrText('Paramètres')),
+                  PopupMenuItem<int>(value: 2, child: TrText('Déconnexion')),
+                  PopupMenuItem<int>(value: 3, child: TrText('Basculer le thème')),
+                ],
+                onSelected: (value) async {
+                  if (value == 0 || value == 1) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                    );
+                  } else if (value == 2) {
+                    await FirestoreService().cleanupDemoDataOnLogout();
+                    await FirebaseAuth.instance.signOut();
+                    if (!context.mounted) return;
+                    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const AuthScreen()),
+                      (route) => false,
+                    );
+                  } else if (value == 3) {
+                    if (!context.mounted) return;
+                    await context.read<ThemeProvider>().toggleTheme();
+                  }
                 },
-                icon: CircleAvatar(
+                child: CircleAvatar(
                   backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.12),
                   child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
                 ),

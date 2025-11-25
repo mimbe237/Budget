@@ -13,11 +13,14 @@ import '../ious/iou_tracking_screen.dart';
 import '../transactions/transaction_form_screen.dart';
 import '../transactions/transactions_list_screen.dart';
 import '../trash/trash_screen.dart';
+import '../auth/auth_screen.dart';
 import '../profile/profile_settings_screen.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:budget/services/currency_service.dart';
+import 'package:budget/services/theme_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Dashboard principal affichant le solde global, les performances mensuelles
 /// et l'historique récent des transactions en temps réel
