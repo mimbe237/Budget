@@ -35,6 +35,15 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppDesign.primaryIndigo),
+        actions: [
+          IconButton(
+            tooltip: t('Historique des transactions'),
+            icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
+            onPressed: () {
+              Navigator.pushNamed(context, '/transactions');
+            },
+          ),
+        ],
       ),
       body: userId == null
           ? const Center(child: TrText('Veuillez vous connecter.'))

@@ -67,6 +67,13 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            tooltip: t('Historique des transactions'),
+            icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
+            onPressed: () {
+              Navigator.pushNamed(context, '/transactions');
+            },
+          ),
           if (MediaQuery.of(context).size.width < 600)
             Padding(
               padding: const EdgeInsets.only(right: 8),

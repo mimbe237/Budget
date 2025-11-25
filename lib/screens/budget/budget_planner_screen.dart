@@ -342,6 +342,14 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       ],
                     ),
                   ),
+                  IconButton(
+                    tooltip: t('Historique des transactions'),
+                    icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/transactions');
+                    },
+                  ),
+                  const SizedBox(width: 8),
                   OutlinedButton.icon(
                     onPressed: _resetToDefaultAllocation,
                     style: OutlinedButton.styleFrom(

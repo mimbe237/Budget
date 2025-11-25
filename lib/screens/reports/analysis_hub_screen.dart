@@ -37,6 +37,15 @@ class _AnalysisHubScreenState extends State<AnalysisHubScreen> with SingleTicker
         icon: Icons.bar_chart_rounded,
         showProfile: true,
         showHome: !isMobile,
+        actions: [
+          IconButton(
+            tooltip: t('Historique des transactions'),
+            icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
+            onPressed: () {
+              Navigator.pushNamed(context, '/transactions');
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppDesign.primaryIndigo,
