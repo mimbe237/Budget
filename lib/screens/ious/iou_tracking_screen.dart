@@ -116,10 +116,12 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
     final totalReceivable = receivables.fold(0.0, (sum, iou) => 
       iou.status == IOUStatus.active ? sum + iou.currentBalance : sum);
 
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: ModernPageAppBar(
-        title: t('Suivi Dettes & Créances'),
+        title: isMobile ? t('Dettes & Créances') : t('Suivi Dettes & Créances'),
         subtitle: t('Ce que je dois et ce qu’on me doit'),
         icon: Icons.handshake_rounded,
         showProfile: true,
