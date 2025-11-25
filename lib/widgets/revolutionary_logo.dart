@@ -22,6 +22,11 @@ class RevolutionaryLogo extends StatelessWidget {
         height: size * 1.6,
         semanticsLabel: semantics,
         fit: BoxFit.fitHeight,
+        placeholderBuilder: (context) => Image.asset(
+          'assets/images/logo-icon.png',
+          height: size * 1.6,
+          fit: BoxFit.fitHeight,
+        ),
       );
     }
 
@@ -31,6 +36,11 @@ class RevolutionaryLogo extends StatelessWidget {
       width: size,
       height: size,
       semanticsLabel: semantics,
+      placeholderBuilder: (context) => Image.asset(
+        'assets/images/logo-icon.png',
+        width: size,
+        height: size,
+      ),
     );
   }
 }
