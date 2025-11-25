@@ -12,6 +12,7 @@ import '../../widgets/app_modal.dart';
 import '../transactions/transactions_list_screen.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import '../profile/profile_settings_screen.dart';
+import '../settings/notification_settings_screen.dart';
 import '../auth/auth_screen.dart';
 import '../../services/theme_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -91,10 +92,15 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   PopupMenuItem<int>(value: 3, child: TrText('Basculer le thème')),
                 ],
                 onSelected: (value) async {
-                  if (value == 0 || value == 1) {
+                  if (value == 0) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                    );
+                  } else if (value == 1) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
                     );
                   } else if (value == 2) {
                     await FirestoreService().cleanupDemoDataOnLogout();

@@ -15,6 +15,7 @@ import '../transactions/transactions_list_screen.dart';
 import '../trash/trash_screen.dart';
 import '../auth/auth_screen.dart';
 import '../profile/profile_settings_screen.dart';
+import '../settings/notification_settings_screen.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
@@ -91,77 +92,116 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            tooltip: t('Dettes / créances'),
-            icon: const Icon(Icons.handshake, color: AppDesign.primaryIndigo),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const IOUTrackingScreen(),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            tooltip: t('Objectifs'),
-            icon: const Icon(Icons.flag_outlined, color: AppDesign.primaryIndigo),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const GoalFundingScreen(),
-                ),
-              );
-            },
-          ),
-          TextButton(
-            onPressed: () async {
-              await localeProvider.setLocale(Locale(targetLang));
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: TrText('Langue sélectionnée : $selectedLabel')),
-              );
-            },
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              minimumSize: const Size(44, 44),
-            ),
-            child: Text(
-              targetLabel,
-              style: const TextStyle(
-                color: AppDesign.primaryIndigo,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
           Padding(
-            padding: const EdgeInsets.only(right: 12, top: 4, bottom: 4),
+            padding: const EdgeInsets.only(right: 12),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_none, color: AppDesign.primaryIndigo),
-                  tooltip: t('Notifications'),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: TrText('Notifications à venir')),
-                    );
-                  },
+                // Bloc 2 : dettes / objectifs / langue
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: t('Dettes / créances'),
+                      icon: const Icon(Icons.handshake, color: AppDesign.primaryIndigo, size: 22),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const IOUTrackingScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      tooltip: t('Objectifs'),
+                      icon: const Icon(Icons.flag_outlined, color: AppDesign.primaryIndigo, size: 22),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const GoalFundingScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        await localeProvider.setLocale(Locale(targetLang));
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: TrText('Langue sélectionnée : $selectedLabel')),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: const Size(40, 40),
+                      ),
+                      child: Text(
+                        targetLabel,
+                        style: const TextStyle(
+                          color: AppDesign.primaryIndigo,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                IconButton(
-                  tooltip: t('Profil'),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
-                    );
-                  },
-                  icon: CircleAvatar(
-                    backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.1),
-                    child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
-                  ),
+                const SizedBox(width: 12),
+                // Bloc 3 : notifications + profil
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_none, color: AppDesign.primaryIndigo, size: 22),
+                      tooltip: t('Notifications'),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: TrText('Notifications à venir')),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 10),
+                    PopupMenuButton<int>(
+                      tooltip: t('Profil'),
+                      offset: const Offset(0, 42),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      itemBuilder: (context) => const [
+                        PopupMenuItem<int>(value: 0, child: TrText('Profil')),
+                        PopupMenuItem<int>(value: 1, child: TrText('Paramètres')),
+                        PopupMenuItem<int>(value: 2, child: TrText('Déconnexion')),
+                        PopupMenuItem<int>(value: 3, child: TrText('Basculer le thème')),
+                      ],
+                      onSelected: (value) async {
+                        if (value == 0) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                          );
+                        } else if (value == 1) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                          );
+                        } else if (value == 2) {
+                          await FirestoreService().cleanupDemoDataOnLogout();
+                          await FirebaseAuth.instance.signOut();
+                          if (!context.mounted) return;
+                          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (_) => const AuthScreen()),
+                            (route) => false,
+                          );
+                        } else if (value == 3) {
+                          if (!context.mounted) return;
+                          await context.read<ThemeProvider>().toggleTheme();
+                        }
+                      },
+                      child: CircleAvatar(
+                        backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.1),
+                        child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1032,7 +1072,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 ...items.map((e) => _PocketSummaryRow(item: e)),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
@@ -1345,7 +1385,7 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 ...items.map((item) => _CategoryProgressRow(item: item)).toList(),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),

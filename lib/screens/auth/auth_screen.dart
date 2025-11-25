@@ -434,25 +434,33 @@ class _AuthScreenState extends State<AuthScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: EdgeInsets.symmetric(horizontal: isWide ? 48 : 20, vertical: 28),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1180),
-              child: isWide
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _buildHeroPanel()),
-                        const SizedBox(width: 28),
-                        SizedBox(width: 420, child: _buildAuthCard()),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        _buildHeroPanel(),
-                        const SizedBox(height: 20),
-                        _buildAuthCard(),
-                      ],
-                    ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                    maxWidth: 1180,
+                  ),
+                  child: isWide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _buildHeroPanel()),
+                            const SizedBox(width: 28),
+                            SizedBox(width: 420, child: _buildAuthCard()),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            _buildHeroPanel(),
+                            const SizedBox(height: 20),
+                            _buildAuthCard(),
+                          ],
+                        ),
+                );
+              },
             ),
           ),
         ),
@@ -462,20 +470,16 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Widget _buildHeroPanel() {
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFEEF2FF), Color(0xFFF9FAFB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE4E7F1)),
+        border: Border.all(color: const Color(0xFFE7EAF1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -490,17 +494,28 @@ class _AuthScreenState extends State<AuthScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   TrText(
-                    'Budget Pro',
+                    'Budget',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.w900,
                       color: _brandPrimary,
                       letterSpacing: -0.3,
+                      height: 1.0,
+                    ),
+                  ),
+                  TrText(
+                    'Pro',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black87,
+                      letterSpacing: -0.3,
+                      height: 1.0,
                     ),
                   ),
                   TrText(
                     'Finance, budgets, dettes, IA.',
-                    style: TextStyle(color: Colors.black54, fontSize: 13, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -510,7 +525,7 @@ class _AuthScreenState extends State<AuthScreen> {
           const TrText(
             'Maîtrisez vos finances en quelques minutes',
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
               color: Colors.black87,
               letterSpacing: -0.2,
@@ -520,7 +535,7 @@ class _AuthScreenState extends State<AuthScreen> {
           const SizedBox(height: 12),
           const TrText(
             'Budgets intelligents, poches personnalisées, suivi des dettes et rapports IA en temps réel pour garder le contrôle.',
-            style: TextStyle(fontSize: 14, color: Colors.black54, height: 1.6),
+            style: TextStyle(fontSize: 13, color: Colors.black54, height: 1.5),
           ),
           const SizedBox(height: 18),
           _buildValueBullet('Répartition automatique des budgets et poches', Icons.auto_graph_rounded),
@@ -621,11 +636,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Widget _buildAuthCard() {
     return Card(
-      elevation: 8,
-      shadowColor: Colors.black.withValues(alpha: 0.06),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 4,
+      shadowColor: Colors.black.withValues(alpha: 0.04),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
           child: Column(

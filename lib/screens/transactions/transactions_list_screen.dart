@@ -239,6 +239,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
         subtitle: t('Historique et filtres détaillés'),
         icon: Icons.swap_horiz_rounded,
         showProfile: true,
+        hideLogoOnMobile: true,
         actions: [
           IconButton(
             tooltip: t('Exporter CSV'),
@@ -522,101 +523,124 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: 10,
-            runSpacing: 8,
-            children: [
-              _filterChip(label: t('Toutes'), value: null),
-              _filterChip(label: t('Revenus'), value: app_transaction.TransactionType.income),
-              _filterChip(label: t('Dépenses'), value: app_transaction.TransactionType.expense),
-              _filterChip(label: t('Transferts'), value: app_transaction.TransactionType.transfer),
-              _secondaryChip(
-                label: t('Gérer catégories'),
-                icon: Icons.category_outlined,
-                onTap: () => _openCategoryManager(categories),
-              ),
-              _secondaryChip(
-                label: _filterRange == null
-                    ? 'Période'
-                    : '${DateFormat('dd/MM').format(_filterRange!.start)} → ${DateFormat('dd/MM').format(_filterRange!.end)}',
-                icon: Icons.date_range,
-                onTap: _pickDateRange,
-              ),
-              _secondaryChip(
-                label: t('Reset'),
-                icon: Icons.refresh,
-                onTap: _resetFilters,
-              ),
-            ],
+          // Compact horizontal chips row (scrollable)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _filterChip(label: t('Toutes'), value: null),
+                const SizedBox(width: 8),
+                _filterChip(label: t('Revenus'), value: app_transaction.TransactionType.income),
+                const SizedBox(width: 8),
+                _filterChip(label: t('Dépenses'), value: app_transaction.TransactionType.expense),
+                const SizedBox(width: 8),
+                _filterChip(label: t('Transferts'), value: app_transaction.TransactionType.transfer),
+                const SizedBox(width: 12),
+                _secondaryChip(
+                  label: _filterRange == null
+                      ? t('Période')
+                      : '${DateFormat('dd/MM').format(_filterRange!.start)} → ${DateFormat('dd/MM').format(_filterRange!.end)}',
+                  icon: Icons.date_range,
+                  onTap: _pickDateRange,
+                ),
+                const SizedBox(width: 12),
+                _secondaryChip(
+                  label: t('Filtres avancés'),
+                  icon: Icons.tune,
+                  onTap: () => _openFiltersBottomSheet(accounts, categories),
+                ),
+                const SizedBox(width: 12),
+                _secondaryChip(
+                  label: t('Reset'),
+                  icon: Icons.refresh,
+                  onTap: _resetFilters,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
+        ],
+      ),
+    );
+  }
+
+  void _openFiltersBottomSheet(List<Account> accounts, List<Category> categories) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            top: 16,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const TrText(
+                  'Filtres avancés',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 12),
+                TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: t('Rechercher (description/catégorie)'),
                     prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    isDense: true,
+                  ),
+                  onChanged: (value) => setState(() => _search = value),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: t('Montant min'),
+                          prefixText:
+                              '${context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency)} ',
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        onChanged: (v) {
+                          final d = double.tryParse(v.replaceAll(',', '.'));
+                          setState(() => _minAmount = d);
+                        },
+                      ),
                     ),
-                    isDense: true,
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      _search = value;
-                    });
-                  },
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: t('Montant max'),
+                          prefixText:
+                              '${context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency)} ',
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        onChanged: (v) {
+                          final d = double.tryParse(v.replaceAll(',', '.'));
+                          setState(() => _maxAmount = d);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 120,
-                child: TextField(
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: t('Min'),
-                    prefixText: '${context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency)} ',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  onChanged: (v) {
-                    final d = double.tryParse(v.replaceAll(',', '.'));
-                    setState(() => _minAmount = d);
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 120,
-                child: TextField(
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.done,
-                  decoration: InputDecoration(
-                    labelText: t('Max'),
-                    prefixText: '${context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency)} ',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  onChanged: (v) {
-                    final d = double.tryParse(v.replaceAll(',', '.'));
-                    setState(() => _maxAmount = d);
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
                   value: _filterAccountId,
                   isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: t('Compte'),
+                  decoration: const InputDecoration(
+                    labelText: 'Compte',
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
@@ -625,20 +649,16 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
                     ...accounts.map((a) => DropdownMenuItem(value: a.accountId, child: TrText(a.name))),
                   ],
                   onChanged: (val) {
-                    setState(() {
-                      _filterAccountId = val;
-                    });
+                    setState(() => _filterAccountId = val);
                     _loadInitialData();
                   },
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: DropdownButtonFormField<String>(
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
                   value: _filterCategoryId,
                   isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: t('Catégorie'),
+                  decoration: const InputDecoration(
+                    labelText: 'Catégorie',
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
@@ -647,17 +667,35 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
                     ...categories.map((c) => DropdownMenuItem(value: c.categoryId, child: TrText(c.name))),
                   ],
                   onChanged: (val) {
-                    setState(() {
-                      _filterCategoryId = val;
-                    });
+                    setState(() => _filterCategoryId = val);
                     _loadInitialData();
                   },
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _pickDateRange,
+                      icon: const Icon(Icons.date_range),
+                      label: TrText(
+                        _filterRange == null
+                            ? t('Choisir période')
+                            : '${DateFormat('dd/MM').format(_filterRange!.start)} → ${DateFormat('dd/MM').format(_filterRange!.end)}',
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _resetFilters,
+                      icon: const Icon(Icons.refresh),
+                      label: TrText(t('Reset')),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

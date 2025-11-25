@@ -15,6 +15,7 @@ import 'screens/transactions/transaction_form_screen.dart';
 import 'models/transaction.dart' as app_transaction;
 import 'widgets/branding_splash.dart';
 import 'services/theme_service.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +31,13 @@ void main() async {
       print('⚠️ L\'application continuera avec MockDataService');
       print('⚠️ Exécutez "flutterfire configure" pour configurer Firebase correctement');
     }
+
+  // Initialisation des notifications locales (permet les alertes budget/objectifs)
+  try {
+    await NotificationService().init();
+  } catch (e) {
+    debugPrint('⚠️ NotificationService init failed: $e');
+  }
   
   runApp(const AppBootstrap());
 }

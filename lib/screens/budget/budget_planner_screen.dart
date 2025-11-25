@@ -16,6 +16,7 @@ import '../transactions/transaction_form_screen.dart';
 import '../transactions/transactions_list_screen.dart';
 import '../categories/category_management_screen.dart';
 import '../profile/profile_settings_screen.dart';
+import '../settings/notification_settings_screen.dart';
 import '../auth/auth_screen.dart';
 import '../../services/theme_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -298,6 +299,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: PreferredSize(
@@ -320,22 +322,23 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       onPressed: () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: 8),
-                  const RevolutionaryLogo(size: 40),
-                  const SizedBox(width: 12),
+                  if (!isMobile) ...[
+                    const RevolutionaryLogo(size: 40),
+                    const SizedBox(width: 12),
+                  ],
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        TrText(
-                          'Planification budgétaire',
-                          style: TextStyle(
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 20,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
+                            TrText(
+                              'Planification budgétaire',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 20,
+                              ),
+                            ),
                         SizedBox(height: 2),
                         TrText(
                           'Cadrez vos revenus et poches en un clin d’œil',
@@ -379,7 +382,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       } else if (value == 1) {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                          MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
                         );
                       } else if (value == 2) {
                         await FirestoreService().cleanupDemoDataOnLogout();
@@ -507,6 +510,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           ),
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
