@@ -424,18 +424,6 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            tooltip: t('Historique des transactions'),
-            icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TransactionsListScreen(),
-                ),
-              );
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.refresh, color: AppDesign.primaryIndigo),
             onPressed: _loadDataAndAnalyze,
           ),

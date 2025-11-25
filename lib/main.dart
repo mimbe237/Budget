@@ -3,7 +3,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'l10n/app_localizations.dart';
 import 'services/currency_service.dart';
@@ -84,10 +83,10 @@ class BudgetApp extends StatelessWidget {
           seedColor: const Color(0xFF6C5CF7), // Couleur principale du logo
           brightness: Brightness.light,
         ),
-        
-        // Typographie moderne avec Google Fonts
-        textTheme: GoogleFonts.interTextTheme(),
-        
+
+        // Typographie par défaut (système) pour un chargement plus rapide
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+
         // Coins arrondis pour tout
         cardTheme: CardThemeData(
           elevation: 0,

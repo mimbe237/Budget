@@ -75,7 +75,12 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             tooltip: t('Historique des transactions'),
             icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
             onPressed: () {
-              Navigator.pushNamed(context, '/transactions');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const TransactionsListScreen(),
+                ),
+              );
             },
           ),
           if (MediaQuery.of(context).size.width < 600)
@@ -141,7 +146,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           }
 
           final totalBalance = accounts.fold<double>(0.0, (sum, acc) => sum + acc.balance);
-          final currency = accounts.isNotEmpty ? accounts.first.currency : 'EUR';
+          final currency = accounts.isNotEmpty ? accounts.first.currency : context.read<CurrencyService>().currentCurrency;
           final extraBottomPadding = kBottomNavigationBarHeight +
               MediaQuery.of(context).padding.bottom +
               140; // espace pour la bottom bar + FABs
@@ -320,7 +325,11 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     ),
                     const SizedBox(height: 8),
                     TrText(
-                      '${account.balance.toStringAsFixed(2)} ${account.currency}',
+                      context.watch<CurrencyService>().formatAmount(
+                            account.balance,
+                            account.currency,
+                            false,
+                          ),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -365,6 +374,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
   }
 
   Widget _buildTotalAssetsCard(double total, String currency) {
+    final currencyService = context.read<CurrencyService>();
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -402,7 +412,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 ),
                 const SizedBox(height: 4),
                 TrText(
-                  '${total.toStringAsFixed(2)} $currency',
+                  currencyService.formatAmount(total, currency),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 28,
@@ -581,7 +591,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             TrText(
-              '$prefix${tx.amount.toStringAsFixed(2)} ${account.currency}',
+              '$prefix${context.watch<CurrencyService>().formatAmount(tx.amount, account.currency, false)}',
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.bold,
@@ -1568,7 +1578,7 @@ class _TransferModalState extends State<TransferModal> {
                                     children: [
                                       TrText(account.name),
                                       TrText(
-                                        '${account.balance.toStringAsFixed(2)} ${account.currency}',
+                                        context.watch<CurrencyService>().formatAmount(account.balance, account.currency, false),
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey[600],
@@ -1627,7 +1637,7 @@ class _TransferModalState extends State<TransferModal> {
                               children: [
                                 TrText(account.name),
                                 TrText(
-                                  '${account.balance.toStringAsFixed(2)} ${account.currency}',
+                                  context.watch<CurrencyService>().formatAmount(account.balance, account.currency, false),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],
@@ -1661,8 +1671,8 @@ class _TransferModalState extends State<TransferModal> {
                     labelText: t('Montant à transférer'),
                     prefixIcon: const Icon(Icons.payments_outlined),
                     suffixText: context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency),
-                    helperText: _sourceAccount != null
-                        ? 'Solde disponible: ${_sourceAccount!.balance.toStringAsFixed(2)} ${context.watch<CurrencyService>().currentCurrency}'
+                      helperText: _sourceAccount != null
+                        ? 'Solde disponible: ${context.watch<CurrencyService>().formatAmount(_sourceAccount!.balance)}'
                         : null,
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),

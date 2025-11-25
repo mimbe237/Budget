@@ -4,6 +4,7 @@ import '../../models/category.dart';
 import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import '../transactions/transactions_list_screen.dart';
 
 const List<String> _categoryIcons = [
   '💳', '🛒', '🍽️', '🏠', '🚗', '🚌', '🎁', '🏖️', '💡', '📱', '🎓', '👨‍👩‍👦',
@@ -45,7 +46,12 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             tooltip: t('Historique des transactions'),
             icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
             onPressed: () {
-              Navigator.pushNamed(context, '/transactions');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TransactionsListScreen(),
+                ),
+              );
             },
           ),
         ],

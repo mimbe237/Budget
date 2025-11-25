@@ -4,6 +4,7 @@ import '../ai_analysis/ai_analysis_screen.dart';
 import 'advanced_reports_screen.dart';
 import '../../widgets/modern_page_app_bar.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import '../transactions/transactions_list_screen.dart';
 
 class AnalysisHubScreen extends StatefulWidget {
   const AnalysisHubScreen({super.key});
@@ -43,7 +44,12 @@ class _AnalysisHubScreenState extends State<AnalysisHubScreen> with SingleTicker
             tooltip: t('Historique des transactions'),
             icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
             onPressed: () {
-              Navigator.pushNamed(context, '/transactions');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TransactionsListScreen(),
+                ),
+              );
             },
           ),
         ],

@@ -21,6 +21,7 @@ import '../auth/auth_screen.dart';
 import '../../services/theme_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import '../../widgets/modern_page_app_bar.dart';
 
 /// Écran de planification budgétaire avec répartition intelligente
 class BudgetPlannerScreen extends StatefulWidget {
@@ -302,111 +303,25 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     final isMobile = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(76),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(
-              bottom: BorderSide(color: Colors.grey.shade200, width: 1),
-            ),
+      appBar: ModernPageAppBar(
+        title: t('Gestion Budget'),
+        subtitle: t('Votre argent sous contrôle'),
+        icon: Icons.savings_outlined,
+        backgroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: t('Historique des transactions'),
+            icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TransactionsListScreen(),
+                ),
+              );
+            },
           ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: Row(
-                children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                      onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  const SizedBox(width: 8),
-                  if (!isMobile) ...[
-                    const RevolutionaryLogo(size: 40),
-                    const SizedBox(width: 12),
-                  ],
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                            TrText(
-                              'Planification budgétaire',
-                              style: TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 20,
-                              ),
-                            ),
-                        SizedBox(height: 2),
-                        TrText(
-                          'Cadrez vos revenus et poches en un clin d’œil',
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: t('Historique des transactions'),
-                    icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TransactionsListScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  PopupMenuButton<int>(
-                    tooltip: t('Profil'),
-                    offset: const Offset(0, 42),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    itemBuilder: (context) => const [
-                      PopupMenuItem<int>(value: 0, child: TrText('Profil')),
-                      PopupMenuItem<int>(value: 1, child: TrText('Paramètres')),
-                      PopupMenuItem<int>(value: 2, child: TrText('Déconnexion')),
-                      PopupMenuItem<int>(value: 3, child: TrText('Basculer le thème')),
-                    ],
-                    onSelected: (value) async {
-                      if (value == 0) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
-                        );
-                      } else if (value == 1) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
-                        );
-                      } else if (value == 2) {
-                        await FirestoreService().cleanupDemoDataOnLogout();
-                        await FirebaseAuth.instance.signOut();
-                        if (!mounted) return;
-                        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const AuthScreen()),
-                          (route) => false,
-                        );
-                      } else if (value == 3) {
-                        if (!mounted) return;
-                        await context.read<ThemeProvider>().toggleTheme();
-                      }
-                    },
-                    child: CircleAvatar(
-                      backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.12),
-                      child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        ],
       ),
       body: SingleChildScrollView(
         child: LayoutBuilder(
@@ -510,7 +425,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           ),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 

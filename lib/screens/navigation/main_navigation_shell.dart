@@ -6,8 +6,8 @@ import '../dashboard/dashboard_screen.dart';
 import '../accounts/account_management_screen.dart';
 import '../budget/budget_planner_screen.dart';
 import '../transactions/transaction_form_screen.dart';
-import '../goals/goal_funding_screen.dart' show CreateGoalModal;
-import '../ious/iou_tracking_screen.dart' show AddIOUModal;
+import '../goals/goal_funding_screen.dart';
+import '../ious/iou_tracking_screen.dart';
 import '../settings/notification_settings_screen.dart';
 import '../reports/analysis_hub_screen.dart';
 import '../../models/transaction.dart' as app_transaction;
@@ -289,21 +289,14 @@ class QuickActionsMenu extends StatelessWidget {
                         iconColor: AppDesign.primaryPurple,
                         iconBackgroundColor: AppDesign.primaryPurple.withValues(alpha: 0.12),
                         title: t('Objectif'),
-                        description: 'Définissez un objectif d\'épargne...',
+                        description: 'Gérez vos objectifs d\'épargne...',
                         onTap: () {
                           Navigator.pop(context);
                           Future.microtask(() {
-                            showAppModal(
-                              context,
-                              CreateGoalModal(
-                                onGoalCreated: (_) {
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: TrText('Objectif créé avec succès')),
-                                  );
-                                },
+                            Navigator.of(context, rootNavigator: true).push(
+                              MaterialPageRoute(
+                                builder: (ctx) => const GoalFundingScreen(),
                               ),
-                              heightFactor: 0.92,
                             );
                           });
                         },
@@ -315,21 +308,14 @@ class QuickActionsMenu extends StatelessWidget {
                         iconColor: const Color(0xFFFB8C00),
                         iconBackgroundColor: const Color(0xFFFB8C00).withValues(alpha: 0.12),
                         title: t('Dettes'),
-                        description: 'Enregistrez un nouvel emprunt...',
+                        description: 'Gérez vos dettes et créances...',
                         onTap: () {
                           Navigator.pop(context);
                           Future.microtask(() {
-                            showAppModal(
-                              context,
-                              AddIOUModal(
-                                onIOUAdded: (_) {
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: TrText('Dette/Créance enregistrée')),
-                                  );
-                                },
+                            Navigator.of(context, rootNavigator: true).push(
+                              MaterialPageRoute(
+                                builder: (ctx) => const IOUTrackingScreen(),
                               ),
-                              heightFactor: 0.85,
                             );
                           });
                         },

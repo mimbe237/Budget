@@ -431,18 +431,22 @@ class _AuthScreenState extends State<AuthScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FB),
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: SingleChildScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: EdgeInsets.symmetric(horizontal: isWide ? 48 : 20, vertical: 28),
+            padding: EdgeInsets.fromLTRB(
+              isWide ? 48 : 20,
+              28,
+              isWide ? 48 : 20,
+              28 + MediaQuery.of(context).viewInsets.bottom,
+            ),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                    maxWidth: 1180,
-                  ),
+                  constraints: const BoxConstraints(maxWidth: 1180),
                   child: isWide
                       ? Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -453,6 +457,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           ],
                         )
                       : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _buildHeroPanel(),
                             const SizedBox(height: 20),

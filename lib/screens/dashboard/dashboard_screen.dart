@@ -53,7 +53,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final targetLang = currentLang == 'fr' ? 'en' : 'fr';
     final targetLabel = targetLang == 'fr' ? 'FR 🇫🇷' : 'EN 🇬🇧';
     final selectedLabel = targetLang == 'fr' ? 'Français' : 'English';
-
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
@@ -86,6 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
+            const Spacer(),
           ],
         ),
         centerTitle: false,
@@ -412,13 +412,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       _ShortcutAction(
-        label: t('Corbeille'),
-        subtitle: t('Restaurer ou supprimer'),
-        icon: Icons.delete_outline,
-        color: Colors.grey,
+        label: t('Historique'),
+        subtitle: t('Toutes vos transactions'),
+        icon: Icons.history,
+        color: AppDesign.primaryIndigo,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const TrashScreen()),
+          MaterialPageRoute(builder: (_) => const TransactionsListScreen()),
         ),
       ),
     ];
