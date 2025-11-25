@@ -29,12 +29,14 @@ class _AnalysisHubScreenState extends State<AnalysisHubScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       appBar: ModernPageAppBar(
         title: t('Analyses & Rapports'),
         subtitle: t('Visualisez vos données et insights IA'),
         icon: Icons.bar_chart_rounded,
         showProfile: true,
+        showHome: !isMobile,
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppDesign.primaryIndigo,

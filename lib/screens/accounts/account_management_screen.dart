@@ -11,6 +11,7 @@ import '../../widgets/revolutionary_logo.dart';
 import '../../widgets/app_modal.dart';
 import '../transactions/transactions_list_screen.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import '../profile/profile_settings_screen.dart';
 
 /// Écran de gestion des comptes bancaires avec liste, ajout, édition et transfert
 class AccountManagementScreen extends StatefulWidget {
@@ -65,6 +66,25 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         ),
         backgroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          if (MediaQuery.of(context).size.width < 600)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                tooltip: t('Profil'),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                  );
+                },
+                icon: CircleAvatar(
+                  backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.12),
+                  child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
+                ),
+              ),
+            ),
+        ],
       ),
       body: StreamBuilder<List<Account>>(
         stream: _accountsStream,
@@ -640,7 +660,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                               date: selectedDate,
                             );
                             if (mounted) {
-                              Navigator.pop(ctx);
+                              Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: TrText('Transaction modifiée')),);
                             }
@@ -663,7 +683,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 const SizedBox(height: 12),
                 TextButton.icon(
                   onPressed: () async {
-                    Navigator.pop(ctx);
+                    Navigator.pop(context);
                     _confirmDeleteTransaction(tx);
                   },
                   icon: const Icon(Icons.delete_outline, color: AppDesign.expenseColor),
@@ -1604,7 +1624,7 @@ class _TransferModalState extends State<TransferModal> {
                     prefixIcon: const Icon(Icons.euro),
                     suffixText: context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency),
                     helperText: _sourceAccount != null
-                        ? 'Solde disponible: ${_sourceAccount!.balance.toStringAsFixed(2)} EUR'
+                        ? 'Solde disponible: ${_sourceAccount!.balance.toStringAsFixed(2)} ${context.watch<CurrencyService>().currentCurrency}'
                         : null,
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
