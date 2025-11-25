@@ -22,9 +22,12 @@ class TransactionsListScreen extends StatefulWidget {
   State<TransactionsListScreen> createState() => _TransactionsListScreenState();
 }
 
-class _TransactionsListScreenState extends State<TransactionsListScreen> {
+class _TransactionsListScreenState extends State<TransactionsListScreen> with SingleTickerProviderStateMixin {
   final _firestoreService = FirestoreService();
   final _mockService = MockDataService();
+  
+  // Tab controller
+  late TabController _tabController;
   
   // State pour la pagination
   final List<app_transaction.Transaction> _transactions = [];
@@ -48,11 +51,11 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
   
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final _currency = NumberFormat.currency(locale: 'fr_FR', symbol: '€');
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _initStreams();
     _loadInitialData();
     _scrollController.addListener(_onScroll);
@@ -60,6 +63,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -247,8 +251,29 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
             },
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: AppDesign.primaryIndigo,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: AppDesign.primaryIndigo,
+          tabs: [
+            Tab(text: t('Actives'), icon: const Icon(Icons.list_alt)),
+            Tab(text: t('Corbeille'), icon: const Icon(Icons.delete_outline)),
+          ],
+        ),
       ),
-      body: StreamBuilder<List<Account>>(
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildActiveTransactionsTab(filteredTransactions),
+          _buildTrashTab(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveTransactionsTab(List<app_transaction.Transaction> filteredTransactions) {
+    return StreamBuilder<List<Account>>(
         stream: _accountsStream,
         builder: (context, accountSnapshot) {
           final accounts = accountSnapshot.data ?? [];
@@ -329,7 +354,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                                       style: const TextStyle(color: Colors.grey),
                                     ),
                                     trailing: TrText(
-                                      '$prefix${_currency.format(tx.amount)}',
+                                      '$prefix${context.watch<CurrencyService>().formatAmount(tx.amount)}',
                                       style: TextStyle(
                                         color: color,
                                         fontWeight: FontWeight.bold,
@@ -348,6 +373,176 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildTrashTab() {
+    final userId = _firestoreService.currentUserId;
+    
+    if (userId == null) {
+      return const Center(child: TrText('Veuillez vous connecter'));
+    }
+
+    return StreamBuilder<List<app_transaction.Transaction>>(
+      stream: _firestoreService.getDeletedTransactionsStream(userId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: TrText('Erreur: ${snapshot.error}'));
+        }
+
+        final transactions = snapshot.data ?? [];
+
+        if (transactions.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.delete_outline, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                TrText(
+                  'La corbeille est vide',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: transactions.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final tx = transactions[index];
+            final deletedAt = tx.deletedAt ?? DateTime.now();
+            final autoDeleteDate = deletedAt.add(const Duration(days: 3));
+            final daysRemaining = autoDeleteDate.difference(DateTime.now()).inDays;
+            final hoursRemaining = autoDeleteDate.difference(DateTime.now()).inHours % 24;
+
+            String remainingText;
+            if (daysRemaining > 0) {
+              remainingText = '$daysRemaining ${t("jours restants")}';
+            } else if (hoursRemaining > 0) {
+              remainingText = '$hoursRemaining ${t("heures restantes")}';
+            } else {
+              remainingText = t('Suppression imminente');
+            }
+
+            final isIncome = tx.type == app_transaction.TransactionType.income;
+            final isExpense = tx.type == app_transaction.TransactionType.expense;
+            final color = isIncome ? AppDesign.incomeColor : isExpense ? AppDesign.expenseColor : Colors.blueGrey;
+            final prefix = isIncome ? '+' : isExpense ? '-' : '';
+            final dateLabel = DateFormat('dd/MM/yyyy').format(tx.date);
+
+            return Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+              ),
+              elevation: 2,
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: color.withOpacity(0.1),
+                  child: Icon(Icons.restore_from_trash, color: color),
+                ),
+                title: TrText(
+                  tx.description ?? t('Sans description'),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TrText(dateLabel, style: const TextStyle(fontSize: 12)),
+                    TrText(
+                      remainingText,
+                      style: TextStyle(fontSize: 11, color: Colors.orange.shade700),
+                    ),
+                  ],
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$prefix${context.watch<CurrencyService>().format(tx.amount)}',
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<String>(
+                      onSelected: (value) async {
+                        if (value == 'restore') {
+                          await _firestoreService.restoreTransaction(userId, tx.transactionId);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: TrText('Transaction restaurée')),
+                            );
+                          }
+                        } else if (value == 'delete') {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const TrText('Confirmer la suppression'),
+                              content: const TrText('Cette action est irréversible. Continuer ?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const TrText('Annuler'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const TrText('Supprimer'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await _firestoreService.permanentlyDeleteTransaction(userId, tx.transactionId);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: TrText('Transaction supprimée définitivement')),
+                              );
+                            }
+                          }
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'restore',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.restore, size: 20),
+                              const SizedBox(width: 8),
+                              TrText(t('Restaurer')),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.delete_forever, size: 20, color: Colors.red),
+                              const SizedBox(width: 8),
+                              TrText(t('Supprimer définitivement'), style: const TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
