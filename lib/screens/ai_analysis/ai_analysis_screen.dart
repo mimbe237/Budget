@@ -412,18 +412,12 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
       appBar: AppBar(
-        title: Row(
-          children: [
-            const RevolutionaryLogo(size: 32),
-            const SizedBox(width: 12),
-            const TrText(
-              'Analyses IA',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppDesign.primaryIndigo,
-              ),
-            ),
-          ],
+        title: const TrText(
+          'Analyses IA',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppDesign.primaryIndigo,
+          ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,

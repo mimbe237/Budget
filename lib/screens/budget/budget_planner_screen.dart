@@ -13,6 +13,7 @@ import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
 import '../transactions/transaction_form_screen.dart';
+import '../transactions/transactions_list_screen.dart';
 import '../categories/category_management_screen.dart';
 import 'package:budget/l10n/app_localizations.dart';
 
@@ -308,8 +309,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             bottom: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: Row(
-                  children: [
+              child: Row(
+                children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.black87),
                       onPressed: () => Navigator.of(context).pop(),
@@ -346,27 +347,13 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     tooltip: t('Historique des transactions'),
                     icon: const Icon(Icons.history, color: AppDesign.primaryIndigo),
                     onPressed: () {
-                      Navigator.pushNamed(context, '/transactions');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TransactionsListScreen(),
+                        ),
+                      );
                     },
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: _resetToDefaultAllocation,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      side: BorderSide(color: Colors.grey.shade300),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    icon: const Icon(Icons.refresh_rounded, size: 18, color: AppDesign.primaryIndigo),
-                    label: const TrText(
-                      'Réinitialiser',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppDesign.primaryIndigo,
-                      ),
-                    ),
                   ),
                   const SizedBox(width: 8),
                   PopupMenuButton<int>(
@@ -389,12 +376,12 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
                     ),
                   ),
-                  ],
-                ),
+                ],
               ),
             ),
           ),
         ),
+      ),
       body: SingleChildScrollView(
         child: LayoutBuilder(
           builder: (context, constraints) {
