@@ -15,7 +15,7 @@ import '../../services/firestore_service.dart';
 import '../profile/profile_settings_screen.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:provider/provider.dart';
+import '../../widgets/app_modal.dart';
 
 /// Shell de navigation principal avec BottomNavigationBar et menu d'actions rapides
 class MainNavigationShell extends StatefulWidget {
@@ -59,8 +59,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               children: _stackScreens,
             ),
           ),
-          // Bouton profil global en haut à droite
-          Positioned(
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedNavIndex,
         onTap: (index) {
@@ -292,21 +292,17 @@ class QuickActionsMenu extends StatelessWidget {
                         onTap: () {
                           Navigator.pop(context);
                           Future.microtask(() {
-                            showModalBottomSheet(
-                              context: context,
-                              useRootNavigator: true,
-                              isScrollControlled: true,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                              ),
-                              builder: (modalCtx) => CreateGoalModal(
+                            showAppModal(
+                              context,
+                              CreateGoalModal(
                                 onGoalCreated: (_) {
-                                  Navigator.pop(modalCtx);
+                                  Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: TrText('Objectif créé avec succès')),
                                   );
                                 },
                               ),
+                              heightFactor: 0.92,
                             );
                           });
                         },
@@ -322,21 +318,17 @@ class QuickActionsMenu extends StatelessWidget {
                         onTap: () {
                           Navigator.pop(context);
                           Future.microtask(() {
-                            showModalBottomSheet(
-                              context: context,
-                              useRootNavigator: true,
-                              isScrollControlled: true,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                              ),
-                              builder: (modalCtx) => AddIOUModal(
+                            showAppModal(
+                              context,
+                              AddIOUModal(
                                 onIOUAdded: (_) {
-                                  Navigator.pop(modalCtx);
+                                  Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: TrText('Dette/Créance enregistrée')),
                                   );
                                 },
                               ),
+                              heightFactor: 0.85,
                             );
                           });
                         },

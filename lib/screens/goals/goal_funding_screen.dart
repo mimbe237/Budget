@@ -8,6 +8,7 @@ import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/modern_page_app_bar.dart';
 import '../../widgets/screen_header.dart';
+import '../../widgets/app_modal.dart';
 import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran de suivi et financement des objectifs d'épargne
@@ -660,13 +661,9 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
   }
 
   void _showCreateGoalModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => CreateGoalModal(
+    showAppModal(
+      context,
+      CreateGoalModal(
         onGoalCreated: (newGoal) {
           setState(() {
             _goals.add(newGoal);
@@ -750,35 +747,44 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.flag, color: AppDesign.primaryIndigo, size: 32),
-                      SizedBox(width: 12),
-                      TrText(
-                        'Nouvel Objectif',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+    return ModalContent(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 48,
+                height: 5,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const Row(
+              children: [
+                Icon(Icons.flag, color: AppDesign.primaryIndigo, size: 32),
+                SizedBox(width: 12),
+                TrText(
+                  'Nouvel Objectif',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 24),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
                 
                 // Nom de l'objectif
                 TextFormField(
@@ -939,12 +945,11 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
+            const SizedBox(height: 16),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   void _createGoal() {

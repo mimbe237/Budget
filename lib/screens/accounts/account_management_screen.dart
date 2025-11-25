@@ -8,6 +8,7 @@ import '../../services/firestore_service.dart';
 import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
+import '../../widgets/app_modal.dart';
 import '../transactions/transactions_list_screen.dart';
 import 'package:budget/l10n/app_localizations.dart';
 
@@ -555,18 +556,12 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     final amountController = TextEditingController(text: tx.amount.toStringAsFixed(2));
     final descriptionController = TextEditingController(text: tx.description ?? '');
     DateTime selectedDate = tx.date;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
+    showAppModal(
+      context,
+      SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -675,10 +670,10 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   label: const TrText('Supprimer', style: TextStyle(color: AppDesign.expenseColor)),
                 ),
               ],
-            ),
           ),
         ),
       ),
+      heightFactor: 0.78,
     );
   }
 
@@ -772,13 +767,9 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
   }
 
   void _showAddAccountModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => AddAccountModal(
+    showAppModal(
+      context,
+      AddAccountModal(
         onAccountAdded: (name, type, balance, icon) async {
           if (_userId != null) {
             await _firestoreService.addAccount(
@@ -797,17 +788,14 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           }
         },
       ),
+      heightFactor: 0.9,
     );
   }
 
   void _showEditAccountModal(Account account) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => EditAccountModal(
+    showAppModal(
+      context,
+      EditAccountModal(
         account: account,
         onAccountUpdated: (updatedAccount) async {
           if (_userId != null) {
@@ -838,17 +826,14 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           }
         },
       ),
+      heightFactor: 0.9,
     );
   }
 
   void _showShareAccountModal(Account account) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => ShareAccountModal(
+    showAppModal(
+      context,
+      ShareAccountModal(
         account: account,
         onSharedUpdated: (email) async {
           if (_userId != null) {
@@ -869,17 +854,14 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           }
         },
       ),
+      heightFactor: 0.85,
     );
   }
 
   void _showTransferModal(List<Account> accounts) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => TransferModal(
+    showAppModal(
+      context,
+      TransferModal(
         accounts: accounts,
         onTransferCompleted: (sourceId, destId, amount) async {
           if (_userId != null) {
@@ -911,6 +893,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           }
         },
       ),
+      heightFactor: 0.88,
     );
   }
 
