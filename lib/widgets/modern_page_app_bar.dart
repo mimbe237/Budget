@@ -4,6 +4,8 @@ import '../constants/app_design.dart';
 import '../screens/navigation/main_navigation_shell.dart';
 import 'revolutionary_logo.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import '../screens/profile/profile_settings_screen.dart';
+import '../screens/settings/notification_settings_screen.dart';
 
 class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -77,7 +79,17 @@ class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {
                 child: TrText('Paramètres'),
               ),
             ],
-            onSelected: (_) {},
+            onSelected: (value) {
+              if (value == 0) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                );
+              } else if (value == 1) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                );
+              }
+            },
             child: CircleAvatar(
               backgroundColor: accentColor.withValues(alpha: 0.12),
               child: Icon(Icons.person_outline, color: accentColor),

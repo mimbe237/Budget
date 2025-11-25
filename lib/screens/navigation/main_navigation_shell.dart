@@ -61,27 +61,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           ),
           // Bouton profil global en haut à droite
           Positioned(
-            right: 12,
-            top: MediaQuery.of(context).padding.top + 10,
-            child: SafeArea(
-              child: Material(
-                color: Colors.white,
-                shape: const CircleBorder(),
-                elevation: 4,
-                child: IconButton(
-                  icon: const Icon(Icons.person_outline_rounded, color: AppDesign.primaryIndigo),
-                  tooltip: t('Compte & paramètres'),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedNavIndex,
         onTap: (index) {
