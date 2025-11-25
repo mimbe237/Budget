@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
@@ -467,46 +468,247 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     style: TextStyle(color: Colors.grey),
                   )
                 else
-                  ...txs.take(20).map((tx) {
-                    final isIncome = tx.type == app_transaction.TransactionType.income;
-                    final isExpense = tx.type == app_transaction.TransactionType.expense;
-                    final color = isIncome
-                        ? AppDesign.incomeColor
-                        : isExpense
-                            ? AppDesign.expenseColor
-                            : Colors.blueGrey;
-                    final prefix = isIncome ? '+' : isExpense ? '-' : '';
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        backgroundColor: color.withValues(alpha: 0.12),
-                        child: TrText(
-                          (tx.category ?? '💳').characters.first,
-                          style: const TextStyle(fontSize: 18),
-                        ),
-                      ),
-                      title: TrText(
-                        tx.description ?? 'Transaction',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      subtitle: TrText(
-                        '${tx.date.day}/${tx.date.month}/${tx.date.year} · ${tx.category ?? 'Sans catégorie'}',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                      trailing: TrText(
-                        '$prefix${tx.amount.toStringAsFixed(2)} ${account.currency}',
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    );
-                  }),
+                  ...txs.take(40).map((tx) => _buildTransactionTile(tx, account)),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildTransactionTile(app_transaction.Transaction tx, Account account) {
+    final isIncome = tx.type == app_transaction.TransactionType.income;
+    final isExpense = tx.type == app_transaction.TransactionType.expense;
+    final isTransfer = tx.type == app_transaction.TransactionType.transfer;
+    final color = isIncome
+        ? AppDesign.incomeColor
+        : isExpense
+            ? AppDesign.expenseColor
+            : AppDesign.transferColor;
+    final iconData = isIncome
+        ? Icons.trending_up_rounded
+        : isExpense
+            ? Icons.trending_down_rounded
+            : Icons.swap_horiz_rounded;
+    final prefix = isIncome ? '+' : isExpense ? '-' : '';
+    final dateFmt = DateFormat('dd/MM/yyyy HH:mm');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: ListTile(
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+            child: Icon(iconData, color: color),
+        ),
+        title: TrText(
+          tx.description ?? 'Transaction',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: TrText(
+          '${dateFmt.format(tx.date)} · ${tx.category ?? (isTransfer ? 'Transfert' : 'Sans catégorie')}',
+          style: const TextStyle(color: Colors.grey),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            TrText(
+              '$prefix${tx.amount.toStringAsFixed(2)} ${account.currency}',
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height:4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: t('Modifier'),
+                  icon: const Icon(Icons.edit, size: 20, color: AppDesign.primaryIndigo),
+                  onPressed: () => _showEditTransactionModal(tx),
+                ),
+                IconButton(
+                  tooltip: t('Supprimer'),
+                  icon: const Icon(Icons.delete_outline, size: 20, color: AppDesign.expenseColor),
+                  onPressed: () => _confirmDeleteTransaction(tx),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditTransactionModal(app_transaction.Transaction tx) {
+    final amountController = TextEditingController(text: tx.amount.toStringAsFixed(2));
+    final descriptionController = TextEditingController(text: tx.description ?? '');
+    DateTime selectedDate = tx.date;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      tx.type == app_transaction.TransactionType.income
+                          ? Icons.trending_up_rounded
+                          : tx.type == app_transaction.TransactionType.expense
+                              ? Icons.trending_down_rounded
+                              : Icons.swap_horiz_rounded,
+                      color: AppDesign.primaryIndigo,
+                    ),
+                    const SizedBox(width: 12),
+                    TrText(
+                      t('Modifier la transaction'),
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: descriptionController,
+                  decoration: InputDecoration(
+                    labelText: t('Description'),
+                    prefixIcon: const Icon(Icons.description_outlined),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: t('Montant'),
+                    prefixIcon: const Icon(Icons.euro),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2022),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              selectedDate = picked;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.calendar_month),
+                        label: TrText(DateFormat('dd/MM/yyyy').format(selectedDate)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final newAmount = double.tryParse(amountController.text.replaceAll(',', '.'));
+                          if (newAmount == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: TrText('Montant invalide')),);
+                            return;
+                          }
+                          try {
+                            await _firestoreService.updateTransactionBasic(
+                              userId: _userId!,
+                              transactionId: tx.transactionId,
+                              amount: newAmount,
+                              description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
+                              date: selectedDate,
+                            );
+                            if (mounted) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: TrText('Transaction modifiée')),);
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: TrText('Erreur: $e'), backgroundColor: Colors.red),);
+                          }
+                        },
+                        icon: const Icon(Icons.save),
+                        label: const TrText('Enregistrer'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppDesign.primaryIndigo,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    _confirmDeleteTransaction(tx);
+                  },
+                  icon: const Icon(Icons.delete_outline, color: AppDesign.expenseColor),
+                  label: const TrText('Supprimer', style: TextStyle(color: AppDesign.expenseColor)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteTransaction(app_transaction.Transaction tx) {
+    showDialog(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: const TrText('Supprimer la transaction'),
+        content: const TrText('Cette action annulera son impact sur les soldes. Continuer ?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dCtx), child: const TrText('Annuler')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppDesign.expenseColor),
+            onPressed: () async {
+              Navigator.pop(dCtx);
+              try {
+                await _firestoreService.softDeleteTransaction(_userId!, tx.transactionId);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: TrText('Transaction supprimée')));
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: TrText('Erreur: $e'), backgroundColor: Colors.red));
+                }
+              }
+            },
+            child: const TrText('Supprimer'),
+          ),
+        ],
+      ),
     );
   }
 
