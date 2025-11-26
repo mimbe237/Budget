@@ -338,88 +338,94 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         iconTheme: IconThemeData(color: _accentColor),
         elevation: 0,
       ),
-      body: _isInitializing
-          ? const Center(child: CircularProgressIndicator())
-          : StreamBuilder<List<Account>>(
-        stream: _accountsStream,
-        builder: (context, accountSnapshot) {
-          if (accountSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          
-          if (accountSnapshot.hasError) {
-            return Center(child: TrText('Erreur chargement comptes: ${accountSnapshot.error}'));
-          }
+      body: SafeArea(
+        child: _isInitializing
+            ? const Center(child: CircularProgressIndicator())
+            : StreamBuilder<List<Account>>(
+                stream: _accountsStream,
+                builder: (context, accountSnapshot) {
+                  if (accountSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  if (accountSnapshot.hasError) {
+                    return Center(child: TrText('Erreur chargement comptes: ${accountSnapshot.error}'));
+                  }
 
-          final accounts = accountSnapshot.data ?? [];
-          
-          // Initialisation par défaut du compte sélectionné
-          if (accounts.isNotEmpty && (_selectedAccountId == null || !accounts.any((a) => a.accountId == _selectedAccountId))) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
-                  _selectedAccountId = accounts.first.accountId;
-                });
-              }
-            });
-          }
-
-          return StreamBuilder<List<Category>>(
-            stream: _categoriesStream,
-            builder: (context, categorySnapshot) {
-              if (categorySnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final categories = categorySnapshot.data ?? [];
-              
-              // Initialisation par défaut de la catégorie sélectionnée
-              if (categories.isNotEmpty && (_selectedCategoryId == null || !categories.any((c) => c.categoryId == _selectedCategoryId))) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    setState(() {
-                      _selectedCategoryId = categories.first.categoryId;
+                  final accounts = accountSnapshot.data ?? [];
+                  
+                  // Initialisation par défaut du compte sélectionné
+                  if (accounts.isNotEmpty && (_selectedAccountId == null || !accounts.any((a) => a.accountId == _selectedAccountId))) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        setState(() {
+                          _selectedAccountId = accounts.first.accountId;
+                        });
+                      }
                     });
                   }
-                });
-              }
 
-              return Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                          if (!isLoggedIn) _buildAuthBanner(context),
-                          if (!isLoggedIn) const SizedBox(height: 16),
-                          
-                          _buildTemplates(),
-                          const SizedBox(height: 16),
+                  return StreamBuilder<List<Category>>(
+                    stream: _categoriesStream,
+                    builder: (context, categorySnapshot) {
+                      if (categorySnapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                          _buildAmountField(),
-                          const SizedBox(height: 24),
+                      final categories = categorySnapshot.data ?? [];
+                      
+                      // Initialisation par défaut de la catégorie sélectionnée
+                      if (categories.isNotEmpty && (_selectedCategoryId == null || !categories.any((c) => c.categoryId == _selectedCategoryId))) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            setState(() {
+                              _selectedCategoryId = categories.first.categoryId;
+                            });
+                          }
+                        });
+                      }
 
-                          _buildAccountSelector(accounts),
-                          const SizedBox(height: 20),
-
-                          _buildCategorySelector(categories),
-                          const SizedBox(height: 20),
-
-                          _buildDescriptionField(),
-                          const SizedBox(height: 20),
-
-                          _buildDateSelector(),
-                          const SizedBox(height: 32),
-
-                          _buildSaveButton(),
-                        ],
-                      ),
-                    ),
+                      final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+                      return Form(
+                        key: _formKey,
+                        child: SingleChildScrollView(
+                          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                          padding: EdgeInsets.fromLTRB(24, 24, 24, 32 + bottomInset),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (!isLoggedIn) ...[
+                                _buildAuthBanner(context),
+                                const SizedBox(height: 16),
+                              ],
+                              _buildTemplates(),
+                              const SizedBox(height: 16),
+                              _buildAmountField(),
+                              const SizedBox(height: 20),
+                              _buildAccountSelector(accounts),
+                              const SizedBox(height: 20),
+                              _buildCategorySelector(categories),
+                              const SizedBox(height: 20),
+                              _buildDescriptionField(),
+                              const SizedBox(height: 12),
+                              _buildNoteField(),
+                              const SizedBox(height: 12),
+                              _buildTagsField(),
+                              const SizedBox(height: 20),
+                              _buildDateSelector(),
+                              const SizedBox(height: 24),
+                              Transform.translate(
+                                offset: const Offset(0, -38), // ~1 cm upwards on typical screens
+                                child: _buildSaveButton(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   );
-            },
-          );
-        },
+                },
+              ),
       ),
     );
   }
@@ -644,7 +650,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       TrText(
-                        '${account.balance.toStringAsFixed(2)} ${account.currency}',
+                        context.watch<CurrencyService>().formatAmount(account.balance, account.currency, false),
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                         overflow: TextOverflow.ellipsis,
                       ),

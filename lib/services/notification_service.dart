@@ -411,8 +411,6 @@ class NotificationService {
       tz.TZDateTime.from(scheduledDate, tz.local),
       notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time, // Répéter tous les jours
       payload: 'daily_reminder',
     );
@@ -472,8 +470,6 @@ class NotificationService {
       tz.TZDateTime.from(scheduledDate, tz.local),
       notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime, // Répéter tous les mois
       payload: 'monthly_reminder',
     );

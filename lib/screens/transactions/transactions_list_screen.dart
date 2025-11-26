@@ -222,6 +222,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
     // Filtrage local pour la recherche textuelle et montant (sur les données chargées)
     final filteredTransactions = _transactions.where((tx) {
       final matchesSearch = _search.isEmpty ||
@@ -239,6 +240,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
         subtitle: t('Historique et filtres détaillés'),
         icon: Icons.swap_horiz_rounded,
         showProfile: true,
+        showHome: !isMobile,
         hideLogoOnMobile: true,
         actions: [
           IconButton(

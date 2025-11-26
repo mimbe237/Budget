@@ -545,7 +545,7 @@ class _AuthScreenState extends State<AuthScreen> {
           const SizedBox(height: 18),
           _buildValueBullet('Répartition automatique des budgets et poches', Icons.auto_graph_rounded),
           const SizedBox(height: 10),
-          _buildValueBullet('Suivi des dettes / IOU avec paiements partiels', Icons.handshake_rounded),
+          _buildValueBullet('Suivi des dettes et créances avec paiements partiels', Icons.handshake_rounded),
           const SizedBox(height: 10),
           _buildValueBullet('Rapports IA, alertes et projections mensuelles', Icons.smart_toy_outlined),
           const SizedBox(height: 22),

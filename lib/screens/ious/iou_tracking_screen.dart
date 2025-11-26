@@ -56,6 +56,8 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
         subtitle: t('Ce que je dois et ce qu’on me doit'),
         icon: Icons.handshake_rounded,
         showProfile: true,
+        hideLogoOnMobile: true,
+        showHome: false,
       ),
       body: SingleChildScrollView(
         child: Padding(

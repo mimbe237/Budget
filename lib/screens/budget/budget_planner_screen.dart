@@ -308,6 +308,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         subtitle: t('Votre argent sous contrôle'),
         icon: Icons.savings_outlined,
         backgroundColor: Colors.white,
+        showHome: !isMobile,
+        hideLogoOnMobile: true,
         actions: [
           IconButton(
             tooltip: t('Historique des transactions'),
@@ -425,7 +427,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           ),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
