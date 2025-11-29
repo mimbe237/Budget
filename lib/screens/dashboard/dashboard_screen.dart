@@ -1133,7 +1133,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: const TextStyle(color: Colors.grey),
                 ),
                 trailing: TrText(
-                  '$prefix ${currencyService.formatAmount(currencyService.convertAmount(tx.amount, 'EUR', targetCurrency), targetCurrency)}',
+                  '$prefix ${currencyService.formatAmount(tx.amount, targetCurrency)}',
                   style: TextStyle(
                     color: txColor,
                     fontWeight: FontWeight.bold,
@@ -1870,8 +1870,9 @@ class _PocketSummaryRow extends StatelessWidget {
     final ratio = item.planned > 0 ? (item.engaged / item.planned) : 0.0;
     final currencyService = context.watch<CurrencyService>();
     final targetCurrency = currencyService.currentCurrency;
-    final plannedConverted = currencyService.convertAmount(item.planned, 'EUR', targetCurrency);
-    final engagedConverted = currencyService.convertAmount(item.engaged, 'EUR', targetCurrency);
+    // Montants déjà dans la devise courante : ne pas reconvertir
+    final plannedConverted = item.planned;
+    final engagedConverted = item.engaged;
     Color barColor;
     if (ratio >= 1) {
       barColor = const Color(0xFFEF5350);
