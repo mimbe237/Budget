@@ -136,6 +136,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
 
   Widget _buildGoalHistory(Goal goal) {
     // Données factices de contributions liées à l'objectif
+    final currency = context.watch<CurrencyService>();
     final entries = [
       _GoalTx(label: t('Virement épargne'), amount: 200, date: DateTime.now().subtract(const Duration(days: 3))),
       _GoalTx(label: t('Bonus salaire'), amount: 150, date: DateTime.now().subtract(const Duration(days: 10))),
@@ -193,7 +194,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                     ),
                   ),
                   TrText(
-                    '+${e.amount.toStringAsFixed(2)} €',
+                    '+${currency.formatAmount(e.amount)}',
                     style: const TextStyle(
                       color: AppDesign.incomeColor,
                       fontWeight: FontWeight.bold,
@@ -317,39 +318,35 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const TrText(
-                      'Économisé',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                    Builder(
-                      builder: (context) => TrText(
-                        context.watch<CurrencyService>().formatAmount(saved),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                const TrText(
+                  'Économisé',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                TrText(
+                  currency.formatAmount(saved),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const TrText(
-                      'Objectif',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                    Builder(
-                      builder: (context) => TrText(
-                        context.watch<CurrencyService>().formatAmount(target),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                const TrText(
+                  'Objectif',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                TrText(
+                  currency.formatAmount(target),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                   ],
                 ),
               ],
@@ -412,6 +409,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
   }
 
   Widget _buildGoalCard(Goal goal) {
+    final currency = context.watch<CurrencyService>();
     final progress = goal.targetAmount > 0 
         ? (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0) 
         : 0.0;
@@ -542,7 +540,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                       TrText(
-                        '${goal.currentAmount.toStringAsFixed(2)} €',
+                        currency.formatAmount(goal.currentAmount),
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -576,7 +574,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                       TrText(
-                        '${goal.targetAmount.toStringAsFixed(2)} €',
+                        currency.formatAmount(goal.targetAmount),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -607,7 +605,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                     children: [
                       if (!isCompleted)
                         TrText(
-                          'Reste: ${remaining.toStringAsFixed(2)} €',
+                          'Reste: ${currency.formatAmount(remaining)}',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
@@ -715,7 +713,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: TrText('${updatedAccount.balance} € alloués à ${goal.name} !'),
+              content: TrText('${currency.formatAmount(updatedAccount.balance)} alloués à ${goal.name} !'),
               backgroundColor: AppDesign.incomeColor,
             ),
           );
@@ -760,6 +758,7 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
 
   @override
   Widget build(BuildContext context) {
+    final currencyService = context.watch<CurrencyService>();
     return ModalContent(
       padding: EdgeInsets.only(
         left: 24,
@@ -821,8 +820,8 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
                   controller: _amountController,
                   decoration: InputDecoration(
                     labelText: 'Montant cible',
-                    prefixIcon: const Icon(Icons.euro, color: AppDesign.incomeColor),
-                    suffixText: '€',
+                    prefixIcon: const Icon(Icons.savings, color: AppDesign.incomeColor),
+                    suffixText: currencyService.currencySymbol,
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [

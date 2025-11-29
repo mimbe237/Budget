@@ -9,6 +9,7 @@ import '../profile/profile_settings_screen.dart';
 import '../settings/notification_settings_screen.dart';
 import '../budget/budget_planner_screen.dart';
 import '../auth/auth_screen.dart';
+import '../../widgets/currency_conversion_dialog.dart';
 
 /// Page unifiée Profil & Paramètres
 class SettingsHubScreen extends StatelessWidget {
@@ -441,6 +442,7 @@ Future<void> _showCurrencySheet(
   BuildContext context,
   CurrencyService currencyService,
 ) async {
+  final oldCurrency = currencyService.currentCurrency;
   await showModalBottomSheet(
     context: context,
     shape: const RoundedRectangleBorder(
@@ -458,16 +460,37 @@ Future<void> _showCurrencySheet(
             trailing: isSelected ? const Icon(Icons.check, color: AppDesign.primaryIndigo) : null,
             onTap: () async {
               Navigator.pop(sheetContext);
-              await currencyService.setCurrency(code);
-              final userId = FirestoreService().currentUserId;
-              if (userId != null) {
-                await FirestoreService().updateUserProfile(userId, {'currency': code});
-              }
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: TrText('Devise changée en $code')),
-                );
-              }
+              if (code == oldCurrency) return;
+
+              await showCurrencyConversionDialog(
+                context: context,
+                oldCurrency: oldCurrency,
+                newCurrency: code,
+                onConvert: () async {
+                  await currencyService.setCurrency(code);
+                  final userId = FirestoreService().currentUserId;
+                  if (userId != null) {
+                    await FirestoreService().updateUserProfile(userId, {'currency': code});
+                  }
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: TrText('Montants convertis en $code')),
+                    );
+                  }
+                },
+                onDisplayOnly: () async {
+                  await currencyService.setCurrency(code);
+                  final userId = FirestoreService().currentUserId;
+                  if (userId != null) {
+                    await FirestoreService().updateUserProfile(userId, {'currency': code});
+                  }
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: TrText('Affichage changé en $code')),
+                    );
+                  }
+                },
+              );
             },
           );
         }).toList(),

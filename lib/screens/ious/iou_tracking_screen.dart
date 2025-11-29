@@ -39,6 +39,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currency = context.watch<CurrencyService>();
     final debts = _ious.where((iou) => iou.type == IOUType.payable).toList();
     final receivables = _ious.where((iou) => iou.type == IOUType.receivable).toList();
     
@@ -143,7 +144,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                   ),
                   const SizedBox(height: 4),
                   TrText(
-                    '${totalDebt.toStringAsFixed(2)} €',
+                    currency.formatAmount(totalDebt),
                     style: const TextStyle(
                       fontSize: 22,
                       color: AppDesign.expenseColor,
@@ -184,7 +185,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                   ),
                   const SizedBox(height: 4),
                   TrText(
-                    '${totalReceivable.toStringAsFixed(2)} €',
+                    currency.formatAmount(totalReceivable),
                     style: const TextStyle(
                       fontSize: 22,
                       color: AppDesign.incomeColor,
@@ -335,33 +336,33 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TrText(
-                        'Montant initial',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      TrText(
-                        '${iou.originalAmount.toStringAsFixed(2)} €',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                  TrText(
+                    'Montant initial',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  TrText(
+                    currency.formatAmount(iou.originalAmount),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                     ],
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      TrText(
-                        isCompleted ? 'Soldé' : 'Reste',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      TrText(
-                        '${iou.currentBalance.toStringAsFixed(2)} €',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: isCompleted ? Colors.green : color,
-                        ),
+                  TrText(
+                    isCompleted ? 'Soldé' : 'Reste',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  TrText(
+                    currency.formatAmount(iou.currentBalance),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: isCompleted ? Colors.green : color,
+                    ),
                       ),
                     ],
                   ),
@@ -492,7 +493,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     ),
                   ),
                   TrText(
-                    '$prefix${e.amount.toStringAsFixed(2)} €',
+                    '$prefix${currency.formatAmount(e.amount)}',
                     style: TextStyle(
                       color: color,
                       fontWeight: FontWeight.bold,

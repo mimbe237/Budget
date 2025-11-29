@@ -623,6 +623,7 @@ class FirestoreService {
           {'name': 'Salaire', 'type': CategoryType.income, 'icon': '💼', 'color': '#22c55e'},
           {'name': 'Prime', 'type': CategoryType.income, 'icon': '🎁', 'color': '#16a34a'},
           {'name': 'Investissements', 'type': CategoryType.income, 'icon': '📈', 'color': '#0ea5e9'},
+          {'name': 'Autres', 'type': CategoryType.income, 'icon': '➕', 'color': '#10b981'},
         ]);
       }
 
@@ -634,6 +635,7 @@ class FirestoreService {
           {'name': 'Santé', 'type': CategoryType.expense, 'icon': '🩺', 'color': '#22c55e'},
           {'name': 'Loisirs', 'type': CategoryType.expense, 'icon': '🎬', 'color': '#a855f7'},
           {'name': 'Factures', 'type': CategoryType.expense, 'icon': '💡', 'color': '#6366f1'},
+          {'name': 'Autres', 'type': CategoryType.expense, 'icon': '➖', 'color': '#64748b'},
         ]);
       }
 

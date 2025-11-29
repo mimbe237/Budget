@@ -146,6 +146,29 @@ class CurrencyService extends ChangeNotifier {
     return '$formatted\u202F$symbol'.trim(); // \u202F = espace fine insécable
   }
 
+  /// Format compact (K, M, B) avec symbole optionnel
+  String formatAmountCompact(double amount, [String? currency, bool showSymbol = true]) {
+    final targetCurrency = currency ?? _currentCurrency;
+    final symbol = showSymbol ? getCurrencySymbol(targetCurrency) : '';
+    final v = amount.abs();
+    String suffix = '';
+    double display = amount;
+    if (v >= 1_000_000_000) {
+      display = amount / 1_000_000_000;
+      suffix = 'B';
+    } else if (v >= 1_000_000) {
+      display = amount / 1_000_000;
+      suffix = 'M';
+    } else if (v >= 1_000) {
+      display = amount / 1_000;
+      suffix = 'K';
+    }
+    final decimals = suffix.isEmpty ? 0 : 2;
+    final formatter = NumberFormat('#,##0${decimals > 0 ? '.00' : ''}', 'fr_FR');
+    final numStr = formatter.format(display);
+    return '$numStr$suffix\u202F$symbol'.trim();
+  }
+
   /// Obtient la liste formatée des devises pour l'UI
   List<String> getFormattedCurrencyList() {
     return supportedCurrencies.entries

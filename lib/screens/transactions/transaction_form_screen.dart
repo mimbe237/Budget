@@ -107,6 +107,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   Future<void> _saveTransaction() async {
     if (!_formKey.currentState!.validate()) return;
+    final currencyService = context.read<CurrencyService>();
     
     if (_selectedAccountId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -181,7 +182,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 builder: (ctx) => AlertDialog(
                   title: const TrText('Solde Insuffisant ⚠️'),
                   content: TrText(
-                    'Cette dépense de ${_amount.toStringAsFixed(2)} € dépasse le solde disponible de ${currentBalance.toStringAsFixed(2)} € sur ce compte.\n\n'
+                    'Cette dépense de ${currencyService.formatAmount(_amount)} dépasse le solde disponible de ${currencyService.formatAmount(currentBalance)} sur ce compte.\n\n'
                     'Veuillez choisir un autre compte ou enregistrer un revenu.',
                   ),
                   actions: [

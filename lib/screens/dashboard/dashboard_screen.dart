@@ -1740,6 +1740,20 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
       ),
     );
   }
+
+  static String _mapPocket(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('logement') || n.contains('rent')) return 'Logement';
+    if (n.contains('aliment') || n.contains('nourr') || n.contains('food')) return 'Nourriture';
+    if (n.contains('transport') || n.contains('taxi') || n.contains('carbur')) return 'Transport';
+    if (n.contains('fact') || n.contains('abo') || n.contains('abonnement')) return 'Factures';
+    if (n.contains('sant')) return 'Santé';
+    if (n.contains('eparg') || n.contains('saving')) return 'Épargne';
+    if (n.contains('invest')) return 'Investissement';
+    if (n.contains('loisir') || n.contains('fun') || n.contains('divert')) return 'Loisirs';
+    if (n.contains('famill') || n.contains('don')) return 'Famille';
+    return name.isNotEmpty ? name : 'Autres';
+  }
 }
 
 class _CategoryBudgetItem {
@@ -1808,7 +1822,7 @@ class _CategoryProgressRow extends StatelessWidget {
                 builder: (context) {
                   final currencyService = context.watch<CurrencyService>();
                   return TrText(
-                    '${currencyService.formatAmount(item.spent, null, false)} / ${currencyService.formatAmount(item.allocated)}',
+                    '${currencyService.formatAmountCompact(item.spent, null, false)} / ${currencyService.formatAmountCompact(item.allocated)}',
                     style: spentStyle,
                   );
                 },

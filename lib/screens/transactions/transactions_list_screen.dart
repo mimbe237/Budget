@@ -56,8 +56,6 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
   
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final _currency = NumberFormat.currency(locale: 'fr_FR', symbol: '€');
-
   @override
   void initState() {
     super.initState();
@@ -383,7 +381,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
                                     style: const TextStyle(color: Colors.grey),
                                   ),
                                   trailing: TrText(
-                                    '$prefix${_currency.format(tx.amount)}',
+                                    '$prefix${context.watch<CurrencyService>().formatAmount(tx.amount)}',
                                     style: TextStyle(
                                       color: color,
                                       fontWeight: FontWeight.bold,
