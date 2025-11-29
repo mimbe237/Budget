@@ -40,6 +40,13 @@ service cloud.firestore {
     }
 
     // Exemples supplémentaires : transactions, admin_logs
+    // Transactions utilisateur (sous-collection sous /users/{userId})
+    match /users/{userId}/transactions/{transactionId} {
+      allow read: if adminOrOwner(userId);
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Ancienne collection racine (pour compatibilité / exports admin)
     match /transactions/{transactionId} {
       // For reads, use resource.data (existing doc); for writes use request.resource.data (incoming data)
       allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);

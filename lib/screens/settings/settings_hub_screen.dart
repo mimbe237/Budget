@@ -20,7 +20,6 @@ class SettingsHubScreen extends StatelessWidget {
     final currencyService = context.watch<CurrencyService>();
     final localeProvider = context.watch<LocaleProvider>();
     final themeProvider = context.watch<ThemeProvider>();
-    final userId = FirestoreService().currentUserId;
 
     return Scaffold(
       appBar: AppBar(
@@ -105,19 +104,6 @@ class SettingsHubScreen extends StatelessWidget {
                   );
                 },
               ),
-              _Tile(
-                icon: Icons.logout,
-                title: 'Déconnexion',
-                onTap: () async {
-                  await FirestoreService().cleanupDemoDataOnLogout();
-                  await FirestoreService().logout();
-                  if (!context.mounted) return;
-                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const AuthScreen()),
-                    (route) => false,
-                  );
-                },
-              ),
             ],
           ),
           _Section(
@@ -186,6 +172,9 @@ class SettingsHubScreen extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: AppDesign.spacingMedium),
+          const _LogoutCard(),
+          const SizedBox(height: AppDesign.spacingLarge),
         ],
       ),
     );
@@ -250,6 +239,85 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
+class _LogoutCard extends StatelessWidget {
+  const _LogoutCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppDesign.radiusLarge),
+      child: Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppDesign.dangerRed, AppDesign.primaryPink],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: AppDesign.mediumShadow,
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppDesign.radiusLarge),
+            onTap: () => _handleLogout(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDesign.paddingLarge,
+                vertical: AppDesign.paddingMedium,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(AppDesign.radiusMedium),
+                    ),
+                    child: const Icon(
+                      Icons.logout,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TrText(
+                          'Déconnexion',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        TrText(
+                          'Quitter et revenir à la connexion',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Section extends StatelessWidget {
   const _Section({required this.title, required this.children});
 
@@ -308,6 +376,16 @@ class _Tile extends StatelessWidget {
       onTap: onTap,
     );
   }
+}
+
+Future<void> _handleLogout(BuildContext context) async {
+  await FirestoreService().cleanupDemoDataOnLogout();
+  await FirestoreService().logout();
+  if (!context.mounted) return;
+  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const AuthScreen()),
+    (route) => false,
+  );
 }
 
 Future<void> _showLanguageSheet(

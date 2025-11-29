@@ -1,21 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_design.dart';
 import '../../services/notification_service.dart';
-import '../../services/currency_service.dart';
-import '../../services/notification_preferences_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/theme_service.dart';
 import '../../models/user_profile.dart';
-import '../settings/notification_settings_screen.dart';
+import '../settings/settings_hub_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../onboarding/onboarding_wizard_screen.dart';
 import '../auth/auth_screen.dart';
 import '../../widgets/revolutionary_logo.dart';
-import '../../widgets/currency_conversion_dialog.dart';
 import 'package:budget/l10n/app_localizations.dart';
-import 'package:provider/provider.dart';
 
 /// Écran de profil et paramètres utilisateur
 /// Affiche les informations du profil et permet de gérer les préférences
@@ -108,16 +103,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 children: [
                   const SizedBox(height: 24),
                   
-                  // Section 2 : Centre de Notifications
-                  _buildSectionHeader('Notifications'),
-                  _buildNotificationSection(),
-                  
+                  _buildSectionHeader('Profil'),
+                  _buildProfileSummaryCard(),
+
                   const SizedBox(height: 24),
-                  
-                  // Section 3 : Système & Compte
-                  _buildSectionHeader('Système & Compte'),
-                  _buildSystemSection(),
-                  
+
+                  _buildSectionHeader('Actions'),
+                  _buildActionsCard(),
+
                   const SizedBox(height: 24),
                   
                   // Bouton Admin (conditionnel)
@@ -326,8 +319,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
   }
 
-  /// Section des notifications
-  Widget _buildNotificationSection() {
+  /// Carte synthèse du profil
+  Widget _buildProfileSummaryCard() {
+    final display = _userProfile?.displayName ?? t('Utilisateur');
+    final email = _userProfile?.email ?? '-';
+    final phone = _userProfile?.phoneNumber ?? '-';
+    final currency = _userProfile?.currency ?? '-';
+    final country = _userProfile?.countryCode ?? '-';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -343,227 +342,49 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       ),
       child: Column(
         children: [
-          // Rappel quotidien
-          SwitchListTile(
-            secondary: Container(
+          ListTile(
+            leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
-                Icons.notifications_active,
+                Icons.person_outline,
                 color: AppDesign.primaryIndigo,
                 size: 24,
               ),
             ),
-            title: const TrText(
-              'Bilan de fin de journée',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
+            title: TrText(
+              display,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
               ),
             ),
-            subtitle: const TrText(
-              'Notification à 20h pour saisir vos dépenses',
-              style: TextStyle(fontSize: 13),
+            subtitle: TrText(
+              email,
+              style: const TextStyle(color: Colors.grey),
             ),
-            value: context.watch<NotificationPreferencesService>().dailyReminderEnabled,
-            activeTrackColor: AppDesign.primaryIndigo,
-            activeThumbColor: AppDesign.primaryIndigo,
-            onChanged: (value) async {
-              await context.read<NotificationPreferencesService>().setDailyReminderEnabled(value);
-              
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: TrText(value 
-                      ? 'Rappel quotidien activé à 20h' 
-                      : 'Rappel quotidien désactivé'
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
+            trailing: TextButton.icon(
+              onPressed: _showProfileEditDialog,
+              icon: const Icon(Icons.edit, size: 16),
+              label: const TrText('Modifier'),
+            ),
           ),
-          
-          const Divider(height: 1, indent: 72),
-          
-          // Alerte budget
-          SwitchListTile(
-            secondary: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppDesign.expenseColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.warning_amber_rounded,
-                color: AppDesign.expenseColor,
-                size: 24,
-              ),
-            ),
-            title: const TrText(
-              'Dépassement de Budget',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-            subtitle: const TrText(
-              'Alerte immédiate si une catégorie passe au rouge',
-              style: TextStyle(fontSize: 13),
-            ),
-            value: context.watch<NotificationPreferencesService>().budgetAlertsEnabled,
-            activeTrackColor: AppDesign.primaryIndigo,
-            activeThumbColor: AppDesign.primaryIndigo,
-            onChanged: (value) async {
-              await context.read<NotificationPreferencesService>().setBudgetAlertsEnabled(value);
-              
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: TrText(
-                      value
-                          ? 'Alertes budget activées'
-                          : 'Alertes budget désactivées',
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-          ),
-          if (context.watch<NotificationPreferencesService>().budgetAlertsEnabled)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(72, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const TrText(
-                        'Seuil d\'alerte',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      TrText(
-                        '${(context.watch<NotificationPreferencesService>().budgetAlertThreshold * 100).toStringAsFixed(0)}%',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
-                  Slider(
-                    value: context.watch<NotificationPreferencesService>().budgetAlertThreshold,
-                    min: 0.5,
-                    max: 1.2,
-                    divisions: 7,
-                    label: '${(context.watch<NotificationPreferencesService>().budgetAlertThreshold * 100).toStringAsFixed(0)}%',
-                    onChanged: (v) {
-                      context.read<NotificationPreferencesService>().setBudgetAlertThreshold(v);
-                    },
-                    activeColor: AppDesign.expenseColor,
-                    inactiveColor: AppDesign.expenseColor.withValues(alpha: 0.2),
-                  ),
-                  const TrText(
-                    'Alerte quand une poche dépasse ce pourcentage de son budget.',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          
-          const Divider(height: 1, indent: 72),
-          
-          // Objectifs
-          SwitchListTile(
-            secondary: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppDesign.incomeColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.emoji_events,
-                color: AppDesign.incomeColor,
-                size: 24,
-              ),
-            ),
-            title: const TrText(
-              'Succès d\'Épargne',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-            subtitle: const TrText(
-              'Célébration quand un objectif est atteint',
-              style: TextStyle(fontSize: 13),
-            ),
-            value: context.watch<NotificationPreferencesService>().goalAlertsEnabled,
-            activeTrackColor: AppDesign.primaryIndigo,
-            activeThumbColor: AppDesign.primaryIndigo,
-            onChanged: (value) async {
-              await context.read<NotificationPreferencesService>().setGoalAlertsEnabled(value);
-              
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: TrText(
-                      value
-                          ? 'Alertes objectifs activées'
-                          : 'Alertes objectifs désactivées',
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-          ),
-          
-          const Divider(height: 1, indent: 72),
-          
-          // Lien vers paramètres avancés
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.tune,
-                color: Colors.grey[700],
-                size: 24,
-              ),
-            ),
-            title: const TrText(
-              'Paramètres avancés',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationSettingsScreen(),
-                ),
-              );
-            },
-          ),
+          const Divider(height: 1),
+          _infoRow(Icons.flag_outlined, t('Pays'), country),
+          const Divider(height: 1),
+          _infoRow(Icons.currency_exchange, t('Devise'), currency),
+          const Divider(height: 1),
+          _infoRow(Icons.phone_iphone, t('Téléphone / WhatsApp'), phone),
         ],
       ),
     );
   }
 
-  /// Section système et compte
-  Widget _buildSystemSection() {
-    final localeProvider = context.watch<LocaleProvider>();
-
+  /// Actions condensées (renvoi vers le hub paramétrage)
+  Widget _buildActionsCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -577,221 +398,39 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          // Devise
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.euro,
-                color: AppDesign.primaryIndigo,
-                size: 24,
-              ),
-            ),
-            title: const TrText(
-              'Devise',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TrText(
-                  '${context.watch<CurrencyService>().currentCurrency} (${context.watch<CurrencyService>().currencySymbol})',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_ios, size: 16),
-              ],
-            ),
-            onTap: () {
-              _showCurrencyPicker();
-            },
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(10),
           ),
-          
-          const Divider(height: 1, indent: 72),
-          
-          // Langue
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppDesign.primaryPurple.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.language,
-                color: AppDesign.primaryPurple,
-                size: 24,
-              ),
-            ),
-            title: const TrText(
-              'Langue',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TrText(
-                  localeProvider.locale.languageCode == 'en' ? 'Anglais' : 'Français',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_ios, size: 16),
-              ],
-            ),
-            onTap: () {
-              _showLanguagePicker(localeProvider);
-            },
+          child: Icon(
+            Icons.tune,
+            color: Colors.grey[700],
+            size: 24,
           ),
-          
-          const Divider(height: 1, indent: 72),
-          
-          // Thème
-          Builder(builder: (context) {
-            final themeProvider = context.watch<ThemeProvider>();
-            final modeLabel = themeProvider.label(context);
-            final isDark = themeProvider.themeMode == ThemeMode.dark;
-            return ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  isDark ? Icons.nightlight_round : Icons.wb_sunny_outlined,
-                  color: AppDesign.primaryIndigo,
-                  size: 24,
-                ),
-              ),
-              title: const TrText(
-                'Thème',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TrText(
-                    modeLabel,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_ios, size: 16),
-                ],
-              ),
-              onTap: () => _showThemePicker(themeProvider),
-            );
-          }),
-          
-          const Divider(height: 1, indent: 72),
-          
-          // Sécurité
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.lock_outline,
-                color: Colors.orange,
-                size: 24,
-              ),
-            ),
-            title: const TrText(
-              'Sécurité',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-            subtitle: const TrText(
-              'Changer le mot de passe',
-              style: TextStyle(fontSize: 13),
-            ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              _showChangePasswordDialog();
-            },
+        ),
+        title: const TrText(
+          'Paramètres complets',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
           ),
-          
-          const Divider(height: 1, indent: 72),
-          
-          // Informations personnelles
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.person_outline,
-                color: Colors.blue,
-                size: 24,
-              ),
+        ),
+        subtitle: const TrText(
+          'Langue, notifications, sécurité, données',
+          style: TextStyle(fontSize: 13),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const SettingsHubScreen(),
             ),
-            title: const TrText(
-              'Informations personnelles',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              _showProfileEditDialog();
-            },
-          ),
-          if (_userProfile != null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  children: [
-                    _infoRow(Icons.mail_outline, t('Email'), _userProfile!.email ?? '-'),
-                    const Divider(height: 1),
-                    _infoRow(Icons.flag_outlined, t('Pays'), _userProfile!.countryCode ?? '-'),
-                    const Divider(height: 1),
-                    _infoRow(Icons.currency_exchange, t('Devise'), _userProfile!.currency),
-                    const Divider(height: 1),
-                    _infoRow(Icons.phone_iphone, t('Téléphone / WhatsApp'), _userProfile!.phoneNumber ?? '-'),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
+          );
+        },
       ),
     );
   }
@@ -890,271 +529,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   // =========================================================================
   // ACTIONS
   // =========================================================================
-
-  /// Affiche le sélecteur de devise
-  void _showCurrencyPicker() {
-    final currencyService = context.read<CurrencyService>();
-    final currencies = currencyService.getFormattedCurrencyList();
-    final rootContext = context;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(sheetContext).size.height * 0.7,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const TrText(
-                'Sélectionner la devise',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ...currencies.map((currencyFormatted) {
-                  final currencyCode = currencyService.parseCurrencyCode(currencyFormatted);
-                  final currentCode = sheetContext.watch<CurrencyService>().currentCurrency;
-                  
-                  return ListTile(
-                    title: TrText(currencyFormatted),
-                    trailing: currentCode == currencyCode
-                        ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
-                        : null,
-                    onTap: () async {
-                      final oldCurrency = currencyService.currentCurrency;
-
-                      Navigator.pop(sheetContext);
-                      if (!mounted || oldCurrency == currencyCode) return;
-
-                      await showCurrencyConversionDialog(
-                        context: rootContext,
-                        oldCurrency: oldCurrency,
-                        newCurrency: currencyCode,
-                        onConvert: () async {
-                          // TODO: Implement full conversion of all transactions, goals, budgets
-                          await currencyService.setCurrency(currencyCode);
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(rootContext).showSnackBar(
-                            SnackBar(
-                              content: TrText('Montants convertis en $currencyCode'),
-                              backgroundColor: AppDesign.incomeColor,
-                            ),
-                          );
-                        },
-                        onDisplayOnly: () async {
-                          await currencyService.setCurrency(currencyCode);
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(rootContext).showSnackBar(
-                            SnackBar(content: TrText('Affichage changé en $currencyCode')),
-                          );
-                        },
-                      );
-                    },
-                  );
-                }),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showLanguagePicker(LocaleProvider localeProvider) {
-    final current = localeProvider.locale.languageCode;
-    final userId = FirestoreService().currentUserId;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const TrText(
-                'Langue',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ListTile(
-                leading: const Icon(Icons.flag),
-                title: const TrText('Français'),
-                trailing: current == 'fr'
-                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
-                    : null,
-                onTap: () async {
-                  await localeProvider.setLocale(const Locale('fr'));
-                  if (userId != null) {
-                    await FirestoreService()
-                        .updateUserProfile(userId, {'languageCode': 'fr'});
-                  }
-                  if (mounted) Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.flag_circle),
-                title: const TrText('Anglais'),
-                trailing: current == 'en'
-                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
-                    : null,
-                onTap: () async {
-                  await localeProvider.setLocale(const Locale('en'));
-                  if (userId != null) {
-                    await FirestoreService()
-                        .updateUserProfile(userId, {'languageCode': 'en'});
-                  }
-                  if (mounted) Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showThemePicker(ThemeProvider themeProvider) {
-    final current = themeProvider.themeMode;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const TrText(
-                'Mode d\'affichage',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ListTile(
-                leading: const Icon(Icons.brightness_auto),
-                title: const TrText('Système'),
-                trailing: current == ThemeMode.system
-                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
-                    : null,
-                onTap: () async {
-                  await themeProvider.setTheme(ThemeMode.system);
-                  if (mounted) Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.wb_sunny_outlined),
-                title: const TrText('Clair'),
-                trailing: current == ThemeMode.light
-                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
-                    : null,
-                onTap: () async {
-                  await themeProvider.setTheme(ThemeMode.light);
-                  if (mounted) Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.nightlight_round),
-                title: const TrText('Sombre'),
-                trailing: current == ThemeMode.dark
-                    ? const Icon(Icons.check, color: AppDesign.primaryIndigo)
-                    : null,
-                onTap: () async {
-                  await themeProvider.setTheme(ThemeMode.dark);
-                  if (mounted) Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Affiche le dialogue de changement de mot de passe
-  void _showChangePasswordDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const TrText('Changer le mot de passe'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Mot de passe actuel',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Nouveau mot de passe',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Confirmer le mot de passe',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const TrText('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: TrText('Mot de passe modifié avec succès'),
-                  backgroundColor: AppDesign.incomeColor,
-                ),
-              );
-            },
-            child: const TrText('Confirmer'),
-          ),
-        ],
-      ),
-    );
-  }
 
   /// Affiche le dialogue d'édition du profil
   void _showProfileEditDialog() {

@@ -345,7 +345,22 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
                                       : Colors.blueGrey;
                               final prefix = isIncome ? '+' : isExpense ? '-' : '';
                               final dateLabel = DateFormat('dd/MM/yyyy').format(tx.date);
-                              final iconText = (tx.category ?? '💳');
+                              
+                              // Résoudre catégorie depuis categoryId
+                              final category = tx.categoryId != null 
+                                  ? categories.firstWhere((c) => c.categoryId == tx.categoryId, 
+                                      orElse: () => Category(
+                                        categoryId: '', 
+                                        userId: '', 
+                                        name: tx.category ?? 'Sans catégorie', 
+                                        type: CategoryType.expense, 
+                                        icon: '💳', 
+                                        color: '#808080', 
+                                        createdAt: DateTime.now(), 
+                                        updatedAt: DateTime.now()))
+                                  : null;
+                              final categoryName = category?.name ?? tx.category ?? 'Sans catégorie';
+                              final iconText = category?.icon ?? tx.category ?? '💳';
                               final leadingChar = iconText.isNotEmpty ? iconText.characters.first : '💳';
 
                               return Card(
@@ -364,7 +379,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
                                     style: const TextStyle(fontWeight: FontWeight.w700),
                                   ),
                                   subtitle: TrText(
-                                    '$dateLabel · ${tx.category ?? 'Sans catégorie'}',
+                                    '$dateLabel · $categoryName',
                                     style: const TextStyle(color: Colors.grey),
                                   ),
                                   trailing: TrText(
@@ -429,6 +444,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
                     : Colors.blueGrey;
             final prefix = isIncome ? '+' : isExpense ? '-' : '';
             final dateLabel = DateFormat('dd/MM/yyyy').format(tx.date);
+            final categoryName = tx.category ?? 'Sans catégorie';
             // Temps restant (30 jours - deletedAt)
             String remainingText = '';
             if (tx.deletedAt != null) {
@@ -451,7 +467,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
                 leading: CircleAvatar(
                   backgroundColor: color.withValues(alpha: 0.12),
                   child: TrText(
-                    (tx.category ?? '💳').characters.first,
+                    categoryName.isNotEmpty ? categoryName.characters.first : '💳',
                     style: const TextStyle(fontSize: 20),
                   ),
                 ),

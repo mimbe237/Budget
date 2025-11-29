@@ -7,6 +7,7 @@ import 'package:budget/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:budget/services/currency_service.dart';
 import 'package:provider/provider.dart';
+import '../../models/user_profile.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -77,6 +78,7 @@ class _AuthScreenState extends State<AuthScreen> {
       final auth = FirebaseAuth.instance;
       final firestore = FirestoreService();
       final localeProvider = context.read<LocaleProvider>();
+      UserProfile? userProfile;
 
       if (_isLogin) {
         try {
@@ -135,6 +137,26 @@ class _AuthScreenState extends State<AuthScreen> {
 
         // Mettre à jour le displayName dans Firebase Auth
         await userCredential.user!.updateDisplayName(displayName);
+      }
+
+      // Vérifier le statut du compte après authentification
+      try {
+        userProfile = await firestore.getUserProfile(auth.currentUser!.uid);
+        final status = userProfile?.status ?? 'active';
+        if (status == 'blocked' || status == 'disabled') {
+          await auth.signOut();
+          if (mounted) {
+            setState(() {
+              _errorMessage = status == 'blocked'
+                  ? 'Compte bloqué. Contactez le support.'
+                  : 'Compte désactivé. Contactez le support.';
+              _isLoading = false;
+            });
+          }
+          return;
+        }
+      } catch (_) {
+        // En cas d'erreur lecture profil, on laisse continuer (comportement existant)
       }
 
       if (isDemoLogin || _emailController.text.trim().toLowerCase() == FirestoreService.demoEmail.toLowerCase()) {

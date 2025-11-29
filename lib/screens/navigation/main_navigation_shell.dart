@@ -38,6 +38,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     // Vérifier si la session démo a expiré
     FirestoreService().checkDemoExpiration();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _enforceUserStatus();
       _ensureOnboardingIfNeeded();
       _applyProfileLocale();
     });
@@ -49,8 +50,36 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     BudgetPlannerScreen(),             // 1 Budget
     SizedBox.shrink(),                 // 2 emplacement FAB (non utilisé)
     AccountManagementScreen(),         // 3 Comptes
-    AnalysisHubScreen(),               // 4 Analyses & Rapports
+      AnalysisHubScreen(),               // 4 Analyses & Rapports
   ];
+
+  Future<void> _enforceUserStatus() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final profile = await FirestoreService().getUserProfile(uid);
+      final status = profile?.status ?? 'active';
+      if (status == 'blocked' || status == 'disabled') {
+        await FirebaseAuth.instance.signOut();
+        if (!mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AuthScreen()),
+          (route) => false,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: TrText(
+              status == 'blocked'
+                  ? 'Compte bloqué. Contactez le support.'
+                  : 'Compte désactivé. Contactez le support.',
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      // Si la lecture du profil échoue, on ne bloque pas la session
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

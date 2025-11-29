@@ -562,7 +562,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         subtitle: TrText(
-          '${dateFmt.format(tx.date)} · ${tx.category ?? (isTransfer ? 'Transfert' : 'Sans catégorie')}',
+          '${dateFmt.format(tx.date)} · ${isTransfer ? 'Transfert' : (tx.category ?? 'Sans catégorie')}',
           style: const TextStyle(color: Colors.grey),
         ),
         trailing: Column(

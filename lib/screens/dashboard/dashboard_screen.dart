@@ -1038,23 +1038,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    return StreamBuilder<List<Transaction>>(
-      stream: _firestoreService.getTransactionsStream(
-        userId,
-        limit: 20,
-      ),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return _placeholderCard(
-            title: t('Transactions récentes'),
-            message: 'Erreur de chargement.',
-          );
-        }
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return StreamBuilder<List<Category>>(
+      stream: _firestoreService.getCategoriesStream(userId),
+      builder: (context, categorySnapshot) {
+        final categories = categorySnapshot.data ?? [];
+        
+        return StreamBuilder<List<Transaction>>(
+          stream: _firestoreService.getTransactionsStream(
+            userId,
+            limit: 20,
+          ),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return _placeholderCard(
+                title: t('Transactions récentes'),
+                message: 'Erreur de chargement.',
+              );
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        final transactions = snapshot.data!;
+            final transactions = snapshot.data!;
         if (transactions.isEmpty) {
           return Card(
             elevation: 4,
@@ -1101,7 +1106,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 prefix = '-';
               }
 
-              final categoryLabel = tx.category?.isNotEmpty == true ? tx.category! : 'Sans catégorie';
+              // Résoudre catégorie depuis categoryId
+              final txCategory = tx.categoryId != null && categories.isNotEmpty
+                  ? categories.firstWhere((c) => c.categoryId == tx.categoryId,
+                      orElse: () => categories.first)
+                  : null;
+              final categoryLabel = txCategory?.name ?? tx.category ?? 'Sans catégorie';
               final formattedDate = DateFormat('dd/MM/yyyy').format(tx.date);
 
               return ListTile(
@@ -1133,6 +1143,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             }).toList(),
           ),
+        );
+          },
         );
       },
     );

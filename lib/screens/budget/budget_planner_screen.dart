@@ -1192,11 +1192,10 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(
                           backgroundColor: color.withValues(alpha: 0.12),
-                          child: TrText(
-                            (tx.category ?? '💳').isNotEmpty
-                                ? (tx.category ?? '💳').characters.first
-                                : '💳',
-                            style: const TextStyle(fontSize: 18),
+                          child: Icon(
+                            isIncome ? Icons.trending_up : isExpense ? Icons.trending_down : Icons.swap_horiz,
+                            color: color,
+                            size: 18,
                           ),
                         ),
                         title: TrText(

@@ -954,7 +954,7 @@ class _SuccessScreen extends StatelessWidget {
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => MainNavigationShell()),
+                    MaterialPageRoute(builder: (_) => const MainNavigationShell()),
                     (route) => false,
                   );
                 },
