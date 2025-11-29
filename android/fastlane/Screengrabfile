@@ -1,0 +1,18 @@
+# Screengrab configuration
+
+# Target app package (replace with your actual package)
+apk_package_name("com.example.budget")
+
+test_apk_package_name("com.example.budget.test")
+
+# Locales to capture
+locales(["en-US", "fr-FR"])
+
+# Devices
+devices(["pixel_5", "nexus_7", "pixel_c"])
+
+# Output directory
+output_directory("../playstore-assets/screenshots")
+
+# Clear previous
+clear_previous_screenshots(true)

@@ -23,6 +23,8 @@ class MockDataService {
       displayName: 'Jean Dupont',
       email: 'jean.dupont@example.com',
       currency: 'EUR',
+      countryCode: 'FR',
+      phoneNumber: '+33 6 44 55 66 77',
       createdAt: DateTime.now().subtract(const Duration(days: 30)),
       updatedAt: DateTime.now(),
     );

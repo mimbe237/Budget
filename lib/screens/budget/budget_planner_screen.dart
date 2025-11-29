@@ -46,6 +46,9 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   // Contrôleurs pour chaque champ de montant
   final Map<String, TextEditingController> _amountControllers = {};
   final Map<String, TextEditingController> _percentageControllers = {};
+  
+  // Track which row is being edited
+  String? _editingRowKey;
 
   // Couleurs fixes pour les catégories pour une cohérence visuelle
   final Map<String, Color> _categoryColors = {
@@ -414,20 +417,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _saveBudgetPlan,
-        backgroundColor: AppDesign.primaryIndigo,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.save),
-        label: const TrText(
-          'Enregistrer',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+
     );
   }
 
@@ -575,30 +565,50 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   }
 
   Widget _buildIncomeSection() {
+    final currency = context.watch<CurrencyService>();
+    final currencySymbol = currency.getCurrencySymbol(currency.currentCurrency);
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
       ),
-      child: Padding(
-            padding: const EdgeInsets.all(AppDesign.paddingLarge),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-            const TrText(
-              'Budget mensuel total',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 640;
+
+          final header = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const TrText(
+                'Budget mensuel total',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
+              const SizedBox(height: 6),
+              TrText(
+                'Calculez et enregistrez le montant global avant la répartition.',
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          );
+
+          final incomeField = ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 140, maxWidth: 220),
+            child: TextFormField(
               controller: _incomeController,
               decoration: InputDecoration(
                 prefixIcon: Icon(Icons.euro, color: AppDesign.incomeColor),
-                suffixText: context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency),
+                suffixText: currencySymbol,
                 hintText: t('Ex: 3000'),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
@@ -614,8 +624,59 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 }
               },
             ),
-          ],
-        ),
+          );
+
+          final saveButton = ElevatedButton.icon(
+            onPressed: _saveBudgetPlan,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppDesign.primaryIndigo,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              elevation: 0,
+              minimumSize: const Size(148, 52),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            icon: const Icon(Icons.save, size: 18),
+            label: const TrText(
+              'Enregistrer',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          );
+
+          return Padding(
+            padding: const EdgeInsets.all(AppDesign.paddingLarge),
+            child: isCompact
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      header,
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: incomeField,
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: saveButton,
+                      ),
+                    ],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(child: header),
+                      const SizedBox(width: 12),
+                      Flexible(flex: 0, child: incomeField),
+                      const SizedBox(width: 12),
+                      Flexible(flex: 0, child: saveButton),
+                    ],
+                  ),
+          );
+        },
       ),
     );
   }
@@ -1261,7 +1322,34 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     ],
                   ),
                 ),
-                if (isOverBudget)
+                if (_editingRowKey == categoryKey)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        _saveBudgetPlan();
+                        setState(() {
+                          _editingRowKey = null;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppDesign.primaryIndigo,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        elevation: 0,
+                        minimumSize: Size.zero,
+                      ),
+                      icon: const Icon(Icons.save, size: 16),
+                      label: const TrText(
+                        'OK',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (isOverBudget && _editingRowKey != categoryKey)
                   const Icon(
                     Icons.warning_amber_rounded,
                     color: AppDesign.expenseColor,
@@ -1281,6 +1369,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               activeColor: isOverBudget ? AppDesign.expenseColor : AppDesign.primaryIndigo,
               onChanged: (value) {
                 setState(() {
+                  _editingRowKey = categoryKey;
                   _adjustAllocations(categoryKey, value);
                 });
               },
@@ -1302,10 +1391,16 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,1}')),
                     ],
+                    onTap: () {
+                      setState(() {
+                        _editingRowKey = categoryKey;
+                      });
+                    },
                     onChanged: (value) {
                       final newPercentage = double.tryParse(value);
                       if (newPercentage != null) {
                         setState(() {
+                          _editingRowKey = categoryKey;
                           _adjustAllocations(categoryKey, newPercentage / 100.0);
                         });
                       }
@@ -1326,10 +1421,16 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                     ],
+                    onTap: () {
+                      setState(() {
+                        _editingRowKey = categoryKey;
+                      });
+                    },
                     onChanged: (value) {
                       final newAmount = double.tryParse(value);
                       if (newAmount != null && _totalIncome > 0) {
                         setState(() {
+                          _editingRowKey = categoryKey;
                           _adjustAllocations(categoryKey, newAmount / _totalIncome);
                         });
                       }
@@ -1369,52 +1470,9 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   }
 
   void _adjustAllocations(String changedKey, double newValue) {
-    // 1. Calculer la différence
-    final oldValue = _allocations[changedKey] ?? 0.0;
-    final diff = newValue - oldValue;
-    
-    // Si pas de changement, on sort
-    if (diff.abs() < 0.0001) return;
-
-    // 2. Mettre à jour la valeur modifiée
-    _allocations[changedKey] = newValue;
-    _updateController(changedKey, newValue);
-
-    // 3. Calculer le reste à distribuer (pour que total = 1.0)
-    // On veut réduire les autres catégories de 'diff'
-    // Ex: Si on augmente de +0.10, on doit retirer 0.10 aux autres
-    
-    final otherKeys = _allocations.keys.where((k) => k != changedKey).toList();
-    if (otherKeys.isEmpty) return;
-
-    // Calculer le total des autres catégories
-    double othersTotal = 0.0;
-    for (var key in otherKeys) {
-      othersTotal += _allocations[key]!;
-    }
-
-    // Si les autres sont à 0, on ne peut rien retirer -> on force le dépassement (ou on tape dans une catégorie tampon si on en avait une)
-    // Ici, on va essayer de répartir proportionnellement
-    
-    if (othersTotal > 0) {
-      for (var key in otherKeys) {
-        final currentVal = _allocations[key]!;
-        // Part de cette catégorie dans le total des "autres"
-        final share = currentVal / othersTotal;
-        
-        // On retire proportionnellement la différence
-        // Si diff est positif (augmentation), on retire. Si négatif (baisse), on ajoute.
-        double newVal = currentVal - (diff * share);
-        
-        // Protection contre les valeurs négatives
-        if (newVal < 0) newVal = 0;
-        
-        _allocations[key] = newVal;
-        _updateController(key, newVal);
-      }
-    }
-    
-    // Petit fix final pour les erreurs d'arrondi si besoin (optionnel)
+    final clampedValue = newValue.clamp(0.0, 1.0).toDouble();
+    _allocations[changedKey] = clampedValue;
+    _updateController(changedKey, clampedValue);
   }
 
   void _updateController(String key, double value) {
@@ -1472,37 +1530,34 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
 
   void _saveBudgetPlan() {
     final totalPercentage = _getTotalAllocation();
-    
-    if ((totalPercentage - 1.0).abs() > 0.01) {
+
+    if (totalPercentage > 1.0 + 0.0001) {
+      final overflowPercent = (totalPercentage - 1.0) * 100;
+      final overflowAmount = (_totalIncome * (totalPercentage - 1.0)).abs();
+      final currency = context.read<CurrencyService>();
+      final overflowAmountText = currency.formatAmount(overflowAmount);
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const TrText('Budget Déséquilibré'),
+          title: const TrText('Budget dépassé'),
           content: TrText(
-            'Le total de votre budget est de ${(totalPercentage * 100).toStringAsFixed(1)}%.\n\n'
-            'Voulez-vous enregistrer quand même ou ajuster pour atteindre 100% ?',
+            'Le total atteint ${(totalPercentage * 100).toStringAsFixed(1)}% (+${overflowPercent.toStringAsFixed(1)}%). '
+            'Vous débordez de $overflowAmountText. '
+            'Réduisez certaines lignes pour revenir à 100% avant d’enregistrer.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const TrText('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _performSave();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppDesign.primaryIndigo,
-              ),
-              child: const TrText('Enregistrer'),
+              child: const TrText('Ajuster le budget'),
             ),
           ],
         ),
       );
-    } else {
-      _performSave();
+      return;
     }
+
+    _performSave();
   }
 
   void _performSave() {

@@ -510,6 +510,9 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -530,6 +533,9 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -601,12 +607,8 @@ class _AddIOUModalState extends State<AddIOUModal> {
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.all(24),
         child: Form(
               key: _formKey,
               child: Column(
@@ -801,6 +803,7 @@ class _AddIOUModalState extends State<AddIOUModal> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
               ],
             ),
           ),
@@ -903,186 +906,183 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
   Widget build(BuildContext context) {
     final isReceivable = widget.iou.type == IOUType.receivable;
     final color = isReceivable ? AppDesign.incomeColor : AppDesign.expenseColor;
+    final currencyService = context.watch<CurrencyService>();
 
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          isReceivable ? Icons.account_balance_wallet : Icons.payment,
-                          color: color,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            TrText(
-                              isReceivable ? 'Recevoir un paiement' : 'Enregistrer un paiement',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TrText(
-                              widget.iou.partyName,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 24),
-                
-                // Info sur le solde restant
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: color.withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const TrText(
-                            'Solde restant',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          TrText(
-                            '${widget.iou.currentBalance.toStringAsFixed(2)} €',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: color,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: widget.iou.originalAmount > 0
-                            ? 1 - (widget.iou.currentBalance / widget.iou.originalAmount)
-                            : 0.0,
-                        minHeight: 6,
-                        backgroundColor: Colors.grey[300],
-                        valueColor: AlwaysStoppedAnimation<Color>(color),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                
-                // Montant du paiement
-                TextFormField(
-                  controller: _amountController,
-                  decoration: InputDecoration(
-                    labelText: t('Montant du paiement'),
-                    prefixIcon: Icon(Icons.euro, color: color),
-                    suffixText: context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency),
-                    helperText: 'Maximum: ${context.read<CurrencyService>().formatAmount(widget.iou.currentBalance)}',
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                  ],
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer un montant';
-                    }
-                    final amount = double.tryParse(value);
-                    if (amount == null) {
-                      return 'Montant invalide';
-                    }
-                    if (amount <= 0) {
-                      return 'Le montant doit être positif';
-                    }
-                    if (amount > widget.iou.currentBalance) {
-                      return 'Le montant dépasse le solde restant';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                
-                // Boutons rapides
-                const TrText(
-                  'Montants rapides',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    _buildQuickAmountButton('25%', widget.iou.currentBalance * 0.25),
-                    _buildQuickAmountButton('50%', widget.iou.currentBalance * 0.50),
-                    _buildQuickAmountButton('75%', widget.iou.currentBalance * 0.75),
-                    _buildQuickAmountButton('Tout', widget.iou.currentBalance),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                
-                // Bouton d'enregistrement
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _recordPayment,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: color,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : TrText(
-                            isReceivable ? 'Recevoir le paiement' : 'Enregistrer le paiement',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                    child: Icon(
+                      isReceivable ? Icons.account_balance_wallet : Icons.payment,
+                      color: color,
+                      size: 28,
+                    ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TrText(
+                          isReceivable ? 'Recevoir un paiement' : 'Enregistrer un paiement',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TrText(
+                          widget.iou.partyName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Info sur le solde restant
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
                 ),
-              ],
-            ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const TrText(
+                          'Solde restant',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        TrText(
+                          currencyService.formatAmount(widget.iou.currentBalance),
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: widget.iou.originalAmount > 0
+                          ? 1 - (widget.iou.currentBalance / widget.iou.originalAmount)
+                          : 0.0,
+                      minHeight: 6,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Montant du paiement
+              TextFormField(
+                controller: _amountController,
+                decoration: InputDecoration(
+                  labelText: t('Montant du paiement'),
+                  prefixIcon: Icon(Icons.payments_outlined, color: color),
+                  suffixText: currencyService.getCurrencySymbol(currencyService.currentCurrency),
+                  helperText: 'Maximum: ${currencyService.formatAmount(widget.iou.currentBalance)}',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                ],
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer un montant';
+                  }
+                  final amount = double.tryParse(value);
+                  if (amount == null) {
+                    return 'Montant invalide';
+                  }
+                  if (amount <= 0) {
+                    return 'Le montant doit être positif';
+                  }
+                  if (amount > widget.iou.currentBalance) {
+                    return 'Le montant dépasse le solde restant';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              // Boutons rapides
+              const TrText(
+                'Montants rapides',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  _buildQuickAmountButton('25%', widget.iou.currentBalance * 0.25),
+                  _buildQuickAmountButton('50%', widget.iou.currentBalance * 0.50),
+                  _buildQuickAmountButton('75%', widget.iou.currentBalance * 0.75),
+                  _buildQuickAmountButton('Tout', widget.iou.currentBalance),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Bouton d'enregistrement
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _recordPayment,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: color,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : TrText(
+                          isReceivable ? 'Recevoir le paiement' : 'Enregistrer le paiement',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+              SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+            ],
           ),
         ),
       ),
-    ));
+    );
   }
 
   Widget _buildQuickAmountButton(String label, double amount) {

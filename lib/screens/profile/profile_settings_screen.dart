@@ -5,6 +5,7 @@ import '../../services/currency_service.dart';
 import '../../services/notification_preferences_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/firestore_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/theme_service.dart';
 import '../../models/user_profile.dart';
 import '../settings/notification_settings_screen.dart';
@@ -26,7 +27,6 @@ class ProfileSettingsScreen extends StatefulWidget {
 }
 
 class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
-  final MockDataService _dataService = MockDataService();
   
   UserProfile? _userProfile;
   bool _isLoading = true;
@@ -44,7 +44,34 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     });
 
     try {
-      _userProfile = await _dataService.getUserProfile();
+      final firestore = FirestoreService();
+      final uid = firestore.currentUserId;
+
+      if (uid != null) {
+        final profile = await firestore.getUserProfile(uid);
+        if (profile != null) {
+          _userProfile = profile;
+        } else {
+          // Fallback: construire un profil minimal depuis FirebaseAuth
+          final authUser = FirebaseAuth.instance.currentUser;
+          if (authUser != null) {
+            final fallbackDisplay = (authUser.displayName != null && authUser.displayName!.trim().isNotEmpty)
+                ? authUser.displayName!
+                : (authUser.email?.split('@').first ?? 'Utilisateur');
+            _userProfile = UserProfile(
+              userId: authUser.uid,
+              displayName: fallbackDisplay,
+              email: authUser.email,
+              currency: 'EUR',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            );
+          }
+        }
+      } else {
+        // Fallback développement: données mock si non connecté
+        _userProfile = MockDataService().getMockUserProfile();
+      }
     } catch (e) {
       debugPrint('Erreur lors du chargement du profil: $e');
     }
@@ -739,6 +766,30 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               _showProfileEditDialog();
             },
           ),
+          if (_userProfile != null) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    _infoRow(Icons.mail_outline, t('Email'), _userProfile!.email ?? '-'),
+                    const Divider(height: 1),
+                    _infoRow(Icons.flag_outlined, t('Pays'), _userProfile!.countryCode ?? '-'),
+                    const Divider(height: 1),
+                    _infoRow(Icons.currency_exchange, t('Devise'), _userProfile!.currency),
+                    const Divider(height: 1),
+                    _infoRow(Icons.phone_iphone, t('Téléphone / WhatsApp'), _userProfile!.phoneNumber ?? '-'),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -926,6 +977,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   void _showLanguagePicker(LocaleProvider localeProvider) {
     final current = localeProvider.locale.languageCode;
+    final userId = FirestoreService().currentUserId;
 
     showModalBottomSheet(
       context: context,
@@ -955,6 +1007,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     : null,
                 onTap: () async {
                   await localeProvider.setLocale(const Locale('fr'));
+                  if (userId != null) {
+                    await FirestoreService()
+                        .updateUserProfile(userId, {'languageCode': 'fr'});
+                  }
                   if (mounted) Navigator.pop(context);
                 },
               ),
@@ -966,6 +1022,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     : null,
                 onTap: () async {
                   await localeProvider.setLocale(const Locale('en'));
+                  if (userId != null) {
+                    await FirestoreService()
+                        .updateUserProfile(userId, {'languageCode': 'en'});
+                  }
                   if (mounted) Navigator.pop(context);
                 },
               ),
@@ -1099,6 +1159,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   void _showProfileEditDialog() {
     final firstNameController = TextEditingController(text: _userProfile?.firstName);
     final lastNameController = TextEditingController(text: _userProfile?.lastName);
+    final emailController = TextEditingController(text: _userProfile?.email);
+    final phoneController = TextEditingController(text: _userProfile?.phoneNumber);
 
     showDialog(
       context: context,
@@ -1122,6 +1184,22 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(
+                labelText: t('Email'),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneController,
+              decoration: InputDecoration(
+                labelText: t('Téléphone / WhatsApp'),
+                border: OutlineInputBorder(),
+              ),
+            ),
           ],
         ),
         actions: [
@@ -1130,17 +1208,61 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             child: const TrText('Annuler'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+
+              final trimmedFirst = firstNameController.text.trim();
+              final trimmedLast = lastNameController.text.trim();
+              final trimmedEmail = emailController.text.trim();
+              final trimmedPhone = phoneController.text.trim();
+              final newDisplayName = (trimmedFirst.isNotEmpty || trimmedLast.isNotEmpty)
+                  ? ('$trimmedFirst $trimmedLast').trim()
+                  : (_userProfile?.displayName ?? '').trim();
+
+              // Update local state immediately
               setState(() {
-                // TODO: Sauvegarder via FirestoreService en production
+                if (_userProfile != null) {
+                  _userProfile = _userProfile!.copyWith(
+                    firstName: trimmedFirst,
+                    lastName: trimmedLast,
+                    email: trimmedEmail,
+                    phoneNumber: trimmedPhone,
+                    displayName: newDisplayName.isNotEmpty ? newDisplayName : _userProfile!.displayName,
+                  );
+                }
               });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: TrText('Profil mis à jour'),
-                  backgroundColor: AppDesign.incomeColor,
-                ),
-              );
+
+              // Persist to Firestore if connected
+              final uid = FirestoreService().currentUserId;
+              if (uid != null) {
+                try {
+                  final updates = <String, dynamic>{
+                    'firstName': trimmedFirst,
+                    'lastName': trimmedLast,
+                    'email': trimmedEmail,
+                    'phoneNumber': trimmedPhone,
+                  };
+                  if (newDisplayName.isNotEmpty) {
+                    updates['displayName'] = newDisplayName;
+                  }
+                  await FirestoreService().updateUserProfile(uid, updates);
+                  // Also align FirebaseAuth displayName
+                  if (newDisplayName.isNotEmpty) {
+                    await FirebaseAuth.instance.currentUser?.updateDisplayName(newDisplayName);
+                  }
+                } catch (e) {
+                  debugPrint('Erreur mise à jour profil: $e');
+                }
+              }
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: TrText('Profil mis à jour'),
+                    backgroundColor: AppDesign.incomeColor,
+                  ),
+                );
+              }
             },
             child: const TrText('Enregistrer'),
           ),
@@ -1184,5 +1306,20 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         (route) => false,
       );
     }
+  }
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return ListTile(
+      dense: true,
+      leading: Icon(icon, color: Colors.grey[700]),
+      title: TrText(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+      ),
+      subtitle: TrText(
+        value.isNotEmpty ? value : '-',
+        style: const TextStyle(color: Colors.black87),
+      ),
+    );
   }
 }

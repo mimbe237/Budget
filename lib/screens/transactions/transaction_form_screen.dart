@@ -386,39 +386,36 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       }
 
                       final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-                      return Form(
-                        key: _formKey,
-                        child: SingleChildScrollView(
-                          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                          padding: EdgeInsets.fromLTRB(24, 24, 24, 32 + bottomInset),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (!isLoggedIn) ...[
-                                _buildAuthBanner(context),
+                      return ColoredBox(
+                        color: AppDesign.backgroundGrey,
+                        child: Form(
+                          key: _formKey,
+                          child: SingleChildScrollView(
+                            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (!isLoggedIn) ...[
+                                  _buildAuthBanner(context),
+                                  const SizedBox(height: 16),
+                                ],
+                                _buildTemplates(),
                                 const SizedBox(height: 16),
+                                _buildAmountField(),
+                                const SizedBox(height: 20),
+                                _buildAccountSelector(accounts),
+                                const SizedBox(height: 20),
+                                _buildCategorySelector(categories),
+                                const SizedBox(height: 20),
+                                _buildDescriptionField(),
+                                const SizedBox(height: 20),
+                                _buildDateSelector(),
+                                const SizedBox(height: 24),
+                                _buildSaveButton(),
+                                SizedBox(height: bottomInset),
                               ],
-                              _buildTemplates(),
-                              const SizedBox(height: 16),
-                              _buildAmountField(),
-                              const SizedBox(height: 20),
-                              _buildAccountSelector(accounts),
-                              const SizedBox(height: 20),
-                              _buildCategorySelector(categories),
-                              const SizedBox(height: 20),
-                              _buildDescriptionField(),
-                              const SizedBox(height: 12),
-                              _buildNoteField(),
-                              const SizedBox(height: 12),
-                              _buildTagsField(),
-                              const SizedBox(height: 20),
-                              _buildDateSelector(),
-                              const SizedBox(height: 24),
-                              Transform.translate(
-                                offset: const Offset(0, -38), // ~1 cm upwards on typical screens
-                                child: _buildSaveButton(),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       );

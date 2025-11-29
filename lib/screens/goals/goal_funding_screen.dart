@@ -6,6 +6,8 @@ import '../../services/mock_data_service.dart';
 import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/firestore_service.dart';
 import '../../widgets/modern_page_app_bar.dart';
 import '../../widgets/screen_header.dart';
 import '../../widgets/app_modal.dart';
@@ -33,11 +35,16 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
 
   void _loadData() {
     _accounts = _mockService.getMockAccounts();
-    
-    // Créer des objectifs factices
+
+    final userEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase();
+    final isDemo = userEmail != null &&
+        userEmail == FirestoreService.demoEmail.toLowerCase();
+
+    // Créer des objectifs factices uniquement pour le compte démo
     final now = DateTime.now();
     setState(() {
-      _goals = [
+      _goals = isDemo
+          ? [
         Goal(
           goalId: 'goal_1',
           userId: 'user_1',
@@ -122,7 +129,8 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
           createdAt: now.subtract(const Duration(days: 15)),
           updatedAt: now,
         ),
-      ];
+      ]
+          : [];
     });
   }
 
@@ -682,6 +690,9 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1017,271 +1028,269 @@ class _FundGoalModalState extends State<FundGoalModal> {
     final progress = widget.goal.targetAmount > 0 
         ? widget.goal.currentAmount / widget.goal.targetAmount 
         : 0.0;
+    final currencyService = context.watch<CurrencyService>();
 
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppDesign.primaryIndigo, AppDesign.primaryPurple],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: TrText(
-                          widget.goal.icon ?? '🎯',
-                          style: const TextStyle(fontSize: 32),
-                        ),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppDesign.primaryIndigo, AppDesign.primaryPurple],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: TrText(
+                      widget.goal.icon ?? '🎯',
+                      style: const TextStyle(fontSize: 32),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const TrText(
+                          'Allouer des Fonds',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TrText(
+                          widget.goal.name,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Info sur la progression
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppDesign.primaryIndigo.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const TrText(
-                              'Allouer des Fonds',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            const TrText('Financé', style: TextStyle(fontSize: 12)),
                             TrText(
-                              widget.goal.name,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
+                              currencyService.formatAmount(widget.goal.currentAmount),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppDesign.primaryIndigo,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 24),
-                
-                // Info sur la progression
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppDesign.primaryIndigo.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppDesign.primaryIndigo.withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const TrText('Financé', style: TextStyle(fontSize: 12)),
-                              TrText(
-                                '${widget.goal.currentAmount.toStringAsFixed(2)} €',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppDesign.primaryIndigo,
-                                ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const TrText('Reste', style: TextStyle(fontSize: 12)),
+                            TrText(
+                              currencyService.formatAmount(remaining),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
                               ),
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const TrText('Reste', style: TextStyle(fontSize: 12)),
-                              TrText(
-                                '${remaining.toStringAsFixed(2)} €',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 8,
-                          backgroundColor: Colors.grey[300],
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            AppDesign.primaryIndigo,
-                          ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 8,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppDesign.primaryIndigo,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      TrText(
-                        '${(progress * 100).toStringAsFixed(1)}% atteint',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                
-                // Compte source
-                DropdownButtonFormField<Account>(
-                  value: _selectedAccount,
-                  decoration: InputDecoration(
-                    labelText: 'Compte source',
-                    prefixIcon: Icon(Icons.account_balance_wallet),
-                  ),
-                  hint: const TrText('Sélectionner un compte'),
-                  items: widget.accounts.map((account) {
-                    return DropdownMenuItem(
-                      value: account,
-                      child: Row(
-                        children: [
-                          TrText(account.icon ?? '💳', style: const TextStyle(fontSize: 20)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TrText(account.name),
-                                TrText(
-                                  '${account.balance.toStringAsFixed(2)} ${account.currency}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedAccount = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Veuillez sélectionner un compte';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                
-                // Montant à allouer
-                TextFormField(
-                  controller: _amountController,
-                  decoration: InputDecoration(
-                    labelText: t('Montant à allouer'),
-                    prefixIcon: const Icon(Icons.euro, color: AppDesign.incomeColor),
-                    suffixText: t('€'),
-                    helperText: _selectedAccount != null
-                        ? 'Disponible: ${_selectedAccount!.balance.toStringAsFixed(2)} €'
-                        : null,
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                  ],
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer un montant';
-                    }
-                    final amount = double.tryParse(value);
-                    if (amount == null) {
-                      return 'Montant invalide';
-                    }
-                    if (amount <= 0) {
-                      return 'Le montant doit être positif';
-                    }
-                    if (_selectedAccount != null && amount > _selectedAccount!.balance) {
-                      return 'Solde insuffisant';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                
-                // Boutons rapides
-                const TrText(
-                  'Montants rapides',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    _buildQuickAmountButton('10 €', 10.0),
-                    _buildQuickAmountButton('50 €', 50.0),
-                    _buildQuickAmountButton('100 €', 100.0),
-                    _buildQuickAmountButton('Reste', remaining),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                
-                // Bouton d'allocation
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _fundGoal,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppDesign.incomeColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const TrText(
-                            'Allouer les Fonds',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
+                    const SizedBox(height: 4),
+                    TrText(
+                      '${(progress * 100).toStringAsFixed(1)}% atteint',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Compte source
+              DropdownButtonFormField<Account>(
+                value: _selectedAccount,
+                decoration: InputDecoration(
+                  labelText: 'Compte source',
+                  prefixIcon: Icon(Icons.account_balance_wallet),
+                ),
+                hint: const TrText('Sélectionner un compte'),
+                items: widget.accounts.map((account) {
+                  return DropdownMenuItem(
+                    value: account,
+                    child: Row(
+                      children: [
+                        TrText(account.icon ?? '💳', style: const TextStyle(fontSize: 20)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              TrText(account.name),
+                              TrText(
+                                currencyService.formatAmount(account.balance),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedAccount = value;
+                  });
+                },
+                validator: (value) {
+                  if (value == null) {
+                    return 'Veuillez sélectionner un compte';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              // Montant à allouer
+              TextFormField(
+                controller: _amountController,
+                decoration: InputDecoration(
+                  labelText: t('Montant à allouer'),
+                  prefixIcon: const Icon(Icons.payments_outlined, color: AppDesign.incomeColor),
+                  suffixText: currencyService.getCurrencySymbol(currencyService.currentCurrency),
+                  helperText: _selectedAccount != null
+                      ? 'Disponible: ${currencyService.formatAmount(_selectedAccount!.balance)}'
+                      : null,
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                ],
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer un montant';
+                  }
+                  final amount = double.tryParse(value);
+                  if (amount == null) {
+                    return 'Montant invalide';
+                  }
+                  if (amount <= 0) {
+                    return 'Le montant doit être positif';
+                  }
+                  if (_selectedAccount != null && amount > _selectedAccount!.balance) {
+                    return 'Solde insuffisant';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              // Boutons rapides
+              const TrText(
+                'Montants rapides',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ActionChip(
+                    label: TrText('10 ${currencyService.getCurrencySymbol(currencyService.currentCurrency)}'),
+                    onPressed: () => _amountController.text = 10.0.toStringAsFixed(2),
+                  ),
+                  ActionChip(
+                    label: TrText('50 ${currencyService.getCurrencySymbol(currencyService.currentCurrency)}'),
+                    onPressed: () => _amountController.text = 50.0.toStringAsFixed(2),
+                  ),
+                  ActionChip(
+                    label: TrText('100 ${currencyService.getCurrencySymbol(currencyService.currentCurrency)}'),
+                    onPressed: () => _amountController.text = 100.0.toStringAsFixed(2),
+                  ),
+                  ActionChip(
+                    label: const TrText('Reste'),
+                    onPressed: () => _amountController.text = remaining.toStringAsFixed(2),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Bouton d'allocation
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _fundGoal,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppDesign.incomeColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const TrText(
+                          'Allouer les Fonds',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+              SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+            ],
           ),
         ),
       ),
-    ));
-  }
-
-  Widget _buildQuickAmountButton(String label, double amount) {
-    return ActionChip(
-      label: TrText(label),
-      onPressed: () {
-        setState(() {
-          _amountController.text = amount.toStringAsFixed(2);
-        });
-      },
     );
   }
 

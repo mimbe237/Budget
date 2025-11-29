@@ -5,6 +5,7 @@ import '../../models/user_profile.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/revolutionary_logo.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import 'translation_management_screen.dart';
 
 /// Écran d'administration (ADMIN SEULEMENT)
 /// Permet de superviser la plateforme et gérer les utilisateurs
@@ -220,6 +221,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         children: [
           _buildStatsTab(),
           _buildUserManagementTab(),
+          _buildTranslationsTab(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -239,6 +241,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           BottomNavigationBarItem(
             icon: const Icon(Icons.people),
             label: t('Utilisateurs'),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.translate),
+            label: t('Traductions'),
           ),
         ],
       ),
@@ -1064,6 +1070,64 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             child: const TrText('Fermer'),
           ),
         ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // ONGLET 3 : TRADUCTIONS
+  // =========================================================================
+
+  Widget _buildTranslationsTab() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.translate,
+              size: 80,
+              color: AppDesign.primaryIndigo.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 24),
+            const TrText(
+              'Gestion des Traductions',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const TrText(
+              'Gérez toutes les traductions de l\'application en temps réel',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TranslationManagementScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.arrow_forward),
+              label: const TrText('Ouvrir l\'éditeur'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppDesign.primaryIndigo,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -16,6 +16,7 @@ import 'models/transaction.dart' as app_transaction;
 import 'widgets/branding_splash.dart';
 import 'services/theme_service.dart';
 import 'services/notification_service.dart';
+import 'services/translation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +38,13 @@ void main() async {
     await NotificationService().init();
   } catch (e) {
     debugPrint('⚠️ NotificationService init failed: $e');
+  }
+  
+  // Charger les traductions Firestore au démarrage
+  try {
+    await TranslationService().loadTranslations();
+  } catch (e) {
+    debugPrint('⚠️ TranslationService load failed: $e');
   }
   
   runApp(const AppBootstrap());
@@ -70,6 +78,14 @@ class BudgetApp extends StatelessWidget {
     return MaterialApp(
       title: t('Budget Pro'),
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        // Empêche le clavier de compresser les écrans : hauteur stable quel que soit le formulaire
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(viewInsets: EdgeInsets.zero),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       locale: localeProvider.locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
@@ -216,28 +232,55 @@ class BudgetApp extends StatelessWidget {
 }
 
 /// Widget qui gère l'état d'authentification
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({Key? key}) : super(key: key);
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _showSplash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Timeout pour éviter le blocage sur splash
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && _showSplash) {
+        setState(() {
+          _showSplash = false;
+        });
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        // En attente de la vérification de l'état → splash brandé
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const BrandingSplash();
-        }
+    // Vérifier si Firebase est initialisé
+    try {
+      return StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          // En attente de la vérification de l'état → splash brandé
+          if (snapshot.connectionState == ConnectionState.waiting && _showSplash) {
+            return const BrandingSplash();
+          }
 
-        // Utilisateur connecté → MainNavigationShell
-        if (snapshot.hasData && snapshot.data != null) {
-          return const MainNavigationShell();
-        }
+          // Utilisateur connecté → MainNavigationShell
+          if (snapshot.hasData && snapshot.data != null) {
+            return const MainNavigationShell();
+          }
 
-        // Utilisateur non connecté → AuthScreen
-        return const AuthScreen();
-      },
-    );
+          // Utilisateur non connecté → AuthScreen
+          return const AuthScreen();
+        },
+      );
+    } catch (e) {
+      // Si Firebase n'est pas initialisé, afficher directement AuthScreen
+      debugPrint('⚠️ Firebase Auth not available: $e');
+      return const AuthScreen();
+    }
   }
 }
 

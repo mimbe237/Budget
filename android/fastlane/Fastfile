@@ -1,0 +1,22 @@
+default_platform(:android)
+
+platform :android do
+  desc "Run Screengrab to capture Play Console ready screenshots"
+  lane :screenshots do
+    screengrab(
+      locales: ["en-US", "fr-FR"],
+      clear_previous_screenshots: true,
+      app_package_name: "com.example.budget", # TODO: replace with real package
+      test_app_package_name: "com.example.budget.test",
+      use_tests_in_packages: true,
+      android_home: ENV['ANDROID_HOME'] || File.expand_path('~/Library/Android/sdk'),
+      devices: [
+        "pixel_5",
+        "nexus_7",
+        "pixel_c"
+      ],
+      output_directory: "../playstore-assets/screenshots",
+      skip_open_summary: true
+    )
+  end
+end

@@ -1,0 +1,30 @@
+# Screenshots configuration for Flutter app
+# See: https://pub.dev/packages/screenshots
+
+# Devices to capture
+# Using default emulators; you can customize as needed
+locales:
+  - fr-FR
+  - en-US
+
+devices:
+  android:
+    # Phone 1080x2340 (Pixel 5)
+    Pixel_5_API_34:
+      orientation: Portrait
+    # 7" tablet 1200x1920 (Nexus 7)
+    Nexus_7_API_30:
+      orientation: Portrait
+    # 10" tablet 2560x1600 (Pixel C)
+    Pixel_C_API_30:
+      orientation: Portrait
+
+# Output directory for all captures
+staging: playstore-assets/screenshots
+
+# Frame options (optional)
+frame: false
+
+# Run integration test before capture
+tests:
+  - integration_test/screenshot_test.dart

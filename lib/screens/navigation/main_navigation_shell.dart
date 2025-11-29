@@ -17,6 +17,8 @@ import 'package:budget/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/app_modal.dart';
 import '../../services/currency_service.dart';
+import '../onboarding/onboarding_wizard_screen.dart';
+import '../../l10n/app_localizations.dart' show LocaleProvider;
 
 /// Shell de navigation principal avec BottomNavigationBar et menu d'actions rapides
 class MainNavigationShell extends StatefulWidget {
@@ -28,12 +30,17 @@ class MainNavigationShell extends StatefulWidget {
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int _selectedNavIndex = 0;
+  bool _checkedOnboarding = false;
 
   @override
   void initState() {
     super.initState();
     // Vérifier si la session démo a expiré
     FirestoreService().checkDemoExpiration();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ensureOnboardingIfNeeded();
+      _applyProfileLocale();
+    });
   }
 
   // Aligne exactement les index avec la BottomNavigationBar (5 items, slot 2 réservé au FAB)
@@ -146,6 +153,42 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
+  Future<void> _ensureOnboardingIfNeeded() async {
+    if (_checkedOnboarding) return;
+    _checkedOnboarding = true;
+
+    final userId = FirestoreService().currentUserId;
+    if (userId == null) return;
+
+    try {
+      final profile = await FirestoreService().getUserProfile(userId);
+      final budget = await FirestoreService().getCurrentBudgetPlan(userId);
+      final needsSetup = (profile?.needsOnboarding ?? true) ||
+          budget == null ||
+          (profile?.currency.isEmpty ?? true);
+
+      if (needsSetup && mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const OnboardingWizardScreen()),
+        );
+      }
+    } catch (_) {
+      // En cas d'erreur, on ne bloque pas la navigation principale
+    }
+  }
+
+  Future<void> _applyProfileLocale() async {
+    final userId = FirestoreService().currentUserId;
+    if (userId == null) return;
+    try {
+      final profile = await FirestoreService().getUserProfile(userId);
+      final lang = profile?.languageCode;
+      if (lang != null && mounted) {
+        await context.read<LocaleProvider>().setLocale(Locale(lang));
+      }
+    } catch (_) {}
+  }
+
   void _showQuickActionsMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -159,6 +202,71 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 /// Menu d'actions rapides élégant
 class QuickActionsMenu extends StatelessWidget {
   const QuickActionsMenu({super.key});
+
+  Future<bool> _ensureSetupForTransactions(BuildContext context) async {
+    final service = FirestoreService();
+    final userId = service.currentUserId;
+    if (userId == null) return true;
+
+    try {
+      final profile = await service.getUserProfile(userId);
+      final budget = await service.getCurrentBudgetPlan(userId);
+      final needsSetup = (profile?.needsOnboarding ?? true) || budget == null;
+
+      if (!needsSetup) return true;
+      if (!context.mounted) return false;
+
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const TrText('Configuration requise'),
+          content: const TrText(
+            'Définissez votre devise et votre budget avant d\'ajouter une transaction. '
+            'Lancez l\'assistant pour terminer ces réglages.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const TrText('Plus tard'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OnboardingWizardScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppDesign.primaryIndigo),
+              child: const TrText('Ouvrir l’assistant'),
+            ),
+          ],
+        ),
+      );
+
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _openTransaction(
+    BuildContext context,
+    app_transaction.TransactionType type,
+  ) async {
+    final ok = await _ensureSetupForTransactions(context);
+    if (!ok) return;
+    Navigator.pop(context);
+    Future.microtask(() {
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(
+          builder: (ctx) => TransactionFormScreen(
+            transactionType: type,
+          ),
+        ),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -248,18 +356,10 @@ class QuickActionsMenu extends StatelessWidget {
                         iconBackgroundColor: AppDesign.incomeColor.withValues(alpha: 0.12),
                         title: t('Revenu'),
                         description: 'Enregistrez un nouveau revenu...',
-                        onTap: () {
-                          Navigator.pop(context);
-                          Future.microtask(() {
-                            Navigator.of(context, rootNavigator: true).push(
-                              MaterialPageRoute(
-                                builder: (ctx) => const TransactionFormScreen(
-                                  transactionType: app_transaction.TransactionType.income,
-                                ),
-                              ),
-                            );
-                          });
-                        },
+                        onTap: () => _openTransaction(
+                          context,
+                          app_transaction.TransactionType.income,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       _buildActionCard(
@@ -269,18 +369,10 @@ class QuickActionsMenu extends StatelessWidget {
                         iconBackgroundColor: AppDesign.expenseColor.withValues(alpha: 0.12),
                         title: t('Dépense'),
                         description: 'Suivez instantanément une dépense...',
-                        onTap: () {
-                          Navigator.pop(context);
-                          Future.microtask(() {
-                            Navigator.of(context, rootNavigator: true).push(
-                              MaterialPageRoute(
-                                builder: (ctx) => const TransactionFormScreen(
-                                  transactionType: app_transaction.TransactionType.expense,
-                                ),
-                              ),
-                            );
-                          });
-                        },
+                        onTap: () => _openTransaction(
+                          context,
+                          app_transaction.TransactionType.expense,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       _buildActionCard(
@@ -647,9 +739,11 @@ class _ProfileScreen extends StatelessWidget {
                 _buildListItem(
                   icon: Icons.language,
                   title: t('Langue'),
-                  trailing: const TrText('Français'),
+                  trailing: TrText(
+                    context.watch<LocaleProvider>().locale.languageCode == 'en' ? 'Anglais' : 'Français',
+                  ),
                   onTap: () {
-                    // TODO: Implement language switcher
+                    _showLanguageSheet(context, context.read<LocaleProvider>());
                   },
                 ),
                 _buildListItem(
@@ -797,6 +891,7 @@ class _ProfileScreen extends StatelessWidget {
     LocaleProvider localeProvider,
   ) {
     final current = localeProvider.locale.languageCode;
+    final userId = FirestoreService().currentUserId;
 
     showModalBottomSheet(
       context: context,
@@ -823,6 +918,10 @@ class _ProfileScreen extends StatelessWidget {
                     : null,
                 onTap: () async {
                   await localeProvider.setLocale(const Locale('fr'));
+                  if (userId != null) {
+                    await FirestoreService()
+                        .updateUserProfile(userId, {'languageCode': 'fr'});
+                  }
                   Navigator.pop(sheetContext);
                 },
               ),
@@ -834,6 +933,10 @@ class _ProfileScreen extends StatelessWidget {
                     : null,
                 onTap: () async {
                   await localeProvider.setLocale(const Locale('en'));
+                  if (userId != null) {
+                    await FirestoreService()
+                        .updateUserProfile(userId, {'languageCode': 'en'});
+                  }
                   Navigator.pop(sheetContext);
                 },
               ),

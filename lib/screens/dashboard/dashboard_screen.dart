@@ -14,14 +14,15 @@ import '../transactions/transaction_form_screen.dart';
 import '../transactions/transactions_list_screen.dart';
 import '../trash/trash_screen.dart';
 import '../auth/auth_screen.dart';
-import '../profile/profile_settings_screen.dart';
-import '../settings/notification_settings_screen.dart';
+import '../../models/transaction.dart' as app_transaction;
 import 'package:rxdart/rxdart.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:budget/services/currency_service.dart';
 import 'package:budget/services/theme_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../onboarding/onboarding_wizard_screen.dart';
+import '../settings/settings_hub_screen.dart';
 
 /// Dashboard principal affichant le solde global, les performances mensuelles
 /// et l'historique récent des transactions en temps réel
@@ -162,40 +163,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       },
                     ),
                     const SizedBox(width: 10),
-                    PopupMenuButton<int>(
-                      tooltip: t('Profil'),
-                      offset: const Offset(0, 42),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      itemBuilder: (context) => const [
-                        PopupMenuItem<int>(value: 0, child: TrText('Profil')),
-                        PopupMenuItem<int>(value: 1, child: TrText('Paramètres')),
-                        PopupMenuItem<int>(value: 2, child: TrText('Déconnexion')),
-                        PopupMenuItem<int>(value: 3, child: TrText('Basculer le thème')),
-                      ],
-                      onSelected: (value) async {
-                        if (value == 0) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
-                          );
-                        } else if (value == 1) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
-                          );
-                        } else if (value == 2) {
-                          await FirestoreService().cleanupDemoDataOnLogout();
-                          await FirebaseAuth.instance.signOut();
-                          if (!context.mounted) return;
-                          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (_) => const AuthScreen()),
-                            (route) => false,
-                          );
-                        } else if (value == 3) {
-                          if (!context.mounted) return;
-                          await context.read<ThemeProvider>().toggleTheme();
-                        }
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SettingsHubScreen()),
+                        );
                       },
+                      borderRadius: BorderRadius.circular(20),
                       child: CircleAvatar(
                         backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.1),
                         child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
@@ -257,6 +232,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<Widget> _buildMobileSections(BuildContext context) {
     return [
+      _buildOnboardingChecklist(context),
+      const SizedBox(height: AppDesign.spacingMedium),
       _buildQuickAccess(context),
       const SizedBox(height: AppDesign.spacingLarge),
       const TrText(
@@ -284,6 +261,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<Widget> _buildLeftDesktopSections(BuildContext context) {
     return [
+      _buildOnboardingChecklist(context),
+      const SizedBox(height: AppDesign.spacingMedium),
       _buildQuickAccess(context),
       const SizedBox(height: AppDesign.spacingLarge),
       const TrText(
@@ -311,6 +290,265 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const SizedBox(height: AppDesign.spacingMedium),
       _buildSummaryByPocketCard(),
     ];
+  }
+
+  Future<bool> _ensureSetupForTransactions(BuildContext context) async {
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) return true;
+
+    try {
+      final profile = await _firestoreService.getUserProfile(userId);
+      final budget = await _firestoreService.getCurrentBudgetPlan(userId);
+      final needsSetup = (profile?.needsOnboarding ?? true) || budget == null;
+
+      if (!needsSetup) return true;
+      if (!mounted) return false;
+
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const TrText('Configuration requise'),
+          content: const TrText(
+            'Définissez votre devise et votre budget avant d\'ajouter une transaction. '
+            'Lancez l\'assistant pour renseigner ces paramètres.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const TrText('Plus tard'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OnboardingWizardScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppDesign.primaryIndigo),
+              child: const TrText('Ouvrir l’assistant'),
+            ),
+          ],
+        ),
+      );
+
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _navigateToTransaction(
+    BuildContext context,
+    app_transaction.TransactionType type,
+  ) async {
+    final ok = await _ensureSetupForTransactions(context);
+    if (!ok) return;
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TransactionFormScreen(transactionType: type),
+      ),
+    );
+  }
+
+  Widget _buildOnboardingChecklist(BuildContext context) {
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) return const SizedBox.shrink();
+
+    final profile$ = _firestoreService.getUserProfileStream(userId);
+    final budget$ = _firestoreService.getBudgetPlanStream(userId);
+    final categories$ = _firestoreService.getCategoriesStream(userId);
+
+    return StreamBuilder<List<dynamic>>(
+      stream: CombineLatestStream.list([profile$, budget$, categories$]),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        final profile = snapshot.data![0] as UserProfile?;
+        final budgetPlan = snapshot.data![1] as Map<String, dynamic>?;
+        final categories = snapshot.data![2] as List<Category>;
+
+        final hasCurrency =
+            profile != null && !profile.needsOnboarding && (profile.currency).isNotEmpty;
+        final onboardingDone = !(profile?.needsOnboarding ?? true);
+        final hasBudget = budgetPlan != null && onboardingDone;
+        final hasCategories = categories.isNotEmpty && onboardingDone;
+        final completed = [hasCurrency, hasBudget, hasCategories].where((v) => v).length;
+
+        if (completed == 3) return const SizedBox.shrink();
+
+        final progress = completed / 3;
+
+        return Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDesign.radiusLarge)),
+          elevation: 0,
+          color: AppDesign.primaryIndigo.withOpacity(0.06),
+          child: Padding(
+            padding: const EdgeInsets.all(AppDesign.paddingLarge),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppDesign.primaryIndigo.withOpacity(0.12),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.rocket_launch_outlined, color: AppDesign.primaryIndigo),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          TrText(
+                            'Votre configuration de base',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                          ),
+                          TrText(
+                            'Devise, budget mensuel, catégories par défaut.',
+                            style: TextStyle(fontSize: 13, color: Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.check_circle, size: 16, color: AppDesign.primaryIndigo),
+                          const SizedBox(width: 6),
+                          TrText('${completed}/3 prêts'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: Colors.white,
+                    color: AppDesign.primaryIndigo,
+                    minHeight: 6,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _checklistItem(
+                  title: 'Devise',
+                  subtitle: hasCurrency ? 'Devise définie (${profile!.currency})' : 'Choisissez votre devise principale.',
+                  done: hasCurrency,
+                ),
+                const SizedBox(height: 10),
+                _checklistItem(
+                  title: 'Budget mensuel',
+                  subtitle: hasBudget ? 'Budget enregistré' : 'Fixez un budget pour activer les alertes.',
+                  done: hasBudget,
+                ),
+                const SizedBox(height: 10),
+                _checklistItem(
+                  title: 'Catégories',
+                  subtitle: hasCategories
+                      ? 'Catégories prêtes (dont les par défaut).'
+                      : 'Activez vos catégories par défaut avant de suivre vos dépenses.',
+                  done: hasCategories,
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const OnboardingWizardScreen()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppDesign.primaryIndigo,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.play_arrow, size: 18),
+                      label: const TrText(
+                        'Lancer la configuration',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const BudgetPlannerScreen()),
+                        );
+                      },
+                      child: const TrText('Aller au budget'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _checklistItem({
+    required String title,
+    required String subtitle,
+    required bool done,
+  }) {
+    final color = done ? Colors.green : Colors.orange;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2.0),
+          child: Icon(done ? Icons.check_circle : Icons.radio_button_unchecked, color: color, size: 20),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TrText(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 2),
+              TrText(
+                subtitle,
+                style: TextStyle(color: done ? Colors.green[700] : Colors.black54, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Row _buildRecentHistoryHeader(BuildContext context) {
@@ -342,24 +580,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         subtitle: t('Achats, factures et sorties'),
         icon: Icons.remove_circle_outline,
         color: AppDesign.expenseColor,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const TransactionFormScreen(transactionType: TransactionType.expense),
-          ),
-        ),
+        onTap: () => _navigateToTransaction(context, TransactionType.expense),
       ),
       _ShortcutAction(
         label: t('Ajouter revenu'),
         subtitle: t('Salaires, primes et entrées'),
         icon: Icons.add_circle_outline,
         color: AppDesign.incomeColor,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const TransactionFormScreen(transactionType: TransactionType.income),
-          ),
-        ),
+        onTap: () => _navigateToTransaction(context, TransactionType.income),
       ),
       _ShortcutAction(
         label: t('Gérer budget'),
@@ -852,6 +1080,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final isExpense = tx.type == TransactionType.expense;
               final isIncome = tx.type == TransactionType.income;
               final isTransfer = tx.type == TransactionType.transfer;
+              final currencyService = context.watch<CurrencyService>();
+              final targetCurrency = currencyService.currentCurrency;
 
               Color txColor;
               IconData txIcon;
@@ -893,7 +1123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: const TextStyle(color: Colors.grey),
                 ),
                 trailing: TrText(
-                  '$prefix ${context.watch<CurrencyService>().formatAmount(tx.amount)}',
+                  '$prefix ${currencyService.formatAmount(currencyService.convertAmount(tx.amount, 'EUR', targetCurrency), targetCurrency)}',
                   style: TextStyle(
                     color: txColor,
                     fontWeight: FontWeight.bold,
@@ -1558,6 +1788,10 @@ class _PocketSummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ratio = item.planned > 0 ? (item.engaged / item.planned) : 0.0;
+    final currencyService = context.watch<CurrencyService>();
+    final targetCurrency = currencyService.currentCurrency;
+    final plannedConverted = currencyService.convertAmount(item.planned, 'EUR', targetCurrency);
+    final engagedConverted = currencyService.convertAmount(item.engaged, 'EUR', targetCurrency);
     Color barColor;
     if (ratio >= 1) {
       barColor = const Color(0xFFEF5350);
@@ -1566,8 +1800,6 @@ class _PocketSummaryRow extends StatelessWidget {
     } else {
       barColor = const Color(0xFF26A69A);
     }
-
-    final currency = context.watch<CurrencyService>();
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1598,11 +1830,11 @@ class _PocketSummaryRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   TrText(
-                    '${t('Prévu')} ${currency.formatAmount(item.planned)}',
+                    '${t('Prévu')} ${currencyService.formatAmount(plannedConverted, targetCurrency)}',
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                   TrText(
-                    '${t('Engagé')} ${currency.formatAmount(item.engaged)}',
+                    '${t('Engagé')} ${currencyService.formatAmount(engagedConverted, targetCurrency)}',
                     style: const TextStyle(
                       color: AppDesign.incomeColor,
                       fontWeight: FontWeight.w700,

@@ -237,7 +237,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
       backgroundColor: AppDesign.backgroundGrey,
       appBar: ModernPageAppBar(
         title: t('Transactions'),
-        subtitle: t('Historique et filtres détaillés'),
+        subtitle: t('Historique et filtres'),
         icon: Icons.swap_horiz_rounded,
         showProfile: true,
         showHome: !isMobile,
@@ -569,6 +569,9 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -747,6 +750,9 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -942,6 +948,9 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1004,6 +1013,9 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

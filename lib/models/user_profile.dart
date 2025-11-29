@@ -10,6 +10,10 @@ class UserProfile {
   final String? role; // 'user', 'premium', 'admin'
   final String? status; // 'active', 'blocked', 'disabled'
   final String currency;
+  final String languageCode;
+  final String? countryCode;
+  final String? phoneNumber;
+  final bool needsOnboarding;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -23,6 +27,10 @@ class UserProfile {
     this.role = 'user',
     this.status = 'active',
     this.currency = 'EUR',
+    this.languageCode = 'fr',
+    this.countryCode,
+    this.phoneNumber,
+    this.needsOnboarding = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -39,6 +47,10 @@ class UserProfile {
       'role': role,
       'status': status,
       'currency': currency,
+      'languageCode': languageCode,
+      'countryCode': countryCode,
+      'phoneNumber': phoneNumber,
+      'needsOnboarding': needsOnboarding,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -56,6 +68,10 @@ class UserProfile {
       role: map['role'] ?? 'user',
       status: map['status'] ?? 'active',
       currency: map['currency'] ?? 'EUR',
+      languageCode: map['languageCode'] ?? 'fr',
+      countryCode: map['countryCode'],
+      phoneNumber: map['phoneNumber'],
+      needsOnboarding: (map['needsOnboarding'] as bool?) ?? false,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
@@ -72,6 +88,10 @@ class UserProfile {
     String? role,
     String? status,
     String? currency,
+    String? languageCode,
+    String? countryCode,
+    String? phoneNumber,
+    bool? needsOnboarding,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -85,6 +105,10 @@ class UserProfile {
       role: role ?? this.role,
       status: status ?? this.status,
       currency: currency ?? this.currency,
+      languageCode: languageCode ?? this.languageCode,
+      countryCode: countryCode ?? this.countryCode,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      needsOnboarding: needsOnboarding ?? this.needsOnboarding,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

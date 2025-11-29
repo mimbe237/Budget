@@ -108,15 +108,17 @@ class FirestoreService {
     await _wipeUserCollections(userId);
 
     // Profil minimal pour le mode démo
-    await _usersCollection.doc(userId).set({
-      'userId': userId,
-      'displayName': 'Compte Démo',
-      'email': user.email,
-      'currency': 'EUR',
-      'isDemo': true,
-      'demoExpiresAt': Timestamp.fromDate(expiresAt),
-      'updatedAt': Timestamp.fromDate(now),
-      'createdAt': FieldValue.serverTimestamp(),
+      await _usersCollection.doc(userId).set({
+        'userId': userId,
+        'displayName': 'Compte Démo',
+        'email': user.email,
+        'currency': 'EUR',
+        'languageCode': 'fr',
+        'needsOnboarding': false,
+        'isDemo': true,
+        'demoExpiresAt': Timestamp.fromDate(expiresAt),
+        'updatedAt': Timestamp.fromDate(now),
+        'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
     // Créer les catégories par défaut
@@ -181,11 +183,12 @@ class FirestoreService {
     await _seedDemoAccountsAndTransactions(userId);
 
     // 3. Marquer comme nettoyé
-    await _usersCollection.doc(userId).set({
-      'isDemo': true,
-      'demoLastCleanup': FieldValue.serverTimestamp(),
-      'demoExpiresAt': FieldValue.delete(), // Plus d'expiration active
-    }, SetOptions(merge: true));
+      await _usersCollection.doc(userId).set({
+        'isDemo': true,
+        'demoLastCleanup': FieldValue.serverTimestamp(),
+        'needsOnboarding': false,
+        'demoExpiresAt': FieldValue.delete(), // Plus d'expiration active
+      }, SetOptions(merge: true));
   }
 
   bool _isDemoUser(User? user) =>
@@ -479,6 +482,10 @@ class FirestoreService {
     String? email,
     String? photoUrl,
     String currency = 'EUR',
+    String languageCode = 'fr',
+    String? countryCode,
+    String? phoneNumber,
+    bool needsOnboarding = true,
   }) async {
     try {
       final now = DateTime.now();
@@ -488,6 +495,10 @@ class FirestoreService {
         email: email,
         photoUrl: photoUrl,
         currency: currency,
+        languageCode: languageCode,
+        countryCode: countryCode,
+        phoneNumber: phoneNumber,
+        needsOnboarding: needsOnboarding,
         createdAt: now,
         updatedAt: now,
       );
@@ -534,7 +545,8 @@ class FirestoreService {
   Future<void> updateUserProfile(String userId, Map<String, dynamic> updates) async {
     try {
       updates['updatedAt'] = Timestamp.fromDate(DateTime.now());
-      await _usersCollection.doc(userId).update(updates);
+      // Utiliser set avec merge pour créer le document s'il n'existe pas
+      await _usersCollection.doc(userId).set(updates, SetOptions(merge: true));
     } catch (e) {
       throw Exception('Erreur lors de la mise à jour du profil: $e');
     }

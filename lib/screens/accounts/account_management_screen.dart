@@ -145,8 +145,12 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             return _buildEmptyState();
           }
 
-          final totalBalance = accounts.fold<double>(0.0, (sum, acc) => sum + acc.balance);
-          final currency = accounts.isNotEmpty ? accounts.first.currency : context.read<CurrencyService>().currentCurrency;
+          final currencyService = context.read<CurrencyService>();
+          final userCurrency = currencyService.currentCurrency;
+          final totalBalance = accounts.fold<double>(0.0, (sum, acc) {
+            return sum + currencyService.convertAmount(acc.balance, acc.currency, userCurrency);
+          });
+          final currency = userCurrency;
           final extraBottomPadding = kBottomNavigationBarHeight +
               MediaQuery.of(context).padding.bottom +
               140; // espace pour la bottom bar + FABs
@@ -326,10 +330,14 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     const SizedBox(height: 8),
                     TrText(
                       context.watch<CurrencyService>().formatAmount(
-                            account.balance,
-                            account.currency,
-                            false,
-                          ),
+                        context.read<CurrencyService>().convertAmount(
+                              account.balance,
+                              account.currency,
+                              context.read<CurrencyService>().currentCurrency,
+                            ),
+                        context.read<CurrencyService>().currentCurrency,
+                        false,
+                      ),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -591,7 +599,15 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             TrText(
-              '$prefix${context.watch<CurrencyService>().formatAmount(tx.amount, account.currency, false)}',
+              '$prefix${context.watch<CurrencyService>().formatAmount(
+                    context.read<CurrencyService>().convertAmount(
+                          tx.amount,
+                          account.currency,
+                          context.read<CurrencyService>().currentCurrency,
+                        ),
+                    context.read<CurrencyService>().currentCurrency,
+                    false,
+                  )}',
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.bold,

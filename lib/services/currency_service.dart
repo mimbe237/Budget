@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import 'dart:ui';
 
 /// Service de gestion de la devise utilisateur
 class CurrencyService extends ChangeNotifier {
@@ -53,6 +55,18 @@ class CurrencyService extends ChangeNotifier {
     'XOF': 655.957,  // Taux fixe EUR/XOF (identique XAF)
   };
 
+  /// Mapping pays → devise suggérée
+  static const Map<String, String> countryToCurrency = {
+    'CM': 'XAF',
+    'CI': 'XOF',
+    'FR': 'EUR',
+    'US': 'USD',
+    'GB': 'GBP',
+    'CH': 'CHF',
+    'CA': 'CAD',
+    'JP': 'JPY',
+  };
+
   /// Charge la devise sauvegardée
   Future<void> loadCurrency() async {
     final prefs = await SharedPreferences.getInstance();
@@ -90,6 +104,20 @@ class CurrencyService extends ChangeNotifier {
     return currencyNames[currencyCode] ?? currencyCode;
   }
 
+  /// Devine une devise à partir d'un code pays (ISO) si supportée
+  static String? guessCurrencyFromCountry(String? countryCode) {
+    if (countryCode == null) return null;
+    final upper = countryCode.toUpperCase();
+    final guess = countryToCurrency[upper];
+    if (guess != null && supportedCurrencies.containsKey(guess)) return guess;
+    return null;
+  }
+
+  /// Devine une devise à partir de la locale
+  static String? guessCurrencyFromLocale(Locale locale) {
+    return guessCurrencyFromCountry(locale.countryCode);
+  }
+
   /// Convertit un montant d'une devise à une autre
   double convertAmount(double amount, String fromCurrency, String toCurrency) {
     if (fromCurrency == toCurrency) return amount;
@@ -106,14 +134,16 @@ class CurrencyService extends ChangeNotifier {
   String formatAmount(double amount, [String? currency, bool showSymbol = true]) {
     final targetCurrency = currency ?? _currentCurrency;
     final symbol = showSymbol ? getCurrencySymbol(targetCurrency) : '';
+
+    // Supprimer les décimales si inutiles, sinon garder 2 décimales
+    final bool hasCents = (amount % 1).abs() > 0.0001;
+    final decimals = targetCurrency == 'JPY' ? 0 : (hasCents ? 2 : 0);
     
-    // Format spécial pour JPY (pas de décimales)
-    if (targetCurrency == 'JPY') {
-      return '${amount.toStringAsFixed(0)} $symbol'.trim();
-    }
-    
-    // Format standard avec 2 décimales
-    return '${amount.toStringAsFixed(2)} $symbol'.trim();
+    // Format avec séparateurs de milliers
+    final formatter = NumberFormat('#,##0${decimals > 0 ? '.00' : ''}', 'fr_FR');
+    final formatted = formatter.format(amount);
+
+    return '$formatted\u202F$symbol'.trim(); // \u202F = espace fine insécable
   }
 
   /// Obtient la liste formatée des devises pour l'UI

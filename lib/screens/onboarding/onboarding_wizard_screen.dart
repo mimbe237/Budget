@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/account.dart';
 import '../../services/firestore_service.dart';
-import '../../widgets/revolutionary_logo.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import '../../constants/default_categories.dart';
+import '../../services/currency_service.dart';
+import '../../models/budget_plan.dart';
+import 'package:provider/provider.dart';
 
 /// Écran d'onboarding wizard en 3 étapes
 /// Étape 1: Profil utilisateur (nom + devise)
@@ -33,24 +37,137 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   String _name = '';
   String _currency = 'EUR';
   double _monthlyIncome = 0.0;
+  String? _userId; // UID pour autosave
   
   // Liste des comptes initiaux
   final List<_AccountInput> _initialAccounts = [
-    _AccountInput(name: 'Compte Courant', balance: 0.0, type: AccountType.checking, icon: '💳', color: '#4CAF50')
+    _AccountInput(name: 'Compte Courant', balance: 0.0, type: AccountType.checking, icon: '💳', color: '#6366F1'),
+    _AccountInput(name: 'Épargne', balance: 0.0, type: AccountType.savings, icon: '🐷', color: '#4CAF50'),
+    _AccountInput(name: 'Espèces', balance: 0.0, type: AccountType.cash, icon: '💵', color: '#FF9800'),
+    _AccountInput(name: 'Mobile Money', balance: 0.0, type: AccountType.mobileWallet, icon: '📱', color: '#9C27B0'),
   ];
   
-  // Allocation budgétaire (total doit faire 100%)
-  final Map<String, double> _budgetAllocation = {
-    '🏠 Logement': 0.30,
-    '🛒 Nourriture': 0.15,
-    '🚘 Transport': 0.10,
-    '📄 Factures/Abo': 0.05,
-    '💊 Santé': 0.05,
-    '🛡️ Épargne Sécurité': 0.10,
-    '💡 Investissements': 0.10,
-    '🎉 Loisirs': 0.10,
-    '👨‍👩‍👧 Famille/Dons': 0.05,
-  };
+  // Allocation budgétaire (initialisée depuis les catégories par défaut)
+  late Map<String, double> _budgetAllocation;
+
+  @override
+  void initState() {
+    super.initState();
+    _budgetAllocation = _buildDefaultAllocation();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prefillCurrencyFromProfileOrLocale();
+      _ensureUserAndProfile();
+    });
+  }
+
+  Future<void> _ensureUserAndProfile() async {
+    try {
+      final existingUserId = _firestoreService.currentUserId;
+      _userId = existingUserId ?? await _firestoreService.signInAnonymously();
+      // Créer le profil si manquant dès le départ (merge)
+      await _firestoreService.updateUserProfile(_userId!, {
+        'displayName': _name.isNotEmpty ? _name : 'Utilisateur',
+        'currency': _currency,
+        'languageCode': Localizations.localeOf(context).languageCode,
+        'needsOnboarding': true,
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+    } catch (e) {
+      debugPrint('Onboarding init failed: $e');
+    }
+  }
+
+  Map<String, double> _buildDefaultAllocation() {
+    final expenseCategories = DefaultCategories.expenseCategories;
+    if (expenseCategories.isEmpty) return {};
+
+    // Mapping des noms de catégories par défaut vers le plan recommandé
+    const Map<String, String> synonymToDefault = {
+      'Alimentation': 'Nourriture',
+      'Restaurant': 'Nourriture',
+      'Logement': 'Logement',
+      'Transport': 'Transport',
+      'Santé': 'Santé',
+      'Loisirs': 'Loisirs',
+      'Shopping': 'Loisirs',
+      'Services': 'Factures',
+      'Abonnements': 'Factures',
+      'Éducation': 'Famille',
+    };
+
+    // Grouper les catégories qui pointent vers la même clé de répartition
+    final Map<String, List<String>> byDefaultKey = {};
+    for (final cat in expenseCategories) {
+      final name = cat['name'] as String;
+      final icon = cat['icon'] as String;
+      final key = '$icon $name';
+      final defaultKey = synonymToDefault[name] ?? name;
+      if (DEFAULT_ALLOCATION.containsKey(defaultKey)) {
+        byDefaultKey.putIfAbsent(defaultKey, () => []).add(key);
+      }
+    }
+
+    final Map<String, double> allocations = {};
+    double assignedTotal = 0.0;
+
+    // Répartir l'allocation recommandée entre les catégories liées
+    DEFAULT_ALLOCATION.forEach((defaultKey, percentage) {
+      final list = byDefaultKey[defaultKey];
+      if (list == null || list.isEmpty) return;
+      final share = percentage / list.length;
+      for (final key in list) {
+        allocations[key] = share;
+        assignedTotal += share;
+      }
+    });
+
+    // Si des catégories restent non mappées, leur donner une part égale du reliquat
+    final Set<String> allKeys = expenseCategories
+        .map((c) => '${c['icon']} ${c['name']}')
+        .toSet();
+    final unmapped = allKeys.difference(allocations.keys.toSet()).toList();
+    final remaining = (1.0 - assignedTotal).clamp(0.0, 1.0);
+    if (remaining > 0 && unmapped.isNotEmpty) {
+      final share = remaining / unmapped.length;
+      for (final key in unmapped) {
+        allocations[key] = share;
+      }
+    }
+
+    return allocations;
+  }
+
+  Future<void> _prefillCurrencyFromProfileOrLocale() async {
+    String? inferredCurrency;
+
+    try {
+      final userId = _firestoreService.currentUserId;
+      if (userId != null) {
+        final profile = await _firestoreService.getUserProfile(userId);
+
+        if (profile != null) {
+          if (!profile.needsOnboarding && profile.currency.isNotEmpty) {
+            inferredCurrency = profile.currency;
+          } else {
+            inferredCurrency = CurrencyService.guessCurrencyFromCountry(profile.countryCode);
+          }
+        }
+      }
+    } catch (_) {
+      // En cas d'échec, on passera au fallback locale
+    }
+
+    inferredCurrency ??=
+        CurrencyService.guessCurrencyFromLocale(Localizations.localeOf(context));
+
+    if (inferredCurrency != null &&
+        CurrencyService.supportedCurrencies.containsKey(inferredCurrency) &&
+        mounted) {
+      setState(() {
+        _currency = inferredCurrency!;
+      });
+    }
+  }
 
   void _nextPage() {
     // Validation de l'étape 1
@@ -85,12 +202,32 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
 
   Future<void> _completeOnboarding() async {
     if (!_formKeyStep3.currentState!.validate()) return;
-    
-    // Vérifier que l'allocation est bien à 100%
-    final totalAllocation = _budgetAllocation.values.reduce((a, b) => a + b);
-    if ((totalAllocation * 100).round() != 100) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: TrText('L\'allocation budgétaire doit totaliser 100%')),
+    final totalAllocation = _budgetAllocation.values.isEmpty
+        ? 0.0
+        : _budgetAllocation.values.reduce((a, b) => a + b);
+
+    if (totalAllocation > 1.0 + 0.0001) {
+      final overflowPercent = (totalAllocation - 1.0) * 100;
+      final overflowAmount = (_monthlyIncome * (totalAllocation - 1.0)).abs();
+      final overflowAmountText =
+          overflowAmount > 0 ? ' (+${overflowAmount.toStringAsFixed(2)} $_currency)' : '';
+
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const TrText('Budget dépassé'),
+          content: TrText(
+            'Le total atteint ${(totalAllocation * 100).toStringAsFixed(1)}% '
+            '(+${overflowPercent.toStringAsFixed(1)}%)$overflowAmountText.\n'
+            'Réduisez certaines lignes pour revenir à 100% avant de terminer.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const TrText('Ajuster le budget'),
+            ),
+          ],
+        ),
       );
       return;
     }
@@ -100,27 +237,56 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     );
 
     try {
-      // 1. Connexion anonyme
-      final userId = await _firestoreService.signInAnonymously();
-      
-      // 2. Créer le profil
-      await _firestoreService.createUserProfile(
-        userId: userId,
-        displayName: _name,
-        currency: _currency,
-      );
-      
-      // 3. Créer les comptes
-      for (var accountInput in _initialAccounts) {
-        await _firestoreService.addAccount(
+      // 1. Utilisateur courant ou anonyme
+      final existingUserId = _firestoreService.currentUserId;
+      final userId = existingUserId ?? await _firestoreService.signInAnonymously();
+      final langCode = Localizations.localeOf(context).languageCode;
+
+      // 2. Créer ou mettre à jour le profil
+      if (existingUserId == null) {
+        await _firestoreService.createUserProfile(
           userId: userId,
-          name: accountInput.name,
-          type: accountInput.type,
-          balance: accountInput.balance,
+          displayName: _name.isEmpty ? 'Utilisateur' : _name,
           currency: _currency,
-          icon: accountInput.icon,
-          color: accountInput.color,
+          languageCode: langCode,
+          needsOnboarding: false,
         );
+      } else {
+        final profile = await _firestoreService.getUserProfile(userId);
+        if (profile == null) {
+          await _firestoreService.createUserProfile(
+            userId: userId,
+            displayName: _name.isEmpty ? 'Utilisateur' : _name,
+            currency: _currency,
+            languageCode: langCode,
+            needsOnboarding: false,
+          );
+        } else {
+          await _firestoreService.updateUserProfile(userId, {
+            'currency': _currency,
+            'languageCode': langCode,
+            'needsOnboarding': false,
+          });
+        }
+      }
+
+      // 2.1 Garantir la présence des catégories par défaut
+      await _firestoreService.createDefaultCategories(userId);
+      
+      // 3. Créer les comptes s'il n'en existe pas déjà
+      final existingAccounts = await _firestoreService.getAccounts(userId);
+      if (existingAccounts.isEmpty) {
+        for (var accountInput in _initialAccounts) {
+          await _firestoreService.addAccount(
+            userId: userId,
+            name: accountInput.name,
+            type: accountInput.type,
+            balance: accountInput.balance,
+            currency: _currency,
+            icon: accountInput.icon,
+            color: accountInput.color,
+          );
+        }
       }
       
       // 4. Sauvegarder le budget (Module 5)
@@ -129,6 +295,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         totalBudget: _monthlyIncome,
         categoryAllocations: _budgetAllocation,
       );
+      await CurrencyService().setCurrency(_currency);
       
       // 5. Redirection vers l'app principale
       if (mounted) {
@@ -148,32 +315,9 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   }
 
   void _updateAllocation(String category, double newPercentage) {
-    // Logique Smart 100% : ajuste automatiquement "Loisirs" comme tampon
-    // Si on modifie "Loisirs", on ajuste "Investissements" ou un autre
-    
-    String bufferCategory = '🎉 Loisirs';
-    if (category == bufferCategory) {
-      bufferCategory = '💡 Investissements'; // Fallback si on modifie le tampon principal
-    }
-
-    double oldPercentage = _budgetAllocation[category] ?? 0.0;
-    double difference = newPercentage - oldPercentage;
-    
-    double bufferValue = _budgetAllocation[bufferCategory]!;
-    double newBufferValue = bufferValue - difference;
-
-    // Ne pas autoriser si ça met le tampon en négatif
-    // On autorise une petite marge d'erreur pour les float
-    if (newBufferValue < -0.001) {
-      // Si on ne peut pas ajuster le tampon, on bloque ou on sature
-      // Ici on sature : on ne change que ce qui est possible
-      // Mais pour une UX fluide avec Slider, mieux vaut bloquer ou limiter
-      return; 
-    }
-
+    final clamped = newPercentage.clamp(0.0, 1.0).toDouble();
     setState(() {
-      _budgetAllocation[category] = newPercentage;
-      _budgetAllocation[bufferCategory] = newBufferValue;
+      _budgetAllocation[category] = clamped;
     });
   }
 
@@ -183,10 +327,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: RevolutionaryLogo(size: 32),
-        ),
+        leading: const SizedBox.shrink(),
         title: Column(
           children: [
             TrText(
@@ -292,8 +433,6 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
             Center(
               child: Column(
                 children: [
-                  const RevolutionaryLogo(size: 80, withText: true),
-                  const SizedBox(height: 12),
                   const TrText(
                     '👋 Bienvenue !',
                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
@@ -307,6 +446,37 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
               ),
             ),
             const SizedBox(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ChoiceChip(
+                  label: const TrText('FR'),
+                  selected: context.watch<LocaleProvider>().locale.languageCode == 'fr',
+                  onSelected: (_) async {
+                    context.read<LocaleProvider>().setLocale(const Locale('fr'));
+                    if (_userId != null) {
+                      await _firestoreService.updateUserProfile(_userId!, {
+                        'languageCode': 'fr',
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const TrText('EN'),
+                  selected: context.watch<LocaleProvider>().locale.languageCode == 'en',
+                  onSelected: (_) async {
+                    context.read<LocaleProvider>().setLocale(const Locale('en'));
+                    if (_userId != null) {
+                      await _firestoreService.updateUserProfile(_userId!, {
+                        'languageCode': 'en',
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             
             TextFormField(
               decoration: InputDecoration(
@@ -317,7 +487,14 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                 filled: true,
                 fillColor: Colors.grey[50],
               ),
-              onChanged: (value) => _name = value,
+              onChanged: (value) async {
+                _name = value;
+                if (_userId != null) {
+                  await _firestoreService.updateUserProfile(_userId!, {
+                    'displayName': _name.isNotEmpty ? _name : 'Utilisateur',
+                  });
+                }
+              },
               validator: (value) => value!.isEmpty ? 'Prénom requis' : null,
             ),
             
@@ -345,7 +522,14 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   Widget _buildCurrencyOption(String code, String symbol) {
     final isSelected = _currency == code;
     return GestureDetector(
-      onTap: () => setState(() => _currency = code),
+      onTap: () async {
+        setState(() => _currency = code);
+        if (_userId != null) {
+          await _firestoreService.updateUserProfile(_userId!, {
+            'currency': _currency,
+          });
+        }
+      },
       child: Container(
         width: 100,
         padding: const EdgeInsets.all(20),
@@ -393,8 +577,8 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
           ),
           const SizedBox(height: 8),
           TrText(
-            'Où se trouve votre argent ?',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            'Vos comptes par défaut sont prêts. Renseignez le solde de l’un d’eux ou ajoutez un compte si besoin.',
+            style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 24),
           
@@ -476,12 +660,32 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 labelText: t('Solde Actuel'),
-                suffixText: _currency,
+                suffixText: CurrencyService.supportedCurrencies[_currency] ?? _currency,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
                 fillColor: Colors.grey[50],
               ),
-              onChanged: (value) => account.balance = double.tryParse(value) ?? 0.0,
+              onChanged: (value) async {
+                account.balance = double.tryParse(value) ?? 0.0;
+                // Autosave: créer/mettre à jour des comptes par défaut dès saisie
+                if (_userId != null) {
+                  final existingAccounts = await _firestoreService.getAccounts(_userId!);
+                  if (existingAccounts.isEmpty) {
+                    // Créer si inexistant
+                    for (var a in _initialAccounts) {
+                      await _firestoreService.addAccount(
+                        userId: _userId!,
+                        name: a.name.isNotEmpty ? a.name : 'Compte',
+                        type: a.type,
+                        balance: a.balance,
+                        currency: _currency,
+                        icon: a.icon,
+                        color: a.color,
+                      );
+                    }
+                  }
+                }
+              },
             ),
           ],
         ),
@@ -490,8 +694,20 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   }
 
   Widget _buildStep3Budget() {
-    final totalPercentage = _budgetAllocation.values.reduce((a, b) => a + b);
-    final isValid = (totalPercentage * 100).round() == 100;
+    final totalPercentage = _budgetAllocation.values.isEmpty
+        ? 0.0
+        : _budgetAllocation.values.reduce((a, b) => a + b);
+    final isOver = totalPercentage > 1.0;
+    final isBalanced = !isOver && (totalPercentage - 1.0).abs() < 0.01;
+    final statusColor = isOver
+        ? Colors.red
+        : isBalanced
+            ? Colors.green
+            : Colors.orange;
+    final overflowPercent = isOver ? (totalPercentage - 1.0) * 100 : 0.0;
+    final overflowAmount = (isOver && _monthlyIncome > 0)
+        ? _monthlyIncome * (totalPercentage - 1.0)
+        : 0.0;
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -506,8 +722,13 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
             ),
             const SizedBox(height: 8),
             TrText(
-              'Définissez votre allocation (doit totaliser 100%)',
+              'Définissez votre allocation (100% recommandé, en dessous c\'est OK; au-dessus sera bloqué).',
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 8),
+            TrText(
+              'Nous avons pré-chargé vos catégories par défaut; ajustez chaque ligne librement.',
+              style: TextStyle(fontSize: 13, color: Colors.grey[600], fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 24),
             
@@ -521,7 +742,19 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                 filled: true,
                 fillColor: Colors.grey[50],
               ),
-              onChanged: (value) => setState(() => _monthlyIncome = double.tryParse(value) ?? 0.0),
+              onChanged: (value) async {
+                setState(() => _monthlyIncome = double.tryParse(value) ?? 0.0);
+                // Autosave budget draft (not blocking)
+                if (_userId != null && _monthlyIncome > 0) {
+                  try {
+                    await _firestoreService.saveBudgetPlan(
+                      userId: _userId!,
+                      totalBudget: _monthlyIncome,
+                      categoryAllocations: _budgetAllocation,
+                    );
+                  } catch (_) {}
+                }
+              },
               validator: (value) => (double.tryParse(value ?? '0') ?? 0) <= 0 
                   ? 'Montant requis' : null,
             ),
@@ -531,28 +764,56 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isValid ? Colors.green[50] : Colors.orange[50],
+                color: statusColor.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isValid ? Colors.green : Colors.orange,
+                  color: statusColor,
                   width: 2,
                 ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const TrText(
-                    'Total de la Répartition',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  TrText(
-                    '${(totalPercentage * 100).toStringAsFixed(0)}%',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: isValid ? Colors.green : Colors.orange,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const TrText(
+                          'Total de la répartition',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        TrText(
+                          isOver
+                              ? 'Dépassement de +${overflowPercent.toStringAsFixed(1)}%'
+                                  '${overflowAmount > 0 ? ' (+${overflowAmount.toStringAsFixed(2)} $_currency)' : ''}'
+                              : isBalanced
+                                  ? 'Total à 100% - prêt à enregistrer'
+                                  : 'Total actuel ${(totalPercentage * 100).toStringAsFixed(0)}% (vous pourrez compléter plus tard)',
+                          style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: TrText(
+                      '${(totalPercentage * 100).toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                  )
                 ],
               ),
             ),

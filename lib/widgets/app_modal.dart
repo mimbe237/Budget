@@ -45,6 +45,7 @@ class ModalContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: padding ??
           EdgeInsets.only(
             left: 16,

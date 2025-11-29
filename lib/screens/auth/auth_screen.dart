@@ -4,6 +4,9 @@ import '../../services/firestore_service.dart';
 import '../navigation/main_navigation_shell.dart';
 import '../../widgets/revolutionary_logo.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:budget/services/currency_service.dart';
+import 'package:provider/provider.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -22,19 +25,39 @@ class _AuthScreenState extends State<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
   
   bool _isLogin = true;
   bool _isLoading = false;
   int _currentTabIndex = 0;
   String? _errorMessage;
+  String _selectedCountryCode = 'CM';
+  String _selectedLanguageCode = 'fr';
+
+  static const List<Map<String, String>> _countryOptions = [
+    {'code': 'CM', 'name': 'Cameroun', 'dial': '+237'},
+    {'code': 'FR', 'name': 'France', 'dial': '+33'},
+    {'code': 'US', 'name': 'États-Unis', 'dial': '+1'},
+    {'code': 'CI', 'name': 'Côte d\'Ivoire', 'dial': '+225'},
+  ];
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _nameController.dispose();
+    _phoneController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final localeCode = context.read<LocaleProvider>().locale.languageCode;
+    if (localeCode != _selectedLanguageCode) {
+      setState(() {
+        _selectedLanguageCode = localeCode;
+      });
+    }
   }
 
   Future<void> _submitForm({bool isDemoLogin = false}) async {
@@ -53,6 +76,7 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       final auth = FirebaseAuth.instance;
       final firestore = FirestoreService();
+      final localeProvider = context.read<LocaleProvider>();
 
       if (_isLogin) {
         try {
@@ -72,6 +96,8 @@ class _AuthScreenState extends State<AuthScreen> {
               userId: userCredential.user!.uid,
               email: _emailController.text.trim(),
               displayName: 'Compte Démo',
+              languageCode: _selectedLanguageCode,
+              needsOnboarding: false,
             );
           } else {
             rethrow;
@@ -84,23 +110,50 @@ class _AuthScreenState extends State<AuthScreen> {
           password: _passwordController.text,
         );
 
+        final selectedCountry = _countryOptions.firstWhere(
+          (c) => c['code'] == _selectedCountryCode,
+          orElse: () => _countryOptions.first,
+        );
+        final fullPhone = '${selectedCountry['dial']} ${_phoneController.text.trim()}';
+        final guessedCurrency =
+            CurrencyService.guessCurrencyFromCountry(_selectedCountryCode) ?? 'EUR';
+        final displayName = _emailController.text.trim().split('@').first.isNotEmpty
+            ? _emailController.text.trim().split('@').first
+            : 'Utilisateur';
+
         // Créer le profil utilisateur dans Firestore
         await firestore.createUserProfile(
           userId: userCredential.user!.uid,
           email: _emailController.text.trim(),
-          displayName: _nameController.text.trim(),
+          displayName: displayName,
+          countryCode: _selectedCountryCode,
+          phoneNumber: fullPhone,
+          currency: guessedCurrency,
+          languageCode: _selectedLanguageCode,
+          needsOnboarding: true,
         );
 
         // Mettre à jour le displayName dans Firebase Auth
-        await userCredential.user!.updateDisplayName(_nameController.text.trim());
+        await userCredential.user!.updateDisplayName(displayName);
       }
 
       if (isDemoLogin || _emailController.text.trim().toLowerCase() == FirestoreService.demoEmail.toLowerCase()) {
-        await firestore.ensureDemoDataset();
+        try {
+          await firestore.ensureDemoDataset();
+        } catch (_) {
+          // Ignore dataset errors in demo fallback
+        }
       }
 
       // Navigation vers l'écran principal
       if (mounted) {
+        // Appliquer la langue du profil si disponible
+        try {
+          final profile = await firestore.getUserProfile(auth.currentUser!.uid);
+          final lang = profile?.languageCode ?? _selectedLanguageCode;
+          await localeProvider.setLocale(Locale(lang));
+        } catch (_) {}
+
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => const MainNavigationShell(),
@@ -108,15 +161,41 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      setState(() {
-        _errorMessage = _getErrorMessage(e.code);
-        _isLoading = false;
-      });
+      if (isDemoLogin) {
+        // Fallback: demo hors-ligne si Firebase échoue
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainNavigationShell()),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: TrText('Mode Démo hors-ligne (Firebase indisponible)')),
+          );
+        }
+        setState(() => _isLoading = false);
+      } else {
+        setState(() {
+          _errorMessage = _getErrorMessage(e.code);
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Une erreur est survenue. Réessayez.';
-        _isLoading = false;
-      });
+      if (isDemoLogin) {
+        // Fallback: demo hors-ligne si autre erreur
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainNavigationShell()),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: TrText('Mode Démo hors-ligne (connexion indisponible)')),
+          );
+        }
+        setState(() => _isLoading = false);
+      } else {
+        setState(() {
+          _errorMessage = 'Une erreur est survenue. Réessayez.';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -243,25 +322,6 @@ class _AuthScreenState extends State<AuthScreen> {
     return Column(
       children: [
         const SizedBox(height: 8),
-        if (!_isLogin) ...[
-          TextFormField(
-            controller: _nameController,
-            decoration: InputDecoration(
-              labelText: t('Nom complet'),
-              prefixIcon: const Icon(Icons.person_outline),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Entrez votre nom';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-        ],
         TextFormField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
@@ -331,6 +391,53 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (!_isLogin) ...[
+          const SizedBox(height: 4),
+          DropdownButtonFormField<String>(
+            value: _selectedCountryCode,
+            decoration: InputDecoration(
+              labelText: t('Pays'),
+              prefixIcon: const Icon(Icons.public),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            items: _countryOptions
+                .map((c) => DropdownMenuItem(
+                      value: c['code'],
+                      child: Text('${c['name']} (${c['dial']})'),
+                    ))
+                .toList(),
+            onChanged: (code) {
+              if (code == null) return;
+              setState(() {
+                _selectedCountryCode = code;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: t('Numéro WhatsApp'),
+              prefixIcon: const Icon(Icons.phone),
+              prefixText: '${_countryOptions.firstWhere((c) => c['code'] == _selectedCountryCode)['dial']} ',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            validator: (value) {
+              if (_isLogin) return null;
+              if (value == null || value.trim().isEmpty) {
+                return 'Ajoutez votre numéro WhatsApp';
+              }
+              if (value.trim().length < 6) {
+                return 'Numéro trop court';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 12),
         ],
@@ -437,33 +544,58 @@ class _AuthScreenState extends State<AuthScreen> {
           alignment: Alignment.topCenter,
           child: SingleChildScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: EdgeInsets.fromLTRB(
-              isWide ? 48 : 20,
-              28,
-              isWide ? 48 : 20,
-              28 + MediaQuery.of(context).viewInsets.bottom,
+            padding: EdgeInsets.only(
+              left: isWide ? 48 : 20,
+              right: isWide ? 48 : 20,
+              top: 24,
+              bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
             ),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                return ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1180),
-                  child: isWide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: _buildHeroPanel()),
-                            const SizedBox(width: 28),
-                            SizedBox(width: 420, child: _buildAuthCard()),
-                          ],
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildHeroPanel(),
-                            const SizedBox(height: 20),
-                            _buildAuthCard(),
-                          ],
-                        ),
+                return DecoratedBox(
+                  decoration: const BoxDecoration(color: Color(0xFFF7F8FB)),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 1180,
+                    ),
+                    child: isWide
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _buildHeroPanel()),
+                              const SizedBox(width: 28),
+                              SizedBox(width: 420, child: _buildAuthCard()),
+                            ],
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildHeroPanel(),
+                              const SizedBox(height: 20),
+                              _buildAuthCard(),
+                              const SizedBox(height: 16),
+                              Center(
+                                child: TextButton(
+                                  onPressed: () {
+                                    launchUrl(Uri.parse('https://www.beonweb.cm'), mode: LaunchMode.externalApplication);
+                                  },
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: _brandPrimary,
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  ),
+                                  child: const Text(
+                                    'By BEONWEB',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      decoration: TextDecoration.none,
+                                      color: _brandPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
                 );
               },
             ),
@@ -655,29 +787,40 @@ class _AuthScreenState extends State<AuthScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      RevolutionaryLogo(size: 56, withText: false),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          TrText(
-                            'Connexion',
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          TrText(
-                            'Sécurisée par Firebase',
-                            style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.w600),
+                      Row(
+                        children: [
+                          RevolutionaryLogo(size: 56, withText: false),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              TrText(
+                                'Connexion',
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              TrText(
+                                'Sécurisée par Firebase',
+                                style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                            ],
                           ),
                         ],
+                      ),
+                      _LanguageChip(
+                        code: _selectedLanguageCode,
+                        onSelect: (code) async {
+                          setState(() => _selectedLanguageCode = code);
+                          await context.read<LocaleProvider>().setLocale(Locale(code));
+                        },
                       ),
                     ],
                   ),
@@ -838,6 +981,54 @@ class _AuthScreenState extends State<AuthScreen> {
           ],
         ),
         child: Icon(icon, color: Colors.white),
+      ),
+    );
+  }
+}
+
+class _LanguageChip extends StatelessWidget {
+  const _LanguageChip({required this.code, required this.onSelect});
+
+  final String code;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFr = code == 'fr';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE4E7F1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.language, color: Colors.grey[700], size: 18),
+          const SizedBox(width: 6),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: code,
+              items: const [
+                DropdownMenuItem(value: 'fr', child: Text('Français')),
+                DropdownMenuItem(value: 'en', child: Text('English')),
+              ],
+              onChanged: (value) {
+                if (value != null) onSelect(value);
+              },
+              style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black87),
+              icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+            ),
+          ),
+        ],
       ),
     );
   }
