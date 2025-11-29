@@ -1645,7 +1645,8 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
             allocated: allocated,
             spent: spent,
           );
-        }).toList();
+        }).toList()
+          ..sort((a, b) => b.spent.compareTo(a.spent));
 
         if (items.isEmpty) {
           return _placeholderStaticCard(
@@ -1752,7 +1753,7 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
     if (n.contains('invest')) return 'Investissement';
     if (n.contains('loisir') || n.contains('fun') || n.contains('divert')) return 'Loisirs';
     if (n.contains('famill') || n.contains('don')) return 'Famille';
-    return name.isNotEmpty ? name : 'Autres';
+    return 'Autres';
   }
 }
 

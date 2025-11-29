@@ -153,14 +153,14 @@ class CurrencyService extends ChangeNotifier {
     final v = amount.abs();
     String suffix = '';
     double display = amount;
-    if (v >= 1_000_000_000) {
-      display = amount / 1_000_000_000;
+    if (v >= 1000000000) {
+      display = amount / 1000000000;
       suffix = 'B';
-    } else if (v >= 1_000_000) {
-      display = amount / 1_000_000;
+    } else if (v >= 1000000) {
+      display = amount / 1000000;
       suffix = 'M';
-    } else if (v >= 1_000) {
-      display = amount / 1_000;
+    } else if (v >= 1000) {
+      display = amount / 1000;
       suffix = 'K';
     }
     final decimals = suffix.isEmpty ? 0 : 2;

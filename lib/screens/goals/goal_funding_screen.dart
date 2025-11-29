@@ -1,8 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/models.dart';
-import '../../services/mock_data_service.dart';
 import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
@@ -22,9 +22,11 @@ class GoalFundingScreen extends StatefulWidget {
 }
 
 class _GoalFundingScreenState extends State<GoalFundingScreen> {
-  final MockDataService _mockService = MockDataService();
+  final FirestoreService _firestoreService = FirestoreService();
   List<Goal> _goals = [];
   List<Account> _accounts = [];
+  StreamSubscription<List<Goal>>? _goalsSub;
+  StreamSubscription<List<Account>>? _accountsSub;
   String? _selectedGoalForHistory;
 
   @override
@@ -34,114 +36,33 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
   }
 
   void _loadData() {
-    _accounts = _mockService.getMockAccounts();
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      setState(() {
+        _goals = [];
+        _accounts = [];
+      });
+      return;
+    }
 
-    final userEmail = FirebaseAuth.instance.currentUser?.email?.toLowerCase();
-    final isDemo = userEmail != null &&
-        userEmail == FirestoreService.demoEmail.toLowerCase();
+    _goalsSub?.cancel();
+    _accountsSub?.cancel();
 
-    // Créer des objectifs factices uniquement pour le compte démo
-    final now = DateTime.now();
-    setState(() {
-      _goals = isDemo
-          ? [
-        Goal(
-          goalId: 'goal_1',
-          userId: 'user_1',
-          name: 'Vacances Bali',
-          targetAmount: 3000.0,
-          currentAmount: 1850.0,
-          status: GoalStatus.active,
-          targetDate: now.add(const Duration(days: 180)),
-          icon: '🏝️',
-          color: '#FF6B6B',
-          description: 'Voyage de rêve en Indonésie',
-          createdAt: now.subtract(const Duration(days: 90)),
-          updatedAt: now,
-        ),
-        Goal(
-          goalId: 'goal_2',
-          userId: 'user_1',
-          name: 'Acompte Voiture',
-          targetAmount: 5000.0,
-          currentAmount: 3200.0,
-          status: GoalStatus.active,
-          targetDate: now.add(const Duration(days: 240)),
-          icon: '🚗',
-          color: '#4ECDC4',
-          description: 'Première voiture neuve',
-          createdAt: now.subtract(const Duration(days: 120)),
-          updatedAt: now,
-        ),
-        Goal(
-          goalId: 'goal_3',
-          userId: 'user_1',
-          name: 'Nouveau MacBook',
-          targetAmount: 2500.0,
-          currentAmount: 2500.0,
-          status: GoalStatus.completed,
-          targetDate: now.subtract(const Duration(days: 10)),
-          icon: '💻',
-          color: '#95E1D3',
-          description: 'MacBook Pro M3',
-          createdAt: now.subtract(const Duration(days: 150)),
-          updatedAt: now.subtract(const Duration(days: 10)),
-        ),
-        Goal(
-          goalId: 'goal_4',
-          userId: 'user_1',
-          name: 'Fonds d\'urgence',
-          targetAmount: 10000.0,
-          currentAmount: 4500.0,
-          status: GoalStatus.active,
-          targetDate: now.add(const Duration(days: 365)),
-          icon: '🛡️',
-          color: '#F38181',
-          description: '6 mois de dépenses',
-          createdAt: now.subtract(const Duration(days: 60)),
-          updatedAt: now,
-        ),
-        Goal(
-          goalId: 'goal_5',
-          userId: 'user_1',
-          name: 'Mariage',
-          targetAmount: 15000.0,
-          currentAmount: 800.0,
-          status: GoalStatus.active,
-          targetDate: now.add(const Duration(days: 450)),
-          icon: '💍',
-          color: '#AA96DA',
-          description: 'Le plus beau jour',
-          createdAt: now.subtract(const Duration(days: 30)),
-          updatedAt: now,
-        ),
-        Goal(
-          goalId: 'goal_6',
-          userId: 'user_1',
-          name: 'Formation Pro',
-          targetAmount: 1200.0,
-          currentAmount: 250.0,
-          status: GoalStatus.active,
-          targetDate: now.add(const Duration(days: 90)),
-          icon: '📚',
-          color: '#FCBAD3',
-          description: 'Certification AWS',
-          createdAt: now.subtract(const Duration(days: 15)),
-          updatedAt: now,
-        ),
-      ]
-          : [];
+    _goalsSub = _firestoreService.getGoalsStream(userId).listen((data) {
+      if (mounted) setState(() => _goals = data);
+    });
+
+    // S'assurer que des comptes existent (création par défaut si besoin)
+    _firestoreService.createDefaultAccounts(userId);
+
+    _accountsSub = _firestoreService.getAccountsStream(userId).listen((data) {
+      if (mounted) setState(() => _accounts = data);
     });
   }
 
   Widget _buildGoalHistory(Goal goal) {
-    // Données factices de contributions liées à l'objectif
-    final currency = context.watch<CurrencyService>();
-    final entries = [
-      _GoalTx(label: t('Virement épargne'), amount: 200, date: DateTime.now().subtract(const Duration(days: 3))),
-      _GoalTx(label: t('Bonus salaire'), amount: 150, date: DateTime.now().subtract(const Duration(days: 10))),
-      _GoalTx(label: t('Arrondi automatique'), amount: 35, date: DateTime.now().subtract(const Duration(days: 15))),
-    ];
+    final currencyService = context.watch<CurrencyService>();
+    final entries = <_GoalTx>[];
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -194,7 +115,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                     ),
                   ),
                   TrText(
-                    '+${currency.formatAmount(e.amount)}',
+                    '+${currencyService.formatAmountCompact(e.amount)}',
                     style: const TextStyle(
                       color: AppDesign.incomeColor,
                       fontWeight: FontWeight.bold,
@@ -217,6 +138,52 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
     final totalTarget = activeGoals.fold(0.0, (sum, g) => sum + g.targetAmount);
     final totalSaved = activeGoals.fold(0.0, (sum, g) => sum + g.currentAmount);
     final overallProgress = totalTarget > 0 ? totalSaved / totalTarget : 0.0;
+
+    if (_goals.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppDesign.backgroundGrey,
+        appBar: ModernPageAppBar(
+          title: t("Objectifs d'Épargne"),
+          subtitle: t('Suivez et financez vos projets'),
+          icon: Icons.flag_rounded,
+          showProfile: true,
+          hideLogoOnMobile: true,
+          showHome: false,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppDesign.paddingLarge),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.savings_outlined, size: 48, color: AppDesign.primaryIndigo),
+                const SizedBox(height: 12),
+                const TrText(
+                  'Aucun objectif pour le moment',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                const TrText(
+                  'Ajoutez vos premiers objectifs pour suivre vos économies.',
+                  style: TextStyle(color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _showCreateGoalModal,
+                  icon: const Icon(Icons.add),
+                  label: const TrText('Créer un objectif'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppDesign.primaryIndigo,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppDesign.backgroundGrey,
@@ -323,7 +290,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                   style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 TrText(
-                  currency.formatAmount(saved),
+                  context.watch<CurrencyService>().formatAmountCompact(saved),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 28,
@@ -340,7 +307,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                   style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 TrText(
-                  currency.formatAmount(target),
+                  context.watch<CurrencyService>().formatAmountCompact(target),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 28,
@@ -671,16 +638,31 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
   void _showCreateGoalModal() {
     showAppModal(
       context,
-      CreateGoalModal(
-        onGoalCreated: (newGoal) {
-          setState(() {
-            _goals.add(newGoal);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: TrText('Objectif créé avec succès !')),
-          );
-        },
-      ),
+      _firestoreService.currentUserId == null
+          ? const Padding(
+              padding: EdgeInsets.all(24),
+              child: TrText('Connectez-vous pour créer un objectif.'),
+            )
+          : CreateGoalModal(
+              onGoalCreated: (newGoal) async {
+                final userId = _firestoreService.currentUserId;
+                if (userId == null) return;
+                await _firestoreService.addGoal(
+                  userId: userId,
+                  name: newGoal.name,
+                  description: newGoal.description,
+                  targetAmount: newGoal.targetAmount,
+                  targetDate: newGoal.targetDate ?? DateTime.now().add(const Duration(days: 30)),
+                  icon: newGoal.icon,
+                  color: newGoal.color,
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: TrText('Objectif créé avec succès !')),
+                  );
+                }
+              },
+            ),
     );
   }
 
@@ -694,31 +676,28 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => FundGoalModal(
-        goal: goal,
-        accounts: _accounts,
-        onFundingCompleted: (updatedGoal, updatedAccount) {
-          setState(() {
-            // Mettre à jour l'objectif
-            final goalIndex = _goals.indexWhere((g) => g.goalId == updatedGoal.goalId);
-            if (goalIndex != -1) {
-              _goals[goalIndex] = updatedGoal;
-            }
-            
-            // Mettre à jour le compte
-            final accountIndex = _accounts.indexWhere((a) => a.accountId == updatedAccount.accountId);
-            if (accountIndex != -1) {
-              _accounts[accountIndex] = updatedAccount;
-            }
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: TrText('${currency.formatAmount(updatedAccount.balance)} alloués à ${goal.name} !'),
-              backgroundColor: AppDesign.incomeColor,
-            ),
+      builder: (context) {
+        final userId = _firestoreService.currentUserId;
+        if (userId == null) {
+          return const Padding(
+            padding: EdgeInsets.all(24),
+            child: TrText('Connectez-vous pour allouer des fonds.'),
           );
-        },
-      ),
+        }
+        return FundGoalModal(
+          userId: userId,
+          goal: goal,
+          accounts: _accounts,
+          onFundingCompleted: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: TrText('Fonds alloués à ${goal.name} !'),
+                backgroundColor: AppDesign.incomeColor,
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -750,6 +729,8 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
 
   @override
   void dispose() {
+    _goalsSub?.cancel();
+    _accountsSub?.cancel();
     _nameController.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
@@ -996,10 +977,12 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
 class FundGoalModal extends StatefulWidget {
   final Goal goal;
   final List<Account> accounts;
-  final Function(Goal updatedGoal, Account updatedAccount) onFundingCompleted;
+  final String userId;
+  final VoidCallback onFundingCompleted;
 
   const FundGoalModal({
     super.key,
+    required this.userId,
     required this.goal,
     required this.accounts,
     required this.onFundingCompleted,
@@ -1014,6 +997,7 @@ class _FundGoalModalState extends State<FundGoalModal> {
   final _amountController = TextEditingController();
   Account? _selectedAccount;
   bool _isLoading = false;
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   void dispose() {
@@ -1294,37 +1278,28 @@ class _FundGoalModalState extends State<FundGoalModal> {
   }
 
   void _fundGoal() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
 
-      // Simulation d'un délai réseau
-      await Future.delayed(const Duration(milliseconds: 800));
-
-      final fundingAmount = double.parse(_amountController.text);
-      final newGoalAmount = widget.goal.currentAmount + fundingAmount;
-      
-      // Mettre à jour l'objectif
-      final updatedGoal = widget.goal.copyWith(
-        currentAmount: newGoalAmount,
-        status: newGoalAmount >= widget.goal.targetAmount 
-            ? GoalStatus.completed 
-            : GoalStatus.active,
-        updatedAt: DateTime.now(),
+    final amount = double.parse(_amountController.text);
+    try {
+      await _firestoreService.fundGoal(
+        userId: widget.userId,
+        goalId: widget.goal.goalId,
+        amount: amount,
+        sourceAccountId: _selectedAccount!.accountId,
+        description: 'Allocation vers ${widget.goal.name}',
       );
-
-      // Mettre à jour le compte
-      final updatedAccount = _selectedAccount!.copyWith(
-        balance: _selectedAccount!.balance - fundingAmount,
-        updatedAt: DateTime.now(),
-      );
-
-      widget.onFundingCompleted(updatedGoal, updatedAccount);
-
+      widget.onFundingCompleted();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: TrText('Erreur: $e')),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 }

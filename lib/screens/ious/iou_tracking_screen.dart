@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/models.dart';
-import '../../services/mock_data_service.dart';
+import '../../services/firestore_service.dart';
 import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
@@ -19,9 +20,10 @@ class IOUTrackingScreen extends StatefulWidget {
 }
 
 class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
-  final MockDataService _mockService = MockDataService();
+  final FirestoreService _firestoreService = FirestoreService();
   List<IOU> _ious = [];
   String? _selectedIOUForHistory;
+  StreamSubscription<List<IOU>>? _iousSub;
 
   @override
   void initState() {
@@ -30,11 +32,21 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
   }
 
   void _loadIOUs() {
-    // Pas de données de test pour les dettes/créances
-    // L'utilisateur peut ajouter ses propres dettes et créances
-    setState(() {
-      _ious = [];
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      setState(() => _ious = []);
+      return;
+    }
+    _iousSub?.cancel();
+    _iousSub = _firestoreService.getIOUsStream(userId).listen((data) {
+      if (mounted) setState(() => _ious = data);
     });
+  }
+
+  @override
+  void dispose() {
+    _iousSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -144,7 +156,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                   ),
                   const SizedBox(height: 4),
                   TrText(
-                    currency.formatAmount(totalDebt),
+                    context.watch<CurrencyService>().formatAmountCompact(totalDebt),
                     style: const TextStyle(
                       fontSize: 22,
                       color: AppDesign.expenseColor,
@@ -185,7 +197,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                   ),
                   const SizedBox(height: 4),
                   TrText(
-                    currency.formatAmount(totalReceivable),
+                    context.watch<CurrencyService>().formatAmountCompact(totalReceivable),
                     style: const TextStyle(
                       fontSize: 22,
                       color: AppDesign.incomeColor,
@@ -341,7 +353,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   TrText(
-                    currency.formatAmount(iou.originalAmount),
+                    context.watch<CurrencyService>().formatAmountCompact(iou.originalAmount),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -357,7 +369,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   TrText(
-                    currency.formatAmount(iou.currentBalance),
+                    context.watch<CurrencyService>().formatAmountCompact(iou.currentBalance),
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -493,7 +505,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                     ),
                   ),
                   TrText(
-                    '$prefix${currency.formatAmount(e.amount)}',
+                    '$prefix${context.watch<CurrencyService>().formatAmountCompact(e.amount)}',
                     style: TextStyle(
                       color: color,
                       fontWeight: FontWeight.bold,
@@ -509,6 +521,21 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
   }
 
   void _showAddIOUModal() {
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const TrText('Connexion requise'),
+          content: const TrText('Connectez-vous pour enregistrer une dette ou créance.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const TrText('OK')),
+          ],
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -519,19 +546,36 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => AddIOUModal(
-        onIOUAdded: (newIOU) {
-          setState(() {
-            _ious.add(newIOU);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: TrText('Ajout enregistré avec succès !')),
+        onIOUAdded: (newIOU) async {
+          await _firestoreService.addIOU(
+            userId: userId,
+            type: newIOU.type,
+            personName: newIOU.personName,
+            personEmail: newIOU.personEmail,
+            personPhone: newIOU.personPhone,
+            amount: newIOU.amount,
+            description: newIOU.description,
+            dueDate: newIOU.dueDate ?? DateTime.now(),
+            icon: newIOU.icon ?? '🤝',
           );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: TrText('Ajout enregistré avec succès !')),
+            );
+          }
         },
       ),
     );
   }
 
   void _showRecordPaymentModal(IOU iou) {
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: TrText('Connectez-vous pour enregistrer un paiement.')),
+      );
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -543,17 +587,12 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
       ),
       builder: (context) => RecordPaymentModal(
         iou: iou,
-        onPaymentRecorded: (updatedIOU) {
-          setState(() {
-            final index = _ious.indexWhere((i) => i.iouId == updatedIOU.iouId);
-            if (index != -1) {
-              _ious[index] = updatedIOU;
-            }
-          });
+        userId: userId,
+        onPaymentRecorded: () {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: TrText(
-                updatedIOU.type == IOUType.receivable
+                iou.type == IOUType.receivable
                     ? 'Paiement reçu enregistré !'
                     : 'Paiement enregistré !',
               ),
@@ -676,8 +715,8 @@ class _AddIOUModalState extends State<AddIOUModal> {
                   controller: _amountController,
                   decoration: InputDecoration(
                     labelText: t('Montant'),
-                    prefixIcon: Icon(Icons.euro, color: color),
-                    suffixText: context.watch<CurrencyService>().getCurrencySymbol(context.watch<CurrencyService>().currentCurrency),
+                    prefixIcon: Icon(Icons.attach_money, color: color),
+                    suffixText: context.watch<CurrencyService>().currencySymbol,
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
@@ -881,11 +920,13 @@ class _AddIOUModalState extends State<AddIOUModal> {
 /// Modal pour enregistrer un paiement/remboursement
 class RecordPaymentModal extends StatefulWidget {
   final IOU iou;
-  final Function(IOU) onPaymentRecorded;
+  final String userId;
+  final VoidCallback onPaymentRecorded;
 
   const RecordPaymentModal({
     super.key,
     required this.iou,
+    required this.userId,
     required this.onPaymentRecorded,
   });
 
@@ -897,6 +938,7 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   bool _isLoading = false;
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   void dispose() {
@@ -1099,28 +1141,26 @@ class _RecordPaymentModalState extends State<RecordPaymentModal> {
   }
 
   void _recordPayment() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
 
-      // Simulation d'un délai réseau
-      await Future.delayed(const Duration(milliseconds: 800));
-
-      final paymentAmount = double.parse(_amountController.text);
-      final newPaidAmount = widget.iou.paidAmount + paymentAmount;
-      
-      final updatedIOU = widget.iou.copyWith(
-        paidAmount: newPaidAmount,
-        status: newPaidAmount >= widget.iou.amount - 0.01 ? IOUStatus.completed : IOUStatus.active,
-        updatedAt: DateTime.now(),
+    final paymentAmount = double.parse(_amountController.text);
+    try {
+      await _firestoreService.recordIOUPayment(
+        widget.userId,
+        widget.iou.iouId,
+        paymentAmount,
       );
-
-      widget.onPaymentRecorded(updatedIOU);
-
+      widget.onPaymentRecorded();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: TrText('Erreur: $e')),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 }

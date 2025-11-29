@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:budget/services/currency_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/user_profile.dart';
+import 'password_reset_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -382,7 +383,14 @@ class _AuthScreenState extends State<AuthScreen> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PasswordResetScreen(),
+                ),
+              );
+            },
             child: const TrText(
               'Mot de passe oublié ?',
               style: TextStyle(color: Colors.black54),
