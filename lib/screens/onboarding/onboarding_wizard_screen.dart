@@ -7,6 +7,7 @@ import '../../constants/default_categories.dart';
 import '../../services/currency_service.dart';
 import '../../models/budget_plan.dart';
 import 'package:provider/provider.dart';
+import '../navigation/main_navigation_shell.dart';
 
 /// Écran d'onboarding wizard en 3 étapes
 /// Étape 1: Profil utilisateur (nom + devise)

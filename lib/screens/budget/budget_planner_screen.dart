@@ -1213,35 +1213,33 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      );
-                    }).toList(),
-                    if (transactions.length > 5) ...[
-                      const SizedBox(height: 8),
-                      Center(
-                        child: TextButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const TransactionsListScreen(),
-                              ),
-                            );
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppDesign.primaryIndigo,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          ),
-                          icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-                          label: TrText(
-                            'Voir l\'historique complet (${transactions.length})',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
+                    );
+                  }).toList(),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const TransactionsListScreen(),
                             ),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppDesign.primaryIndigo,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
+                        icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                        label: TrText(
+                          'Voir l\'historique complet (${transactions.length})',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
                           ),
                         ),
                       ),
-                    ],
+                    ),
                   ],
                 );
               },

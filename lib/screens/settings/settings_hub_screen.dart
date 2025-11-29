@@ -8,7 +8,6 @@ import '../../services/theme_service.dart';
 import '../profile/profile_settings_screen.dart';
 import '../settings/notification_settings_screen.dart';
 import '../budget/budget_planner_screen.dart';
-import '../accounts/account_management_screen.dart';
 import '../auth/auth_screen.dart';
 
 /// Page unifiée Profil & Paramètres
@@ -156,17 +155,6 @@ class SettingsHubScreen extends StatelessWidget {
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: TrText('Contact support prochainement')),
-                  );
-                },
-              ),
-              _Tile(
-                icon: Icons.account_balance_wallet_outlined,
-                title: 'Comptes financiers',
-                subtitle: 'Gérer vos comptes et soldes',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AccountManagementScreen()),
                   );
                 },
               ),

@@ -1,7 +1,7 @@
 "use client";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, FileSpreadsheet, LogOut, Radio } from 'lucide-react';
+import { LayoutDashboard, Users, FileSpreadsheet, LogOut, Radio, Languages } from 'lucide-react';
 import Logo from './Logo';
 import { auth } from '@/lib/firebase';
 
@@ -9,6 +9,7 @@ const items = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Utilisateurs', icon: Users },
   { href: '/admin/export', label: 'Export', icon: FileSpreadsheet },
+  { href: '/admin/translations', label: 'Traductions', icon: Languages },
 ];
 
 export default function Sidebar() {
