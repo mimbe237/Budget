@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 
 /// Service pour gérer les traductions dynamiques depuis Firestore
 /// Permet aux admins de modifier les traductions sans redéployer l'app
@@ -14,10 +15,47 @@ class TranslationService extends ChangeNotifier {
   Map<String, Map<String, String>> _translations = {};
   bool _isLoaded = false;
   DateTime? _lastSync;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subscription;
+  bool _listening = false;
 
   Map<String, Map<String, String>> get translations => _translations;
   bool get isLoaded => _isLoaded;
   DateTime? get lastSync => _lastSync;
+  bool get isListening => _listening;
+
+  /// Lance l'écoute temps réel et charge initialement
+  Future<void> startRealtime() async {
+    if (_listening) return;
+    _listening = true;
+    await loadTranslations();
+    _subscription = _firestore.collection('translations').snapshots().listen((snapshot) {
+      final Map<String, Map<String, String>> loaded = {};
+      for (var doc in snapshot.docs) {
+        final key = doc.id;
+        final data = doc.data();
+        loaded[key] = {
+          'fr': data['fr'] as String? ?? key,
+          'en': data['en'] as String? ?? key,
+          'status': data['status'] as String? ?? 'active',
+          'category': data['category'] as String? ?? 'general',
+          'lastModified': (data['lastModified'] as Timestamp?)?.toDate().toIso8601String() ?? '',
+          'modifiedBy': data['modifiedBy'] as String? ?? 'system',
+        };
+      }
+      _translations = loaded;
+      _isLoaded = true;
+      _lastSync = DateTime.now();
+      notifyListeners();
+    }, onError: (e) {
+      debugPrint('⚠️ TranslationService realtime error: $e');
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
 
   /// Charge les traductions depuis Firestore
   Future<void> loadTranslations() async {
@@ -207,7 +245,12 @@ class TranslationService extends ChangeNotifier {
   /// Récupère la traduction pour une clé et langue donnée
   String? getTranslation(String key, String languageCode) {
     if (!_isLoaded) return null;
-    return _translations[key]?[languageCode];
+    final entry = _translations[key];
+    if (entry == null) return null;
+    if ((entry['status'] ?? 'active') != 'active') return null;
+    final value = entry[languageCode];
+    if (value == null || value.isEmpty) return null;
+    return value;
   }
 
   /// Vérifie si une traduction existe

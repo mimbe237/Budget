@@ -162,6 +162,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
     try {
       final profile = await FirestoreService().getUserProfile(userId);
+      // Garantir les catégories par défaut si aucune active
+      final categories = await FirestoreService().getCategories(userId);
+      if (categories.isEmpty) {
+        await FirestoreService().createDefaultCategories(userId);
+      }
+
       final budget = await FirestoreService().getCurrentBudgetPlan(userId);
       final needsSetup = (profile?.needsOnboarding ?? true) ||
           budget == null ||

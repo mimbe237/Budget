@@ -26,6 +26,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     final userId = _firestoreService.currentUserId;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppDesign.backgroundGrey,
       appBar: AppBar(
         title: Row(

@@ -93,6 +93,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppDesign.backgroundGrey,
       body: CustomScrollView(
         slivers: [

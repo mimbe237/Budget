@@ -325,7 +325,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final bool isLoggedIn = _firestoreService.currentUserId != null;
     
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: TrText(
           _isExpense ? 'Nouvelle Dépense' : 'Nouveau Revenu',

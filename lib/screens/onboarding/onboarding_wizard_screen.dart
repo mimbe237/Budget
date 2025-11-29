@@ -326,6 +326,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     final progress = (_currentPage + 1) / 3.0;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         leading: const SizedBox.shrink(),
         title: Column(
@@ -952,9 +953,9 @@ class _SuccessScreen extends StatelessWidget {
               const SizedBox(height: 48),
               ElevatedButton(
                 onPressed: () {
-                  // TODO: Navigation vers le dashboard principal
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: TrText('Redirection vers le dashboard...')),
+                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => MainNavigationShell()),
+                    (route) => false,
                   );
                 },
                 style: ElevatedButton.styleFrom(

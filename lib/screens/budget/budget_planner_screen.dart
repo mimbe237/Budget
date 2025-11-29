@@ -305,6 +305,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppDesign.backgroundGrey,
       appBar: ModernPageAppBar(
         title: t('Gestion Budget'),

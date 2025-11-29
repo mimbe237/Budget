@@ -50,6 +50,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppDesign.backgroundGrey,
       appBar: ModernPageAppBar(
         title: isMobile ? t('Dettes & Créances') : t('Suivi Dettes & Créances'),

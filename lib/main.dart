@@ -42,7 +42,7 @@ void main() async {
   
   // Charger les traductions Firestore au démarrage
   try {
-    await TranslationService().loadTranslations();
+    await TranslationService().startRealtime();
   } catch (e) {
     debugPrint('⚠️ TranslationService load failed: $e');
   }
@@ -61,6 +61,7 @@ class AppBootstrap extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CurrencyService()..loadCurrency()),
         ChangeNotifierProvider(create: (_) => NotificationPreferencesService()..loadPreferences()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()..loadTheme()),
+        ChangeNotifierProvider(create: (_) => TranslationService()),
       ],
       child: const BudgetApp(),
     );
