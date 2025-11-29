@@ -729,8 +729,6 @@ class _CreateGoalModalState extends State<CreateGoalModal> {
 
   @override
   void dispose() {
-    _goalsSub?.cancel();
-    _accountsSub?.cancel();
     _nameController.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
