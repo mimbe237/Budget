@@ -66,8 +66,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   @override
   void initState() {
     super.initState();
-    _loadActualSpending();
     _initializeControllers();
+    _loadBudgetData();
     _initTransactionsStream();
   }
 
@@ -205,31 +205,86 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     }
   }
 
-  void _loadActualSpending() {
-    // Simuler les dépenses réelles du mois en cours
-    final transactions = _mockService.getMockTransactions();
-    final now = DateTime.now();
-    
-    final Map<String, double> spending = {};
-    
-    for (var tx in transactions) {
-      if (tx.date.month == now.month && tx.date.year == now.year) {
-        final categories = _mockService.getMockCategories();
-        final category = categories.firstWhere(
-          (cat) => cat.categoryId == tx.categoryId,
-          orElse: () => categories.first,
-        );
-        
-        final categoryKey = _findCategoryKey(category.name);
-        if (categoryKey != null) {
-          spending[categoryKey] = (spending[categoryKey] ?? 0.0) + tx.amount;
+  Future<void> _loadBudgetData() async {
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      // Fallback démo
+      final spending = <String, double>{};
+      final now = DateTime.now();
+      for (final tx in _mockService.getMockTransactions()) {
+        if (tx.date.month == now.month && tx.date.year == now.year && tx.type == TransactionType.expense) {
+          final categoryKey = _mapPocket(tx.category ?? '');
+          spending[categoryKey] = (spending[categoryKey] ?? 0) + tx.amount;
         }
       }
+      setState(() {
+        _actualSpending = spending;
+        _initializeControllers();
+      });
+      return;
     }
-    
-    setState(() {
-      _actualSpending = spending;
-    });
+
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+
+    try {
+      final results = await Future.wait([
+        _firestoreService.getTransactions(
+          userId,
+          startDate: startOfMonth,
+          endDate: now,
+          limit: 1000,
+        ),
+        _firestoreService.getCategories(userId),
+        _firestoreService.getCurrentBudgetPlan(userId),
+      ]);
+
+      final txs = results[0] as List<Transaction>;
+      final categories = results[1] as List<Category>;
+      final budgetPlan = results[2] as Map<String, dynamic>?;
+
+      final incomeTotal = txs
+          .where((t) => t.type == TransactionType.income)
+          .fold<double>(0, (sum, t) => sum + t.amount);
+
+      final Map<String, double> spending = {};
+      final Map<String, String> catNames = {
+        for (final c in categories) c.categoryId: c.name,
+      };
+
+      for (final tx in txs.where((t) => t.type == TransactionType.expense)) {
+        final name = catNames[tx.categoryId] ?? tx.category ?? '';
+        final pocket = _mapPocket(name);
+        spending[pocket] = (spending[pocket] ?? 0) + tx.amount;
+      }
+
+      Map<String, double> allocations = Map.from(DEFAULT_ALLOCATION);
+      double totalBudget = _totalIncome;
+
+      if (budgetPlan != null) {
+        final rawAlloc = (budgetPlan['categoryAllocations'] as Map<String, dynamic>?);
+        if (rawAlloc != null && rawAlloc.isNotEmpty) {
+          allocations = rawAlloc.map((k, v) => MapEntry(k, (v as num).toDouble()));
+        }
+        final tb = budgetPlan['totalBudget'];
+        if (tb is num) totalBudget = tb.toDouble();
+      }
+
+      if (totalBudget <= 0 && incomeTotal > 0) {
+        totalBudget = incomeTotal;
+      }
+
+      setState(() {
+        _allocations = allocations;
+        _totalIncome = totalBudget > 0 ? totalBudget : _totalIncome;
+        _actualSpending = spending;
+        _incomeController.text = _totalIncome.toStringAsFixed(0);
+        _initializeControllers();
+      });
+    } catch (_) {
+      // En cas d'erreur, ne bloque pas l'affichage
+      _initializeControllers();
+    }
   }
 
   void _initTransactionsStream() {
@@ -252,6 +307,20 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     });
   }
 
+  String _mapPocket(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('logement') || n.contains('rent')) return 'Logement';
+    if (n.contains('aliment') || n.contains('nourr') || n.contains('food')) return 'Nourriture';
+    if (n.contains('transport') || n.contains('taxi') || n.contains('carbur')) return 'Transport';
+    if (n.contains('fact') || n.contains('abo') || n.contains('abonnement')) return 'Factures';
+    if (n.contains('sant')) return 'Santé';
+    if (n.contains('eparg') || n.contains('saving')) return 'Épargne';
+    if (n.contains('invest')) return 'Investissement';
+    if (n.contains('loisir') || n.contains('fun') || n.contains('divert')) return 'Loisirs';
+    if (n.contains('famill') || n.contains('don')) return 'Famille';
+    return name.isNotEmpty ? name : 'Autres';
+  }
+
   Future<void> _pickTxDateRange() async {
     final now = DateTime.now();
     final result = await showDateRangePicker(
@@ -270,16 +339,6 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
       });
       _initTransactionsStream();
     }
-  }
-
-  String? _findCategoryKey(String categoryName) {
-    for (var entry in DEFAULT_BUDGET_CATEGORIES.entries) {
-      if (entry.value['name']!.toLowerCase().contains(categoryName.toLowerCase()) ||
-          categoryName.toLowerCase().contains(entry.value['name']!.toLowerCase())) {
-        return entry.key;
-      }
-    }
-    return null;
   }
 
   @override

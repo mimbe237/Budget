@@ -11,8 +11,8 @@ class CurrencyService extends ChangeNotifier {
 
   static const String _currencyKey = 'selected_currency';
   
-  // Devise par défaut
-  String _currentCurrency = 'EUR';
+  // Devise par défaut (préférée: XAF / FCFA)
+  String _currentCurrency = 'XAF';
   bool _initialized = false;
 
   String get currentCurrency => _currentCurrency;
@@ -155,6 +155,9 @@ class CurrencyService extends ChangeNotifier {
 
   /// Parse le code devise depuis le format UI (ex: "EUR (€)" -> "EUR")
   String parseCurrencyCode(String formatted) {
-    return formatted.split(' ').first;
+    final code = formatted.split(' ').first;
+    // Normaliser certaines entrées UI: "FCA" ou "FCFA" vers XAF
+    if (code.toUpperCase() == 'FCA' || code.toUpperCase() == 'FCFA') return 'XAF';
+    return code;
   }
 }

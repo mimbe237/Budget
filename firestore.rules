@@ -57,5 +57,12 @@ service cloud.firestore {
       // Lecture réservée aux admins. Écriture côté client refusée (backend Admin SDK uniquement)
       allow read: if isAdmin();
     }
+
+    // Traductions de l'application (clé/valeur FR/EN)
+    // Lecture publique (pour chargement côté client). Écriture réservée aux admins via custom claims.
+    match /translations/{translationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

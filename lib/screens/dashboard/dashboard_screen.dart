@@ -1250,9 +1250,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       endDate: now,
       limit: 500,
     );
+    final budget$ = _firestoreService.getBudgetPlanStream(userId);
 
     return StreamBuilder<List<dynamic>>(
-      stream: CombineLatestStream.list([categories$, transactions$]),
+      stream: CombineLatestStream.list([categories$, transactions$, budget$]),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Padding(
@@ -1263,19 +1264,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         final categories = snapshot.data![0] as List<Category>;
         final txs = snapshot.data![1] as List<Transaction>;
+        final budgetPlan = snapshot.data![2] as Map<String, dynamic>?;
 
-        const defaultAllocation = 200.0;
+        // Préparation des allocations/plafonds
+        Map<String, double> allocations = Map.from(DEFAULT_ALLOCATION);
+        double totalBudget = 0;
+        if (budgetPlan != null) {
+          final rawAlloc = budgetPlan['categoryAllocations'] as Map<String, dynamic>?;
+          if (rawAlloc != null && rawAlloc.isNotEmpty) {
+            allocations = rawAlloc.map((k, v) => MapEntry(k, (v as num).toDouble()));
+          }
+          final tb = budgetPlan['totalBudget'];
+          if (tb is num) totalBudget = tb.toDouble();
+        }
+        final incomeTotal = txs.where((t) => t.type == TransactionType.income).fold<double>(0, (s, t) => s + t.amount);
+        if (totalBudget <= 0 && incomeTotal > 0) {
+          totalBudget = incomeTotal;
+        }
+        if (totalBudget <= 0) totalBudget = 1; // éviter div/0
 
         final items = categories
             .where((c) => c.type == CategoryType.expense && c.isActive)
             .map((cat) {
+          final pocket = _mapPocket(cat.name);
+          final planned = (allocations[pocket] ?? DEFAULT_ALLOCATION[pocket] ?? 0) * totalBudget;
           final engaged = txs
               .where((t) => t.categoryId == cat.categoryId && t.type == TransactionType.expense)
               .fold<double>(0, (sum, t) => sum + t.amount);
           return _PocketSummaryItem(
             name: cat.name,
             icon: cat.icon,
-            planned: defaultAllocation,
+            planned: planned,
             engaged: engaged,
           );
         }).toList();
@@ -1350,6 +1369,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// Ligne d'une poche avec libellés "Prévu" et "Engagé" et barre de progression
   // ignore: unused_element
   Widget _buildPocketRowForPreview(_PocketSummaryItem item) => _PocketSummaryRow(item: item);
+
+  String _mapPocket(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('logement') || n.contains('rent')) return 'Logement';
+    if (n.contains('aliment') || n.contains('nourr') || n.contains('food')) return 'Nourriture';
+    if (n.contains('transport') || n.contains('taxi') || n.contains('carbur')) return 'Transport';
+    if (n.contains('fact') || n.contains('abo') || n.contains('abonnement')) return 'Factures';
+    if (n.contains('sant')) return 'Santé';
+    if (n.contains('eparg') || n.contains('saving')) return 'Épargne';
+    if (n.contains('invest')) return 'Investissement';
+    if (n.contains('loisir') || n.contains('fun') || n.contains('divert')) return 'Loisirs';
+    if (n.contains('famill') || n.contains('don')) return 'Famille';
+    return name.isNotEmpty ? name : 'Autres';
+  }
 }
 
 /// Widget réutilisable pour les cartes d'insights financiers
@@ -1568,9 +1601,10 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
       endDate: now,
       limit: 500,
     );
+    final budget$ = firestoreService.getBudgetPlanStream(userId);
 
     return StreamBuilder<List<dynamic>>(
-      stream: CombineLatestStream.list([categories$, transactions$]),
+      stream: CombineLatestStream.list([categories$, transactions$, budget$]),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Padding(
@@ -1580,17 +1614,35 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
         }
         final categories = snapshot.data![0] as List<Category>;
         final txs = snapshot.data![1] as List<Transaction>;
+        final budgetPlan = snapshot.data![2] as Map<String, dynamic>?;
 
-        const defaultAllocation = 200.0;
+        Map<String, double> allocations = Map.from(DEFAULT_ALLOCATION);
+        double totalBudget = 0;
+        if (budgetPlan != null) {
+          final rawAlloc = budgetPlan['categoryAllocations'] as Map<String, dynamic>?;
+          if (rawAlloc != null && rawAlloc.isNotEmpty) {
+            allocations = rawAlloc.map((k, v) => MapEntry(k, (v as num).toDouble()));
+          }
+          final tb = budgetPlan['totalBudget'];
+          if (tb is num) totalBudget = tb.toDouble();
+        }
+        final incomeTotal = txs.where((t) => t.type == TransactionType.income).fold<double>(0, (s, t) => s + t.amount);
+        if (totalBudget <= 0 && incomeTotal > 0) {
+          totalBudget = incomeTotal;
+        }
+        if (totalBudget <= 0) totalBudget = 1;
 
         final items = categories.where((c) => c.type == CategoryType.expense && c.isActive).map((cat) {
+          final pocket = _mapPocket(cat.name);
+          final allocatedShare = allocations[pocket] ?? DEFAULT_ALLOCATION[pocket] ?? 0;
+          final allocated = allocatedShare * totalBudget;
           final spent = txs
               .where((t) => t.categoryId == cat.categoryId && t.type == TransactionType.expense)
               .fold<double>(0, (sum, t) => sum + t.amount);
           return _CategoryBudgetItem(
             name: cat.name,
             icon: cat.icon,
-            allocated: defaultAllocation,
+            allocated: allocated,
             spent: spent,
           );
         }).toList();

@@ -87,7 +87,7 @@ export default function AdminTranslationsPage() {
 
   return (
     <AdminShell>
-      <div className="p-6">
+      <div className="flex min-h-full flex-col p-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold">Gestion des traductions</h1>
           <button onClick={addTranslation} className="px-3 py-2 rounded bg-indigo-600 text-white">Ajouter</button>
@@ -107,7 +107,7 @@ export default function AdminTranslationsPage() {
         {loading && <p>Chargement…</p>}
         {error && <p className="text-red-600">{error}</p>}
         {!loading && filtered.length === 0 && <p className="text-gray-500">Aucune traduction.</p>}
-        <div className="grid grid-cols-1 gap-2">
+        <div className="grid grid-cols-1 gap-2 flex-1">
           {filtered.map(r => (
             <div key={r.id} className="rounded border p-3 bg-white flex items-start justify-between gap-3">
               <div className="flex-1">
