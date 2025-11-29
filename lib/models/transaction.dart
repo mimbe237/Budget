@@ -14,6 +14,7 @@ class Transaction {
   final String? category; // Nom de la catégorie (pour compatibilité)
   final TransactionType type;
   final double amount;
+  final String currency; // Devise du montant
   final String? description;
   final String? note;
   final DateTime date;
@@ -33,6 +34,7 @@ class Transaction {
     this.category,
     required this.type,
     required this.amount,
+    this.currency = 'XAF',
     this.description,
     this.note,
     required this.date,
@@ -58,6 +60,7 @@ class Transaction {
       'category': category,
       'type': type.name,
       'amount': amount,
+      'currency': currency,
       'description': description,
       'note': note,
       'date': Timestamp.fromDate(date),
@@ -84,6 +87,7 @@ class Transaction {
         orElse: () => TransactionType.expense,
       ),
       amount: (map['amount'] ?? 0).toDouble(),
+      currency: map['currency'] ?? 'XAF',
       description: map['description'],
       note: map['note'],
       date: (map['date'] as Timestamp).toDate(),
@@ -106,6 +110,7 @@ class Transaction {
     String? category,
     TransactionType? type,
     double? amount,
+    String? currency,
     String? description,
     String? note,
     DateTime? date,
@@ -125,6 +130,7 @@ class Transaction {
       category: category ?? this.category,
       type: type ?? this.type,
       amount: amount ?? this.amount,
+      currency: currency ?? this.currency,
       description: description ?? this.description,
       note: note ?? this.note,
       date: date ?? this.date,

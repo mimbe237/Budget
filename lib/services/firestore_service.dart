@@ -833,6 +833,7 @@ class FirestoreService {
     String? toAccountId, // Pour les transferts
     List<String>? tags,
     String? receiptUrl,
+    String? currencyCode,
   }) async {
     try {
       final transactionDate = date ?? DateTime.now();
@@ -889,6 +890,7 @@ class FirestoreService {
         }
 
         // 4. Créer l'objet transaction
+        final txnCurrency = currencyCode ?? (accountData['currency'] ?? 'XAF');
         final newTransaction = app_transaction.Transaction(
           transactionId: transactionDocRef.id,
           userId: userId,
@@ -896,6 +898,7 @@ class FirestoreService {
           categoryId: categoryId,
           type: type,
           amount: amount,
+          currency: txnCurrency,
           description: description,
           note: note,
           date: transactionDate,
@@ -919,6 +922,63 @@ class FirestoreService {
       });
     } catch (e) {
       throw Exception('Erreur lors de l\'ajout de la transaction: $e');
+    }
+  }
+
+  /// Convertit toutes les données monétaires de l'utilisateur vers une nouvelle devise.
+  /// ATTENTION: Opération irréversible côté client. Prévoir sauvegarde avant.
+  Future<void> convertUserDataCurrency({
+    required String userId,
+    required String oldCurrency,
+    required String newCurrency,
+    double? customRate, // Permet de forcer un taux au lieu d'exchangeRates
+  }) async {
+    try {
+      final batch = _firestore.batch();
+      // Récupérer comptes
+      final accountsSnap = await _accountsCollection(userId).get();
+      for (final doc in accountsSnap.docs) {
+        final data = doc.data();
+        final bal = (data['balance'] ?? 0).toDouble();
+        final currentCur = data['currency'] ?? oldCurrency;
+        double newBal = bal;
+        if (currentCur == oldCurrency) {
+          newBal = CurrencyService().convertAmount(bal, oldCurrency, newCurrency);
+          if (customRate != null) {
+            // Conversion directe via taux custom (montant * customRate)
+            newBal = bal * customRate;
+          }
+        }
+        batch.update(doc.reference, {
+          'balance': newBal,
+          'currency': newCurrency,
+          'updatedAt': Timestamp.fromDate(DateTime.now()),
+        });
+      }
+      // Récupérer transactions (paginer si très nombreuses)
+      final txSnap = await _transactionsCollection(userId).get();
+      for (final doc in txSnap.docs) {
+        final data = doc.data();
+        final amt = (data['amount'] ?? 0).toDouble();
+        final txCur = data['currency'] ?? oldCurrency;
+        double newAmt = amt;
+        if (txCur == oldCurrency) {
+          newAmt = CurrencyService().convertAmount(amt, oldCurrency, newCurrency);
+          if (customRate != null) {
+            newAmt = amt * customRate;
+          }
+        }
+        batch.update(doc.reference, {
+          'amount': newAmt,
+          'currency': newCurrency,
+          'updatedAt': Timestamp.fromDate(DateTime.now()),
+        });
+      }
+      await batch.commit();
+      // Mettre à jour le profil
+      await updateUserProfile(userId, {'currency': newCurrency});
+    } catch (e) {
+      throw Exception('Erreur conversion devise: $e');
     }
   }
 

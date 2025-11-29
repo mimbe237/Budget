@@ -467,14 +467,19 @@ Future<void> _showCurrencySheet(
                 oldCurrency: oldCurrency,
                 newCurrency: code,
                 onConvert: () async {
-                  await currencyService.setCurrency(code);
                   final userId = FirestoreService().currentUserId;
                   if (userId != null) {
-                    await FirestoreService().updateUserProfile(userId, {'currency': code});
+                    // Conversion réelle des montants
+                    await FirestoreService().convertUserDataCurrency(
+                      userId: userId,
+                      oldCurrency: oldCurrency,
+                      newCurrency: code,
+                    );
                   }
+                  await currencyService.setCurrency(code);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: TrText('Montants convertis en $code')),
+                      SnackBar(content: TrText('Conversion complète en $code effectuée')),
                     );
                   }
                 },
@@ -486,7 +491,7 @@ Future<void> _showCurrencySheet(
                   }
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: TrText('Affichage changé en $code')),
+                      SnackBar(content: TrText('Affichage changé en $code (sans conversion)')),
                     );
                   }
                 },
