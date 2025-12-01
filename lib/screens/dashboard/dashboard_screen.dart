@@ -1475,6 +1475,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (n.contains('famill') || n.contains('don')) return 'Famille';
     return name.isNotEmpty ? name : 'Autres';
   }
+
+  String _resolveCategoryLabel(Category? category, Transaction tx) {
+    final fromCategory = category?.name;
+    if (fromCategory != null && fromCategory.trim().isNotEmpty) return fromCategory;
+    final fromTx = tx.category;
+    if (fromTx != null && fromTx.trim().isNotEmpty) return fromTx;
+    switch (tx.type) {
+      case TransactionType.income:
+        return t('Revenu');
+      case TransactionType.expense:
+        return t('Dépense');
+      case TransactionType.transfer:
+        return t('Transfert');
+    }
+  }
 }
 
 /// Widget réutilisable pour les cartes d'insights financiers
@@ -1579,21 +1594,6 @@ class _InsightCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _resolveCategoryLabel(Category? category, Transaction tx) {
-    final fromCategory = category?.name;
-    if (fromCategory != null && fromCategory.trim().isNotEmpty) return fromCategory;
-    final fromTx = tx.category;
-    if (fromTx != null && fromTx.trim().isNotEmpty) return fromTx;
-    switch (tx.type) {
-      case TransactionType.income:
-        return t('Revenu');
-      case TransactionType.expense:
-        return t('Dépense');
-      case TransactionType.transfer:
-        return t('Transfert');
-    }
   }
 }
 

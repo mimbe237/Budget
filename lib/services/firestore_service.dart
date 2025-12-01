@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:budget/services/currency_service.dart';
@@ -8,7 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_profile.dart';
 import '../models/account.dart';
 import '../models/transaction.dart' as app_transaction;
-import '../models/category.dart';
+import '../models/category.dart' as app_category;
 import '../models/goal.dart';
 import '../models/iou.dart';
 import '../models/projection_result.dart';
@@ -614,29 +615,29 @@ class FirestoreService {
       final categories = await getCategories(userId);
       
       // Vérifier si on a des catégories pour chaque type
-      final hasIncome = categories.any((c) => c.type == CategoryType.income);
-      final hasExpense = categories.any((c) => c.type == CategoryType.expense);
+      final hasIncome = categories.any((c) => c.type == app_category.CategoryType.income);
+      final hasExpense = categories.any((c) => c.type == app_category.CategoryType.expense);
 
       final defaults = <Map<String, dynamic>>[];
 
       if (!hasIncome) {
         defaults.addAll([
-          {'name': 'Salaire', 'type': CategoryType.income, 'icon': '💼', 'color': '#22c55e'},
-          {'name': 'Prime', 'type': CategoryType.income, 'icon': '🎁', 'color': '#16a34a'},
-          {'name': 'Investissements', 'type': CategoryType.income, 'icon': '📈', 'color': '#0ea5e9'},
-          {'name': 'Autres', 'type': CategoryType.income, 'icon': '➕', 'color': '#10b981'},
+          {'name': 'Salaire', 'type': app_category.CategoryType.income, 'icon': '💼', 'color': '#22c55e'},
+          {'name': 'Prime', 'type': app_category.CategoryType.income, 'icon': '🎁', 'color': '#16a34a'},
+          {'name': 'Investissements', 'type': app_category.CategoryType.income, 'icon': '📈', 'color': '#0ea5e9'},
+          {'name': 'Autres', 'type': app_category.CategoryType.income, 'icon': '➕', 'color': '#10b981'},
         ]);
       }
 
       if (!hasExpense) {
         defaults.addAll([
-          {'name': 'Logement', 'type': CategoryType.expense, 'icon': '🏠', 'color': '#f97316'},
-          {'name': 'Transport', 'type': CategoryType.expense, 'icon': '🚌', 'color': '#f59e0b'},
-          {'name': 'Alimentation', 'type': CategoryType.expense, 'icon': '🛒', 'color': '#ef4444'},
-          {'name': 'Santé', 'type': CategoryType.expense, 'icon': '🩺', 'color': '#22c55e'},
-          {'name': 'Loisirs', 'type': CategoryType.expense, 'icon': '🎬', 'color': '#a855f7'},
-          {'name': 'Factures', 'type': CategoryType.expense, 'icon': '💡', 'color': '#6366f1'},
-          {'name': 'Autres', 'type': CategoryType.expense, 'icon': '➖', 'color': '#64748b'},
+          {'name': 'Logement', 'type': app_category.CategoryType.expense, 'icon': '🏠', 'color': '#f97316'},
+          {'name': 'Transport', 'type': app_category.CategoryType.expense, 'icon': '🚌', 'color': '#f59e0b'},
+          {'name': 'Alimentation', 'type': app_category.CategoryType.expense, 'icon': '🛒', 'color': '#ef4444'},
+          {'name': 'Santé', 'type': app_category.CategoryType.expense, 'icon': '🩺', 'color': '#22c55e'},
+          {'name': 'Loisirs', 'type': app_category.CategoryType.expense, 'icon': '🎬', 'color': '#a855f7'},
+          {'name': 'Factures', 'type': app_category.CategoryType.expense, 'icon': '💡', 'color': '#6366f1'},
+          {'name': 'Autres', 'type': app_category.CategoryType.expense, 'icon': '➖', 'color': '#64748b'},
         ]);
       }
 
@@ -646,7 +647,7 @@ class FirestoreService {
         return addCategory(
           userId: userId,
           name: cat['name'] as String,
-          type: cat['type'] as CategoryType,
+          type: cat['type'] as app_category.CategoryType,
           icon: cat['icon'] as String,
           color: cat['color'] as String,
           isDefault: true,
@@ -1450,7 +1451,7 @@ class FirestoreService {
   Future<String> addCategory({
     required String userId,
     required String name,
-    required CategoryType type,
+    required app_category.CategoryType type,
     required String icon,
     required String color,
     bool isDefault = false,
@@ -1459,7 +1460,7 @@ class FirestoreService {
       final now = DateTime.now();
       final docRef = _categoriesCollection(userId).doc();
       
-      final category = Category(
+      final category = app_category.Category(
         categoryId: docRef.id,
         userId: userId,
         name: name,
@@ -1483,7 +1484,7 @@ class FirestoreService {
     required String userId,
     required String categoryId,
     String? name,
-    CategoryType? type,
+    app_category.CategoryType? type,
     String? icon,
     String? color,
   }) async {
@@ -1503,9 +1504,9 @@ class FirestoreService {
   }
 
   /// Obtenir toutes les catégories (Stream)
-  Stream<List<Category>> getCategoriesStream(
+  Stream<List<app_category.Category>> getCategoriesStream(
     String userId, {
-    CategoryType? type,
+    app_category.CategoryType? type,
   }) {
     // Note: L'index composite (isActive ASC, name ASC) est requis pour cette requête
     // MODIFICATION: Suppression de orderBy('name') pour éviter l'erreur d'index manquant
@@ -1518,7 +1519,7 @@ class FirestoreService {
 
     return query.snapshots().map((snapshot) {
       final categories = snapshot.docs.map((doc) {
-        return Category.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+        return app_category.Category.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }).toList();
       
       // Tri côté client
@@ -1529,9 +1530,9 @@ class FirestoreService {
   }
 
   /// Obtenir toutes les catégories actives (fetch ponctuel)
-  Future<List<Category>> getCategories(
+  Future<List<app_category.Category>> getCategories(
     String userId, {
-    CategoryType? type,
+    app_category.CategoryType? type,
   }) async {
     try {
       // Note: L'index composite (isActive ASC, name ASC) est requis pour cette requête
@@ -1543,7 +1544,7 @@ class FirestoreService {
 
       final snapshot = await query.orderBy('name').get();
       return snapshot.docs
-          .map((doc) => Category.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .map((doc) => app_category.Category.fromMap(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
     } catch (e) {
       // Fallback si l'index n'est pas encore prêt: on trie côté client
@@ -1556,7 +1557,7 @@ class FirestoreService {
       
       final snapshot = await query.get();
       final categories = snapshot.docs
-          .map((doc) => Category.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .map((doc) => app_category.Category.fromMap(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
           
       categories.sort((a, b) => a.name.compareTo(b.name));

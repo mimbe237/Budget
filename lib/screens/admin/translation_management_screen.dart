@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../services/translation_service.dart';
 import '../../constants/app_design.dart';
@@ -649,27 +650,30 @@ class _TranslationManagementScreenState extends State<TranslationManagementScree
       ),
     );
 
-    // Simuler le scan (en production, utiliser TranslationKeysScanner.scanProject)
-    Future.delayed(const Duration(seconds: 2), () async {
-      Navigator.pop(context); // Fermer le dialogue de chargement
+    () async {
+      try {
+        // Charger les traductions existantes avant le scan
+        await _translationService.loadTranslations();
 
-      // Mock report pour démonstration
-      final report = {
-        'total': 450,
-        'existing': 200,
-        'missing': 250,
-        'missingKeys': [
-          'Bienvenue dans votre espace',
-          'Ajouter une nouvelle transaction',
-          'Consulter l\'historique',
-          'Paramètres de confidentialité',
-          'Exporter vos données',
-        ],
-        'coverage': 44.4,
-      };
+        // Scanner le projet en entier pour extraire les clés
+        final scanned = await TranslationKeysScanner.scanProject(Directory.current.path);
 
-      _showScanReportDialog(report);
-    });
+        final report = TranslationKeysScanner.generateMissingKeysReport(
+          scanned,
+          _translationService.translations,
+        );
+
+        if (!mounted) return;
+        Navigator.pop(context); // Fermer le dialogue de chargement
+        _showScanReportDialog(report);
+      } catch (e) {
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: TrText('Erreur pendant le scan: $e')),
+        );
+      }
+    }();
   }
 
   void _showScanReportDialog(Map<String, dynamic> report) {
@@ -741,16 +745,65 @@ class _TranslationManagementScreenState extends State<TranslationManagementScree
             child: const TrText('Fermer'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: TrText('${report['missing']} clés à ajouter')),
-              );
-            },
+            onPressed: missingKeys.isEmpty ? null : () => _addMissingKeys(missingKeys),
             child: const TrText('Ajouter les clés manquantes'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _addMissingKeys(List<String> missingKeys) async {
+    if (missingKeys.isEmpty) return;
+
+    Navigator.pop(context); // Fermer le rapport
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        title: TrText('Ajout des clés...'),
+        content: Padding(
+          padding: EdgeInsets.all(12.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 12),
+              TrText('Insertion dans Firestore'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final batch = <String, Map<String, String>>{};
+      for (final key in missingKeys) {
+        batch[key] = {
+          'fr': key,
+          'en': key, // placeholder en attendant traduction
+          'category': TranslationKeysScanner.guessCategory(key),
+          'status': 'pending',
+        };
+      }
+
+      await _translationService.importTranslations(batch, modifiedBy: 'admin-scan');
+      await _translationService.loadTranslations();
+
+      if (mounted) {
+        Navigator.pop(context); // fermer loader
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: TrText('${missingKeys.length} clés ajoutées')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: TrText('Erreur lors de l\'ajout: $e')),
+        );
+      }
+    }
   }
 }

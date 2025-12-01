@@ -126,7 +126,7 @@ class TranslationKeysScanner {
     buffer.writeln('key,fr,en,category,status');
     
     for (var key in missingKeys) {
-      final category = _guessCategory(key);
+      final category = guessCategory(key);
       buffer.writeln('"$key","$key","","$category","pending"');
     }
     
@@ -134,7 +134,7 @@ class TranslationKeysScanner {
   }
   
   /// Devine la catégorie d'une clé basée sur son contenu
-  static String _guessCategory(String key) {
+  static String guessCategory(String key) {
     final lower = key.toLowerCase();
     
     if (lower.contains('connexion') || lower.contains('inscription') || 
@@ -236,7 +236,7 @@ class TranslationKeysScanner {
                         style: const TextStyle(fontSize: 13),
                       ),
                       subtitle: Text(
-                        _guessCategory(missingKeys[index]),
+                        guessCategory(missingKeys[index]),
                         style: const TextStyle(fontSize: 11),
                       ),
                     );

@@ -433,6 +433,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     );
                   },
                 );
+                  },
+                );
               },
             ),
             

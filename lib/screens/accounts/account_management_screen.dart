@@ -965,6 +965,18 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     );
   }
 
+  String _resolveTxCategoryLabel(app_transaction.Transaction tx) {
+    if (tx.category != null && tx.category!.trim().isNotEmpty) return tx.category!;
+    switch (tx.type) {
+      case app_transaction.TransactionType.income:
+        return t('Revenu');
+      case app_transaction.TransactionType.expense:
+        return t('Dépense');
+      case app_transaction.TransactionType.transfer:
+        return t('Transfert');
+    }
+  }
+
   @override
   void dispose() {
     super.dispose();
@@ -1463,18 +1475,6 @@ class _EditAccountModalState extends State<EditAccountModal> {
         ],
       ),
     );
-  }
-
-  String _resolveTxCategoryLabel(Transaction tx) {
-    if (tx.category != null && tx.category!.trim().isNotEmpty) return tx.category!;
-    switch (tx.type) {
-      case TransactionType.income:
-        return t('Revenu');
-      case TransactionType.expense:
-        return t('Dépense');
-      case TransactionType.transfer:
-        return t('Transfert');
-    }
   }
 }
 
