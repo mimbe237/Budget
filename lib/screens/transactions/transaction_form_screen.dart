@@ -328,7 +328,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final bool isLoggedIn = _firestoreService.currentUserId != null;
     
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
+      backgroundColor: AppDesign.backgroundGrey,
       appBar: AppBar(
         title: TrText(
           _isExpense ? 'Nouvelle Dépense' : 'Nouveau Revenu',
@@ -342,15 +343,17 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         elevation: 0,
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            if (_isInitializing) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        child: Stack(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (_isInitializing) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            return StreamBuilder<List<Account>>(
-              stream: _accountsStream,
-              builder: (context, accountSnapshot) {
+                return StreamBuilder<List<Account>>(
+                  stream: _accountsStream,
+                  builder: (context, accountSnapshot) {
                 if (accountSnapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -431,8 +434,19 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   },
                 );
               },
-            );
-          },
+            ),
+            
+            // Widget magique pour corriger le bug de l'espace blanc lors de la fermeture du clavier
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: MediaQuery.of(context).viewInsets.bottom,
+                color: AppDesign.backgroundGrey,
+              ),
+            ),
+          ],
         ),
       ),
     );
