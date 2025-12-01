@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:budget/services/currency_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_profile.dart';
 import '../models/account.dart';
@@ -938,7 +939,7 @@ class FirestoreService {
       // Récupérer comptes
       final accountsSnap = await _accountsCollection(userId).get();
       for (final doc in accountsSnap.docs) {
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>;
         final bal = (data['balance'] ?? 0).toDouble();
         final currentCur = data['currency'] ?? oldCurrency;
         double newBal = bal;
@@ -958,7 +959,7 @@ class FirestoreService {
       // Récupérer transactions (paginer si très nombreuses)
       final txSnap = await _transactionsCollection(userId).get();
       for (final doc in txSnap.docs) {
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>;
         final amt = (data['amount'] ?? 0).toDouble();
         final txCur = data['currency'] ?? oldCurrency;
         double newAmt = amt;
@@ -1650,6 +1651,15 @@ class FirestoreService {
     }
   }
 
+  /// Supprimer un objectif
+  Future<void> deleteGoal(String userId, String goalId) async {
+    try {
+      await _goalsCollection(userId).doc(goalId).delete();
+    } catch (e) {
+      throw Exception('Erreur lors de la suppression de l\'objectif: $e');
+    }
+  }
+
   // ============================================================================
   // DETTES/CRÉANCES (IOUs)
   // ============================================================================
@@ -1669,6 +1679,7 @@ class FirestoreService {
     String? description,
     required DateTime dueDate,
     String icon = '🤝',
+    IOUStatus status = IOUStatus.active,
   }) async {
     try {
       final now = DateTime.now();
@@ -1685,6 +1696,7 @@ class FirestoreService {
         description: description,
         dueDate: dueDate,
         icon: icon,
+        status: status,
         createdAt: now,
         updatedAt: now,
       );
@@ -1733,14 +1745,55 @@ class FirestoreService {
         newStatus = IOUStatus.partiallyPaid;
       }
 
+      final now = DateTime.now();
+
       await _iousCollection(userId).doc(iouId).update({
         'paidAmount': newPaidAmount,
         'status': newStatus.name,
-        'updatedAt': Timestamp.fromDate(DateTime.now()),
+        'updatedAt': Timestamp.fromDate(now),
+      });
+
+      // Historiser le paiement
+      await _iousCollection(userId)
+          .doc(iouId)
+          .collection('payments')
+          .add({
+        'amount': paymentAmount,
+        'createdAt': Timestamp.fromDate(now),
       });
     } catch (e) {
       throw Exception('Erreur lors de l\'enregistrement du paiement: $e');
     }
+  }
+
+  /// Supprime une dette/créance définitivement
+  Future<void> deleteIOU(String userId, String iouId) async {
+    try {
+      await _iousCollection(userId).doc(iouId).delete();
+    } catch (e) {
+      throw Exception('Erreur lors de la suppression de la dette/créance: $e');
+    }
+  }
+
+  /// Historique des paiements pour une dette/créance
+  Stream<List<Map<String, dynamic>>> getIOUPaymentsStream(
+    String userId,
+    String iouId, {
+    int limit = 100,
+  }) {
+    return _iousCollection(userId)
+        .doc(iouId)
+        .collection('payments')
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((d) => {
+                  'id': d.id,
+                  'amount': (d['amount'] ?? 0).toDouble(),
+                  'createdAt': (d['createdAt'] as Timestamp).toDate(),
+                })
+            .toList());
   }
 
   // ============================================================================
@@ -1885,6 +1938,7 @@ class FirestoreService {
           date: now,
           toAccountId: null,
           tags: const ['goal'],
+          goalId: goalId,
           receiptUrl: null,
           createdAt: now,
           updatedAt: now);
@@ -1895,6 +1949,25 @@ class FirestoreService {
     } catch (e) {
       throw Exception('Erreur lors du financement de l\'objectif: $e');
     }
+  }
+
+  /// Transactions liées à un objectif (allocations)
+  Stream<List<app_transaction.Transaction>> getGoalFundingStream(
+    String userId,
+    String goalId, {
+    int limit = 100,
+  }) {
+    return _transactionsCollection(userId)
+        .where('goalId', isEqualTo: goalId)
+        .orderBy('date', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => app_transaction.Transaction.fromMap(
+                  doc.data() as Map<String, dynamic>,
+                  doc.id,
+                ))
+            .toList());
   }
 
   // ============================================================================

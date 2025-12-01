@@ -568,67 +568,95 @@ class _AuthScreenState extends State<AuthScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FB),
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: EdgeInsets.only(
-              left: isWide ? 48 : 20,
-              right: isWide ? 48 : 20,
-              top: 24,
-              bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return DecoratedBox(
-                  decoration: const BoxDecoration(color: Color(0xFFF7F8FB)),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: 1180,
-                    ),
-                    child: isWide
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(child: _buildHeroPanel()),
-                              const SizedBox(width: 28),
-                              SizedBox(width: 420, child: _buildAuthCard()),
-                            ],
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildHeroPanel(),
-                              const SizedBox(height: 20),
-                              _buildAuthCard(),
-                              const SizedBox(height: 16),
-                              Center(
-                                child: TextButton(
-                                  onPressed: () {
-                                    launchUrl(Uri.parse('https://www.beonweb.cm'), mode: LaunchMode.externalApplication);
-                                  },
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: _brandPrimary,
-                                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  ),
-                                  child: const Text(
-                                    'By BEONWEB',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      decoration: TextDecoration.none,
-                                      color: _brandPrimary,
+      resizeToAvoidBottomInset: false, // évite de couper l'écran quand le clavier se ferme
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SafeArea(
+          bottom: false,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+              return SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.only(
+                  left: isWide ? 48 : 20,
+                  right: isWide ? 48 : 20,
+                  top: 24,
+                  bottom: 24 + bottomInset,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                    maxWidth: 1180,
+                  ),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(color: Color(0xFFF7F8FB)),
+                      child: isWide
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _buildHeroPanel()),
+                                const SizedBox(width: 28),
+                                SizedBox(width: 420, child: _buildAuthCard()),
+                              ],
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildHeroPanel(),
+                                const SizedBox(height: 20),
+                                _buildAuthCard(),
+                                const SizedBox(height: 16),
+                                Center(
+                                  child: TextButton(
+                                    onPressed: () {
+                                      launchUrl(Uri.parse("https://www.beonweb.cm"), mode: LaunchMode.externalApplication);
+                                    },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: _brandPrimary,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    ),
+                                    child: const Text(
+                                      "By BEONWEB",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        decoration: TextDecoration.none,
+                                        color: _brandPrimary,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                    ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _storeButton({required String label, required IconData icon, bool enabled = true}) {
+    return Expanded(
+      child: OutlinedButton.icon(
+        onPressed: enabled ? () {} : null,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+          side: BorderSide(color: enabled ? _brandPrimary : const Color(0xFFD7DBE7)),
+          foregroundColor: enabled ? _brandPrimary : Colors.grey,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        icon: Icon(icon, size: 18),
+        label: TrText(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: enabled ? _brandPrimary : Colors.grey,
           ),
         ),
       ),
@@ -775,28 +803,6 @@ class _AuthScreenState extends State<AuthScreen> {
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _storeButton({required String label, required IconData icon, bool enabled = true}) {
-    return Expanded(
-      child: OutlinedButton.icon(
-        onPressed: enabled ? () {} : null,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-          side: BorderSide(color: enabled ? _brandPrimary : const Color(0xFFD7DBE7)),
-          foregroundColor: enabled ? _brandPrimary : Colors.grey,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        icon: Icon(icon, size: 18),
-        label: TrText(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: enabled ? _brandPrimary : Colors.grey,
-          ),
-        ),
       ),
     );
   }

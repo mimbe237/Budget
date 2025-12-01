@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, setDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AdminShell from "@/components/AdminShell";
 
@@ -27,9 +27,10 @@ export default function AdminTranslationsPage() {
       const snap = await getDocs(q);
       const list: TranslationDoc[] = snap.docs.map(d => {
         const data = d.data();
+        const key = (data.key as string) ?? d.id;
         return {
-          id: d.id,
-          key: data.key ?? d.id,
+          id: key,
+          key,
           fr: data.fr,
           en: data.en,
           category: data.category ?? "general",
@@ -67,7 +68,8 @@ export default function AdminTranslationsPage() {
     const fr = prompt("Texte FR") ?? "";
     const en = prompt("Texte EN") ?? "";
     const category = prompt("Catégorie (ex: settings)") ?? "general";
-    await addDoc(collection(db, "translations"), { key, fr, en, category, updatedAt: new Date() });
+    const id = key.trim();
+    await setDoc(doc(db, "translations", id), { key: id, fr, en, category, updatedAt: serverTimestamp() }, { merge: true });
     load();
   }
 
@@ -75,7 +77,12 @@ export default function AdminTranslationsPage() {
     const fr = prompt("Texte FR", r.fr ?? "") ?? r.fr ?? "";
     const en = prompt("Texte EN", r.en ?? "") ?? r.en ?? "";
     const category = prompt("Catégorie", r.category ?? "general") ?? r.category ?? "general";
-    await updateDoc(doc(db, "translations", r.id), { fr, en, category, updatedAt: new Date() });
+    const id = (r.key || r.id).trim();
+    await setDoc(doc(db, "translations", id), { key: id, fr, en, category, updatedAt: serverTimestamp() }, { merge: true });
+    // Nettoyage éventuel de l'ancien doc si l'id a changé
+    if (r.id !== id) {
+      await deleteDoc(doc(db, "translations", r.id));
+    }
     load();
   }
 

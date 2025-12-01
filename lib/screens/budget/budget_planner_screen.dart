@@ -388,8 +388,14 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: LayoutBuilder(
+      body: SafeArea(
+        bottom: true,
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).padding.bottom + 96,
+          ),
+          child: LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 900;
             return Padding(
@@ -470,11 +476,12 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   _buildIncomeCategoriesRecap(),
                   const SizedBox(height: AppDesign.spacingLarge),
                   _buildTransactionsSection(),
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 120),
                 ],
               ),
             );
           },
+          ),
         ),
       ),
 
@@ -854,18 +861,22 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             const SizedBox(height: 10),
             Row(
               children: [
-                _healthChip(
-                  label: isOver ? 'Dépassement' : 'Reste à allouer',
-                  value: '$remaining%',
-                  color: indicatorColor,
-                  icon: isOver ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                Expanded(
+                  child: _healthChip(
+                    label: isOver ? 'Dépassement' : 'Reste à allouer',
+                    value: '$remaining%',
+                    color: indicatorColor,
+                    icon: isOver ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                  ),
                 ),
                 const SizedBox(width: 8),
-                _healthChip(
-                  label: t('Total prévu'),
-                  value: context.watch<CurrencyService>().formatAmount(_totalIncome),
-                  color: Colors.black54,
-                  icon: Icons.stacked_bar_chart_rounded,
+                Expanded(
+                  child: _healthChip(
+                    label: t('Total prévu'),
+                    value: context.watch<CurrencyService>().formatAmount(_totalIncome),
+                    color: Colors.black54,
+                    icon: Icons.stacked_bar_chart_rounded,
+                  ),
                 ),
               ],
             ),
@@ -892,19 +903,27 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         children: [
           Icon(icon, color: color, size: 16),
           const SizedBox(width: 6),
-          TrText(
-            label,
-            style: TextStyle(
-              color: color.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w600,
+          Flexible(
+            fit: FlexFit.loose,
+            child: TrText(
+              label,
+              style: TextStyle(
+                color: color.withValues(alpha: 0.9),
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 8),
-          TrText(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
+          Flexible(
+            fit: FlexFit.loose,
+            child: TrText(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

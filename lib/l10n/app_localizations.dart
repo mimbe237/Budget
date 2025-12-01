@@ -13,7 +13,12 @@ class AppLocalizations {
   final Locale locale;
 
   static Locale _globalLocale = const Locale('fr');
-  static final TranslationService _translationService = TranslationService();
+  static TranslationService? _translationService;
+  
+  static TranslationService get translationService {
+    _translationService ??= TranslationService();
+    return _translationService!;
+  }
 
   static const supportedLocales = [
     Locale('fr'),
@@ -34,7 +39,7 @@ class AppLocalizations {
         : 'fr';
 
     // Priority 1: Check Firestore translations (dynamic, admin-managed)
-    String? mapped = _translationService.getTranslation(key, languageCode);
+    String? mapped = translationService.getTranslation(key, languageCode);
 
     // Legacy local dictionaries and auto-translate removed.
 

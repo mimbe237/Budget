@@ -326,7 +326,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final bool isLoggedIn = _firestoreService.currentUserId != null;
     
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: TrText(
           _isExpense ? 'Nouvelle Dépense' : 'Nouveau Revenu',
@@ -340,60 +340,66 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         elevation: 0,
       ),
       body: SafeArea(
-        child: _isInitializing
-            ? const Center(child: CircularProgressIndicator())
-            : StreamBuilder<List<Account>>(
-                stream: _accountsStream,
-                builder: (context, accountSnapshot) {
-                  if (accountSnapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  
-                  if (accountSnapshot.hasError) {
-                    return Center(child: TrText('Erreur chargement comptes: ${accountSnapshot.error}'));
-                  }
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (_isInitializing) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-                  final accounts = accountSnapshot.data ?? [];
-                  
-                  // Initialisation par défaut du compte sélectionné
-                  if (accounts.isNotEmpty && (_selectedAccountId == null || !accounts.any((a) => a.accountId == _selectedAccountId))) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        setState(() {
-                          _selectedAccountId = accounts.first.accountId;
-                        });
-                      }
-                    });
-                  }
+            return StreamBuilder<List<Account>>(
+              stream: _accountsStream,
+              builder: (context, accountSnapshot) {
+                if (accountSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                
+                if (accountSnapshot.hasError) {
+                  return Center(child: TrText('Erreur chargement comptes: ${accountSnapshot.error}'));
+                }
 
-                  return StreamBuilder<List<Category>>(
-                    stream: _categoriesStream,
-                    builder: (context, categorySnapshot) {
-                      if (categorySnapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                final accounts = accountSnapshot.data ?? [];
+                
+                // Initialisation par défaut du compte sélectionné
+                if (accounts.isNotEmpty && (_selectedAccountId == null || !accounts.any((a) => a.accountId == _selectedAccountId))) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        _selectedAccountId = accounts.first.accountId;
+                      });
+                    }
+                  });
+                }
 
-                      final categories = categorySnapshot.data ?? [];
-                      
-                      // Initialisation par défaut de la catégorie sélectionnée
-                      if (categories.isNotEmpty && (_selectedCategoryId == null || !categories.any((c) => c.categoryId == _selectedCategoryId))) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted) {
-                            setState(() {
-                              _selectedCategoryId = categories.first.categoryId;
-                            });
-                          }
-                        });
-                      }
+                return StreamBuilder<List<Category>>(
+                  stream: _categoriesStream,
+                  builder: (context, categorySnapshot) {
+                    if (categorySnapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                      final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-                      return ColoredBox(
-                        color: AppDesign.backgroundGrey,
-                        child: Form(
-                          key: _formKey,
-                          child: SingleChildScrollView(
-                            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                    final categories = categorySnapshot.data ?? [];
+                    
+                    // Initialisation par défaut de la catégorie sélectionnée
+                    if (categories.isNotEmpty && (_selectedCategoryId == null || !categories.any((c) => c.categoryId == _selectedCategoryId))) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          setState(() {
+                            _selectedCategoryId = categories.first.categoryId;
+                          });
+                        }
+                      });
+                    }
+
+                    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+                    return ColoredBox(
+                      color: AppDesign.backgroundGrey,
+                      child: Form(
+                        key: _formKey,
+                        child: SingleChildScrollView(
+                          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                          padding: EdgeInsets.fromLTRB(24, 24, 24, 32 + bottomInset + 32),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minHeight: constraints.maxHeight),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -414,16 +420,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                 _buildDateSelector(),
                                 const SizedBox(height: 24),
                                 _buildSaveButton(),
-                                SizedBox(height: bottomInset),
                               ],
                             ),
                           ),
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

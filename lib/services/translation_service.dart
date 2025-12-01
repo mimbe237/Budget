@@ -9,7 +9,13 @@ class TranslationService extends ChangeNotifier {
   factory TranslationService() => _instance;
   TranslationService._internal();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  FirebaseFirestore? get _firestore {
+    try {
+      return FirebaseFirestore.instance;
+    } catch (e) {
+      return null;
+    }
+  }
   
   // Cache local des traductions
   Map<String, Map<String, String>> _translations = {};
@@ -25,10 +31,10 @@ class TranslationService extends ChangeNotifier {
 
   /// Lance l'écoute temps réel et charge initialement
   Future<void> startRealtime() async {
-    if (_listening) return;
+    if (_listening || _firestore == null) return;
     _listening = true;
     await loadTranslations();
-    _subscription = _firestore.collection('translations').snapshots().listen((snapshot) {
+    _subscription = _firestore!.collection('translations').snapshots().listen((snapshot) {
       final Map<String, Map<String, String>> loaded = {};
       for (var doc in snapshot.docs) {
         final key = doc.id;
@@ -59,8 +65,9 @@ class TranslationService extends ChangeNotifier {
 
   /// Charge les traductions depuis Firestore
   Future<void> loadTranslations() async {
+    if (_firestore == null) return;
     try {
-      final snapshot = await _firestore.collection('translations').get();
+      final snapshot = await _firestore!.collection('translations').get();
       
       final Map<String, Map<String, String>> loadedTranslations = {};
       
@@ -91,7 +98,8 @@ class TranslationService extends ChangeNotifier {
 
   /// Stream en temps réel des traductions
   Stream<Map<String, Map<String, String>>> watchTranslations() {
-    return _firestore.collection('translations').snapshots().map((snapshot) {
+    if (_firestore == null) return Stream.value({});
+    return _firestore!.collection('translations').snapshots().map((snapshot) {
       final Map<String, Map<String, String>> translations = {};
       
       for (var doc in snapshot.docs) {
@@ -118,8 +126,9 @@ class TranslationService extends ChangeNotifier {
     String status = 'active',
     String? modifiedBy,
   }) async {
+    if (_firestore == null) return;
     try {
-      await _firestore.collection('translations').doc(key).set({
+      await _firestore!.collection('translations').doc(key).set({
         'fr': frenchText,
         'en': englishText,
         'category': category,
@@ -147,8 +156,9 @@ class TranslationService extends ChangeNotifier {
 
   /// Supprime une traduction
   Future<void> deleteTranslation(String key) async {
+    if (_firestore == null) return;
     try {
-      await _firestore.collection('translations').doc(key).delete();
+      await _firestore!.collection('translations').doc(key).delete();
       _translations.remove(key);
       notifyListeners();
     } catch (e) {
@@ -159,11 +169,12 @@ class TranslationService extends ChangeNotifier {
 
   /// Importe plusieurs traductions en batch
   Future<void> importTranslations(Map<String, Map<String, String>> translations, {String? modifiedBy}) async {
+    if (_firestore == null) return;
     try {
-      final batch = _firestore.batch();
+      final batch = _firestore!.batch();
       
       translations.forEach((key, values) {
-        final docRef = _firestore.collection('translations').doc(key);
+        final docRef = _firestore!.collection('translations').doc(key);
         batch.set(docRef, {
           'fr': values['fr'] ?? key,
           'en': values['en'] ?? key,
@@ -187,8 +198,9 @@ class TranslationService extends ChangeNotifier {
 
   /// Exporte toutes les traductions
   Future<Map<String, Map<String, String>>> exportTranslations() async {
+    if (_firestore == null) return {};
     try {
-      final snapshot = await _firestore.collection('translations').get();
+      final snapshot = await _firestore!.collection('translations').get();
       final Map<String, Map<String, String>> exported = {};
       
       for (var doc in snapshot.docs) {
@@ -210,8 +222,9 @@ class TranslationService extends ChangeNotifier {
 
   /// Recherche des traductions par texte ou clé
   Future<List<Map<String, dynamic>>> searchTranslations(String query) async {
+    if (_firestore == null) return [];
     try {
-      final snapshot = await _firestore.collection('translations').get();
+      final snapshot = await _firestore!.collection('translations').get();
       final results = <Map<String, dynamic>>[];
       
       final lowerQuery = query.toLowerCase();

@@ -163,10 +163,13 @@ class CurrencyService extends ChangeNotifier {
       display = amount / 1000;
       suffix = 'K';
     }
-    final decimals = suffix.isEmpty ? 0 : 2;
-    final formatter = NumberFormat('#,##0${decimals > 0 ? '.00' : ''}', 'fr_FR');
+    // Afficher les décimales seulement si nécessaire (ex: 1,25 M) sinon 0 décimale (ex: 55 M)
+    final bool hasFraction = (display % 1).abs() > 0.0001;
+    final int decimals = hasFraction ? 2 : 0;
+    final formatter = NumberFormat(decimals > 0 ? '#,##0.##' : '#,##0', 'fr_FR');
     final numStr = formatter.format(display);
-    return '$numStr$suffix\u202F$symbol'.trim();
+    // Espace entre le nombre et le suffixe pour "55 M" au lieu de "55M"
+    return '$numStr${suffix.isNotEmpty ? ' ' + suffix : ''}\u202F$symbol'.trim();
   }
 
   /// Obtient la liste formatée des devises pour l'UI

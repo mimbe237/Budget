@@ -455,57 +455,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                         fontSize: 16,
                       ),
                     ),
-                    Row(
-                      children: [
-                        _historyChip('Tous', null),
-                        _historyChip('Revenus', app_transaction.TransactionType.income),
-                        _historyChip('Dépenses', app_transaction.TransactionType.expense),
-                        _historyChip('Transferts', app_transaction.TransactionType.transfer),
-                        TextButton(
-                          onPressed: () async {
-                            final now = DateTime.now();
-                            final range = await showDateRangePicker(
-                              context: context,
-                              firstDate: DateTime(now.year - 2),
-                              lastDate: DateTime(now.year + 1),
-                              initialDateRange: _historyRange ??
-                                  DateTimeRange(
-                                    start: DateTime(now.year, now.month, 1),
-                                    end: now,
-                                  ),
-                            );
-                            if (range != null) {
-                              setState(() {
-                                _historyRange = range;
-                              });
-                            }
-                          },
-                          child: TrText(
-                            _historyRange == null
-                                ? 'Période'
-                                : '${_historyRange!.start.day}/${_historyRange!.start.month} → ${_historyRange!.end.day}/${_historyRange!.end.month}',
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: t('Exporter CSV'),
-                          icon: const Icon(Icons.download),
-                          onPressed: () async {
-                            final buffer = StringBuffer();
-                            buffer.writeln('date,type,description,amount,category');
-                            for (final tx in txs) {
-                              buffer.writeln(
-                                '${tx.date.toIso8601String()},${tx.type.name},${tx.description ?? ''},${tx.amount.toStringAsFixed(2)},${tx.category ?? ''}',
-                              );
-                            }
-                            await Clipboard.setData(ClipboardData(text: buffer.toString()));
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: TrText('Historique copié (CSV)')),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
+                    _buildHistoryActions(txs),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -521,6 +471,63 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildHistoryActions(List<app_transaction.Transaction> txs) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _historyChip('Tous', null),
+          _historyChip('Revenus', app_transaction.TransactionType.income),
+          _historyChip('Dépenses', app_transaction.TransactionType.expense),
+          _historyChip('Transferts', app_transaction.TransactionType.transfer),
+          TextButton(
+            onPressed: () async {
+              final now = DateTime.now();
+              final range = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(now.year - 2),
+                lastDate: DateTime(now.year + 1),
+                initialDateRange: _historyRange ??
+                    DateTimeRange(
+                      start: DateTime(now.year, now.month, 1),
+                      end: now,
+                    ),
+              );
+              if (range != null) {
+                setState(() {
+                  _historyRange = range;
+                });
+              }
+            },
+            child: TrText(
+              _historyRange == null
+                  ? 'Période'
+                  : '${_historyRange!.start.day}/${_historyRange!.start.month} → ${_historyRange!.end.day}/${_historyRange!.end.month}',
+            ),
+          ),
+          IconButton(
+            tooltip: t('Exporter CSV'),
+            icon: const Icon(Icons.download),
+            onPressed: () async {
+              final buffer = StringBuffer();
+              buffer.writeln('date,type,description,amount,category');
+              for (final tx in txs) {
+                buffer.writeln(
+                  '${tx.date.toIso8601String()},${tx.type.name},${tx.description ?? ''},${tx.amount.toStringAsFixed(2)},${tx.category ?? ''}',
+                );
+              }
+              await Clipboard.setData(ClipboardData(text: buffer.toString()));
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: TrText('Historique copié (CSV)')),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -548,6 +555,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         border: Border.all(color: Colors.grey[200]!),
       ),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         leading: Container(
           width: 48,
           height: 48,
@@ -555,7 +563,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             color: color.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-            child: Icon(iconData, color: color),
+          child: Icon(iconData, color: color),
         ),
         title: TrText(
           tx.description ?? 'Transaction',
@@ -566,7 +574,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           style: const TextStyle(color: Colors.grey),
         ),
         trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             TrText(
@@ -584,18 +592,24 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height:4),
+            const SizedBox(height: 6),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
                   tooltip: t('Modifier'),
-                  icon: const Icon(Icons.edit, size: 20, color: AppDesign.primaryIndigo),
+                  icon: const Icon(Icons.edit, size: 18, color: AppDesign.primaryIndigo),
+                  constraints: const BoxConstraints.tightFor(width: 36, height: 32),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
                   onPressed: () => _showEditTransactionModal(tx),
                 ),
                 IconButton(
                   tooltip: t('Supprimer'),
-                  icon: const Icon(Icons.delete_outline, size: 20, color: AppDesign.expenseColor),
+                  icon: const Icon(Icons.delete_outline, size: 18, color: AppDesign.expenseColor),
+                  constraints: const BoxConstraints.tightFor(width: 36, height: 32),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
                   onPressed: () => _confirmDeleteTransaction(tx),
                 ),
               ],

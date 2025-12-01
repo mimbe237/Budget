@@ -59,35 +59,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         toolbarHeight: 74,
         titleSpacing: 12,
-        title: Row(
-          children: [
-            const RevolutionaryLogo(size: 38),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        title: LayoutBuilder(
+          builder: (context, constraints) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
               children: const [
-                TrText(
-                  'Budget',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black87,
-                    height: 1.0,
-                  ),
-                ),
-                TrText(
-                  'Pro',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: AppDesign.primaryIndigo,
-                    height: 1.0,
-                  ),
-                ),
+                RevolutionaryLogo(size: 38),
               ],
-            ),
-            const Spacer(),
-          ],
+            );
+          },
         ),
         centerTitle: false,
         backgroundColor: Colors.white,
@@ -95,137 +75,153 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Bloc 2 : dettes / objectifs / langue
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: t('Dettes / créances'),
-                      icon: const Icon(Icons.handshake, color: AppDesign.primaryIndigo, size: 22),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const IOUTrackingScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    IconButton(
-                      tooltip: t('Objectifs'),
-                      icon: const Icon(Icons.flag_outlined, color: AppDesign.primaryIndigo, size: 22),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const GoalFundingScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        await localeProvider.setLocale(Locale(targetLang));
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: TrText('Langue sélectionnée : $selectedLabel')),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        minimumSize: const Size(40, 40),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Bloc 2 : dettes / objectifs / langue
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: t('Dettes / créances'),
+                        icon: const Icon(Icons.handshake, color: AppDesign.primaryIndigo, size: 22),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const IOUTrackingScreen(),
+                            ),
+                          );
+                        },
                       ),
-                      child: Text(
-                        targetLabel,
-                        style: const TextStyle(
-                          color: AppDesign.primaryIndigo,
-                          fontWeight: FontWeight.w700,
+                      IconButton(
+                        tooltip: t('Objectifs'),
+                        icon: const Icon(Icons.flag_outlined, color: AppDesign.primaryIndigo, size: 22),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const GoalFundingScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          await localeProvider.setLocale(Locale(targetLang));
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: TrText('Langue sélectionnée : $selectedLabel')),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: const Size(40, 40),
+                        ),
+                        child: Text(
+                          targetLabel,
+                          style: const TextStyle(
+                            color: AppDesign.primaryIndigo,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 12),
-                // Bloc 3 : notifications + profil
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications_none, color: AppDesign.primaryIndigo, size: 22),
-                      tooltip: t('Notifications'),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: TrText('Notifications à venir')),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const SettingsHubScreen()),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(20),
-                      child: CircleAvatar(
-                        backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.1),
-                        child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  // Bloc 3 : notifications + profil
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none, color: AppDesign.primaryIndigo, size: 22),
+                        tooltip: t('Notifications'),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: TrText('Notifications à venir')),
+                          );
+                        },
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 10),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SettingsHubScreen()),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: CircleAvatar(
+                          backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.1),
+                          child: const Icon(Icons.person_outline, color: AppDesign.primaryIndigo),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
-      body: LayoutBuilder(
+      body: SafeArea(
+        bottom: true,
+        top: false,
+        child: LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth >= 600;
           if (!isWide) {
-            return SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(AppDesign.spacingLarge),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _buildMobileSections(context),
+              return SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).padding.bottom + 96,
                 ),
-              ),
-            );
+                child: Padding(
+                  padding: const EdgeInsets.all(AppDesign.spacingLarge),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _buildMobileSections(context),
+                  ),
+                ),
+              );
           }
 
-          return Padding(
-            padding: const EdgeInsets.all(AppDesign.spacingLarge),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: _buildLeftDesktopSections(context),
+            return Padding(
+              padding: const EdgeInsets.all(AppDesign.spacingLarge),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).padding.bottom + 96,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _buildLeftDesktopSections(context),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: AppDesign.spacingMedium),
-                Expanded(
-                  flex: 2,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: _buildRightDesktopSections(context),
+                  const SizedBox(width: AppDesign.spacingMedium),
+                  Expanded(
+                    flex: 2,
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).padding.bottom + 96,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _buildRightDesktopSections(context),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
+                ],
+              ),
+            );
         },
+        ),
       ),
     );
   }
@@ -759,13 +755,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 10),
-                  TrText(
-                    currency.formatAmount(totalBalance),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 38,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: TrText(
+                      currency.formatAmount(totalBalance),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),

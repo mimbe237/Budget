@@ -5,41 +5,65 @@ import 'revolutionary_logo.dart';
 class BrandingSplash extends StatelessWidget {
   const BrandingSplash({super.key});
 
-  static const _bg = Color(0xFF5E5CE6); // simpler flat background to reduce paint cost
+  static const _bg = Color(0xFFF7F8FB);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bg,
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              strokeWidth: 3,
-            ),
-            SizedBox(height: 24),
-            Text(
-              'Budget Pro',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(26),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 22,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: const RevolutionaryLogo(size: 96, withText: false),
               ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Chargement...',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
+              const SizedBox(height: 24),
+              const Text(
+                'Budget Pro',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.2,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              const Text(
+                'Initialisation en cours...',
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const SizedBox(
+                height: 4,
+                width: 180,
+                child: LinearProgressIndicator(
+                  backgroundColor: Color(0xFFE6E8F0),
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6C5CF7)),
+                  minHeight: 4,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-// Simplified splash: removed logo and glow to minimize initial frame work.

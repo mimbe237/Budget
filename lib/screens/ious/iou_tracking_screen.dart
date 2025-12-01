@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import '../../widgets/modern_page_app_bar.dart';
 import '../../widgets/screen_header.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Écran de suivi des dettes (je dois) et créances (on me doit)
 class IOUTrackingScreen extends StatefulWidget {
@@ -52,13 +53,16 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
   @override
   Widget build(BuildContext context) {
     final currency = context.watch<CurrencyService>();
+    bool _isActive(IOU iou) =>
+        iou.status != IOUStatus.completed && iou.status != IOUStatus.paid && iou.status != IOUStatus.cancelled;
+
     final debts = _ious.where((iou) => iou.type == IOUType.payable).toList();
     final receivables = _ious.where((iou) => iou.type == IOUType.receivable).toList();
     
     final totalDebt = debts.fold(0.0, (sum, iou) => 
-      iou.status == IOUStatus.active ? sum + iou.currentBalance : sum);
+      _isActive(iou) ? sum + iou.currentBalance : sum);
     final totalReceivable = receivables.fold(0.0, (sum, iou) => 
-      iou.status == IOUStatus.active ? sum + iou.currentBalance : sum);
+      _isActive(iou) ? sum + iou.currentBalance : sum);
 
     final isMobile = MediaQuery.of(context).size.width < 600;
 
@@ -87,7 +91,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                 'On me doit',
                 Icons.arrow_downward,
                 AppDesign.incomeColor,
-                receivables.where((iou) => iou.status == IOUStatus.active).length,
+                receivables.where(_isActive).length,
               ),
               const SizedBox(height: AppDesign.spacingSmall),
               ...receivables.map((iou) => _buildIOUCard(iou)).toList(),
@@ -99,7 +103,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                 'Je dois',
                 Icons.arrow_upward,
                 AppDesign.expenseColor,
-                debts.where((iou) => iou.status == IOUStatus.active).length,
+                debts.where(_isActive).length,
               ),
               const SizedBox(height: AppDesign.spacingSmall),
               ...debts.map((iou) => _buildIOUCard(iou)).toList(),
@@ -337,6 +341,20 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
                       });
                     },
                   ),
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'delete') {
+                        await _confirmDeleteIOU(iou);
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: TrText('Supprimer'),
+                      ),
+                    ],
+                    child: const Icon(Icons.more_horiz, color: Colors.grey),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -446,11 +464,10 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
   }
 
   Widget _buildIOUHistory(IOU iou) {
-    final entries = [
-      _IouTx(label: t('Paiement partiel'), amount: 100, date: DateTime.now().subtract(const Duration(days: 7))),
-      _IouTx(label: t('Paiement partiel'), amount: 150, date: DateTime.now().subtract(const Duration(days: 20))),
-      _IouTx(label: t('Initial'), amount: iou.originalAmount, date: iou.createdAt),
-    ];
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      return const TrText('Connectez-vous pour voir l\'historique.');
+    }
 
     return Container(
       width: double.infinity,
@@ -468,53 +485,83 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
           ),
           const SizedBox(height: 8),
-          ...entries.map((e) {
-            final isPayment = e.label.toLowerCase().contains('paiement');
-            final color = isPayment ? AppDesign.incomeColor : AppDesign.expenseColor;
-            final prefix = isPayment ? '- ' : '+ ';
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isPayment ? Icons.payments_outlined : Icons.request_page,
-                      color: color,
-                      size: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _firestoreService.getIOUPaymentsStream(userId, iou.iouId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: LinearProgressIndicator(minHeight: 2),
+                );
+              }
+              final payments = snapshot.data ?? [];
+              final entries = [
+                ...payments.map((p) => _IouTx(
+                      label: t('Paiement'),
+                      amount: p['amount'] as double,
+                      date: p['createdAt'] as DateTime,
+                    )),
+                _IouTx(label: t('Création'), amount: iou.originalAmount, date: iou.createdAt),
+              ]..sort((a, b) => b.date.compareTo(a.date));
+
+              if (entries.isEmpty) {
+                return const TrText(
+                  'Aucun mouvement pour l’instant.',
+                  style: TextStyle(color: Colors.grey),
+                );
+              }
+
+              return Column(
+                children: entries.map((e) {
+                  final isPayment = e.label.toLowerCase().contains('paiement');
+                  final color = isPayment ? AppDesign.incomeColor : AppDesign.expenseColor;
+                  final prefix = isPayment ? '- ' : '+ ';
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
                       children: [
-                        TrText(
-                          e.label,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isPayment ? Icons.payments_outlined : Icons.request_page,
+                            color: color,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              TrText(
+                                e.label,
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                              ),
+                              TrText(
+                                '${e.date.day}/${e.date.month}/${e.date.year}',
+                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                              ),
+                            ],
+                          ),
                         ),
                         TrText(
-                          '${e.date.day}/${e.date.month}/${e.date.year}',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          '$prefix${context.watch<CurrencyService>().formatAmountCompact(e.amount)}',
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                  TrText(
-                    '$prefix${context.watch<CurrencyService>().formatAmountCompact(e.amount)}',
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
+                  );
+                }).toList(),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -557,6 +604,7 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
             description: newIOU.description,
             dueDate: newIOU.dueDate ?? DateTime.now(),
             icon: newIOU.icon ?? '🤝',
+            status: IOUStatus.active,
           );
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -602,6 +650,70 @@ class _IOUTrackingScreenState extends State<IOUTrackingScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _confirmDeleteIOU(IOU iou) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final pwdController = TextEditingController();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const TrText('Supprimer cette dette / créance ?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TrText('Cette action est irréversible pour "${iou.personName}".'),
+            const SizedBox(height: 12),
+            if (user.email != null)
+              TextField(
+                controller: pwdController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Mot de passe (requis)',
+                  border: OutlineInputBorder(),
+                ),
+              )
+            else
+              const TrText(
+                'Compte non email/password : re-auth non disponible, validation simple.',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const TrText('Annuler')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppDesign.expenseColor),
+            child: const TrText('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      if (user.email != null) {
+        final cred = EmailAuthProvider.credential(email: user.email!, password: pwdController.text);
+        await user.reauthenticateWithCredential(cred);
+      }
+      await _firestoreService.deleteIOU(user.uid, iou.iouId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: TrText('Dette / créance supprimée.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: TrText('Suppression impossible: $e')),
+        );
+      }
+    }
   }
 }
 

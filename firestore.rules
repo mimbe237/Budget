@@ -44,6 +44,41 @@ service cloud.firestore {
     match /users/{userId}/transactions/{transactionId} {
       allow read: if adminOrOwner(userId);
       allow write: if isOwner(userId) || isAdmin();
+
+      // Validation basique pour aligner les écritures depuis le module de financement d'objectifs
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasAll(['type','amount'])
+        && request.resource.data.type in ['income','expense','transfer']
+        && request.resource.data.amount is number
+        && request.resource.data.amount >= 0;
+    }
+
+    // Comptes utilisateur (soldes, type, icône)
+    match /users/{userId}/accounts/{accountId} {
+      allow read: if adminOrOwner(userId);
+      allow write: if isOwner(userId) || isAdmin();
+
+      // Autoriser mises à jour de solde lors d'un financement d'objectif
+      allow update: if isOwner(userId)
+        && request.resource.data.balance is number;
+    }
+
+    // Objectifs utilisateur (épargne, progression)
+    match /users/{userId}/goals/{goalId} {
+      allow read: if adminOrOwner(userId);
+      allow write: if isOwner(userId) || isAdmin();
+
+      // Autoriser mises à jour de progression/financement
+      allow update: if isOwner(userId)
+        && (
+          request.resource.data.keys().hasAny(['fundedAmount','progress','lastFundedAt'])
+        );
+    }
+
+    // Budgets utilisateur
+    match /users/{userId}/budgets/{budgetId} {
+      allow read: if adminOrOwner(userId);
+      allow write: if isOwner(userId) || isAdmin();
     }
 
     // Ancienne collection racine (pour compatibilité / exports admin)

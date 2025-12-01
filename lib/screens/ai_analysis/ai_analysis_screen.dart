@@ -434,7 +434,12 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           : RefreshIndicator(
               onRefresh: _loadDataAndAnalyze,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  16 + kBottomNavigationBarHeight,
+                ),
                 children: [
                   // Titre d'accueil
                   _buildWelcomeHeader(),

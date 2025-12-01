@@ -21,6 +21,7 @@ class Transaction {
   final String? toAccountId; // Pour les transferts
   final List<String>? tags;
   final String? receiptUrl;
+  final String? goalId;
   final bool isDeleted;
   final DateTime? deletedAt;
   final DateTime createdAt;
@@ -41,6 +42,7 @@ class Transaction {
     this.toAccountId,
     this.tags,
     this.receiptUrl,
+    this.goalId,
     this.isDeleted = false,
     this.deletedAt,
     required this.createdAt,
@@ -67,6 +69,7 @@ class Transaction {
       'toAccountId': toAccountId,
       'tags': tags,
       'receiptUrl': receiptUrl,
+      'goalId': goalId,
       'isDeleted': isDeleted,
       'deletedAt': deletedAt != null ? Timestamp.fromDate(deletedAt!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -94,6 +97,7 @@ class Transaction {
       toAccountId: map['toAccountId'],
       tags: map['tags'] != null ? List<String>.from(map['tags']) : null,
       receiptUrl: map['receiptUrl'],
+      goalId: map['goalId'],
       isDeleted: map['isDeleted'] ?? false,
       deletedAt: map['deletedAt'] != null ? (map['deletedAt'] as Timestamp).toDate() : null,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
@@ -117,6 +121,7 @@ class Transaction {
     String? toAccountId,
     List<String>? tags,
     String? receiptUrl,
+    String? goalId,
     bool? isDeleted,
     DateTime? deletedAt,
     DateTime? createdAt,
@@ -137,6 +142,7 @@ class Transaction {
       toAccountId: toAccountId ?? this.toAccountId,
       tags: tags ?? this.tags,
       receiptUrl: receiptUrl ?? this.receiptUrl,
+      goalId: goalId ?? this.goalId,
       isDeleted: isDeleted ?? this.isDeleted,
       deletedAt: deletedAt ?? this.deletedAt,
       createdAt: createdAt ?? this.createdAt,

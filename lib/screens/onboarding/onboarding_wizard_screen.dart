@@ -35,7 +35,6 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   final _formKeyStep3 = GlobalKey<FormState>();
 
   // États globaux de l'onboarding
-  String _name = '';
   String _currency = 'EUR';
   double _monthlyIncome = 0.0;
   String? _userId; // UID pour autosave
@@ -67,10 +66,8 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
       _userId = existingUserId ?? await _firestoreService.signInAnonymously();
       // Créer le profil si manquant dès le départ (merge)
       await _firestoreService.updateUserProfile(_userId!, {
-        'displayName': _name.isNotEmpty ? _name : 'Utilisateur',
         'currency': _currency,
         'languageCode': Localizations.localeOf(context).languageCode,
-        'needsOnboarding': true,
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       });
     } catch (e) {
@@ -247,7 +244,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
       if (existingUserId == null) {
         await _firestoreService.createUserProfile(
           userId: userId,
-          displayName: _name.isEmpty ? 'Utilisateur' : _name,
+          displayName: 'Utilisateur',
           currency: _currency,
           languageCode: langCode,
           needsOnboarding: false,
@@ -257,7 +254,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         if (profile == null) {
           await _firestoreService.createUserProfile(
             userId: userId,
-            displayName: _name.isEmpty ? 'Utilisateur' : _name,
+            displayName: 'Utilisateur',
             currency: _currency,
             languageCode: langCode,
             needsOnboarding: false,
@@ -480,26 +477,11 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
             ),
             const SizedBox(height: 16),
             
-            TextFormField(
-              decoration: InputDecoration(
-                labelText: t('Votre prénom'),
-                hintText: t('ex: Marie'),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.person_outline),
-                filled: true,
-                fillColor: Colors.grey[50],
-              ),
-              onChanged: (value) async {
-                _name = value;
-                if (_userId != null) {
-                  await _firestoreService.updateUserProfile(_userId!, {
-                    'displayName': _name.isNotEmpty ? _name : 'Utilisateur',
-                  });
-                }
-              },
-              validator: (value) => value!.isEmpty ? 'Prénom requis' : null,
+            const SizedBox(height: 8),
+            TrText(
+              t('Nous avons déjà vos infos de compte. Passez directement au choix de la devise.'),
+              style: const TextStyle(color: Colors.grey),
             ),
-            
             const SizedBox(height: 32),
             const TrText(
               'Votre devise par défaut',

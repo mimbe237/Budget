@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/models.dart';
+import '../../models/transaction.dart' as app_transaction;
 import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
@@ -62,7 +63,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
 
   Widget _buildGoalHistory(Goal goal) {
     final currencyService = context.watch<CurrencyService>();
-    final entries = <_GoalTx>[];
+    final userId = _firestoreService.currentUserId;
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -75,58 +76,90 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+          const TrText(
+            'Historique des mouvements',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          if (userId == null)
+            const TrText('Connectez-vous pour voir l\'historique.')
+          else
+            StreamBuilder<List<app_transaction.Transaction>>( 
+              stream: _firestoreService.getGoalFundingStream(userId, goal.goalId, limit: 200),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: LinearProgressIndicator(minHeight: 2),
+                  );
+                }
+                if (snapshot.hasError) {
+                  debugPrint('[GoalHistory] error: ${snapshot.error}');
+                  return TrText('Erreur: ${snapshot.error}');
+                }
+
+                final txs = snapshot.data ?? [];
+
+                if (txs.isEmpty) {
+                  debugPrint('[GoalHistory] no transactions for goal ${goal.goalId}');
+                  return const TrText(
+                    'Aucun mouvement pour cet objectif pour le moment.',
+                    style: TextStyle(color: Colors.grey),
+                  );
+                }
+                
+                debugPrint('[GoalHistory] tx count for ${goal.goalId}: ${txs.length}');
+                return _buildGoalHistoryList(txs, currencyService);
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoalHistoryList(List<app_transaction.Transaction> txs, CurrencyService currencyService) {
+    return Column(
+      children: txs.map((tx) {
+        final date = tx.date;
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppDesign.primaryIndigo.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.savings, size: 16, color: AppDesign.primaryIndigo),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TrText(
+                      tx.description ?? 'Financement objectif',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    ),
+                    TrText(
+                      '${date.day}/${date.month}/${date.year}',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
               TrText(
-                'Historique des mouvements',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                '+${currencyService.formatAmountCompact(tx.amount)}',
+                style: const TextStyle(
+                  color: AppDesign.incomeColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ...entries.map((e) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppDesign.primaryIndigo.withValues(alpha: 0.08),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.savings, size: 16, color: AppDesign.primaryIndigo),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TrText(
-                          e.label,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                        ),
-                        TrText(
-                          '${e.date.day}/${e.date.month}/${e.date.year}',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TrText(
-                    '+${currencyService.formatAmountCompact(e.amount)}',
-                    style: const TextStyle(
-                      color: AppDesign.incomeColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
+        );
+      }).toList(),
     );
   }
 
@@ -139,6 +172,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
     final totalSaved = activeGoals.fold(0.0, (sum, g) => sum + g.currentAmount);
     final overallProgress = totalTarget > 0 ? totalSaved / totalTarget : 0.0;
 
+    debugPrint('[Goals] active=${activeGoals.length} completed=${completedGoals.length}');
     if (_goals.isEmpty) {
       return Scaffold(
         backgroundColor: AppDesign.backgroundGrey,
@@ -606,7 +640,29 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
             
             const SizedBox(height: 12),
             if (_selectedGoalForHistory == goal.goalId)
-              _buildGoalHistory(goal),
+              Column(
+                children: [
+                  _buildGoalHistory(goal),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: PopupMenuButton<String>(
+                      onSelected: (value) async {
+                        if (value == 'delete') {
+                          await _confirmDeleteGoal(goal);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: TrText('Supprimer'),
+                        ),
+                      ],
+                      child: const Icon(Icons.more_horiz, color: Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
             
             // Bouton Financer
             if (!isCompleted) ...[
@@ -647,22 +703,22 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
               onGoalCreated: (newGoal) async {
                 final userId = _firestoreService.currentUserId;
                 if (userId == null) return;
-                await _firestoreService.addGoal(
-                  userId: userId,
-                  name: newGoal.name,
-                  description: newGoal.description,
-                  targetAmount: newGoal.targetAmount,
-                  targetDate: newGoal.targetDate ?? DateTime.now().add(const Duration(days: 30)),
-                  icon: newGoal.icon,
-                  color: newGoal.color,
-                );
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: TrText('Objectif créé avec succès !')),
-                  );
-                }
-              },
-            ),
+            await _firestoreService.addGoal(
+              userId: userId,
+              name: newGoal.name,
+              description: newGoal.description,
+              targetAmount: newGoal.targetAmount,
+              targetDate: newGoal.targetDate ?? DateTime.now().add(const Duration(days: 30)),
+              icon: newGoal.icon,
+              color: newGoal.color,
+            );
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: TrText('Objectif créé avec succès !')),
+              );
+            }
+          },
+        ),
     );
   }
 
@@ -699,6 +755,71 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
         );
       },
     );
+  }
+
+  Future<void> _confirmDeleteGoal(Goal goal) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final pwdController = TextEditingController();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const TrText('Supprimer l\'objectif ?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TrText('Cette action est irréversible pour "${goal.name}".'),
+            const SizedBox(height: 12),
+            if (user.email != null)
+              TextField(
+                controller: pwdController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Mot de passe (requis)',
+                  border: OutlineInputBorder(),
+                ),
+              )
+            else
+              const TrText(
+                'Compte non email/password : re-auth non disponible, validation simple.',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const TrText('Annuler')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppDesign.expenseColor),
+            child: const TrText('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      if (user.email != null) {
+        final cred = EmailAuthProvider.credential(email: user.email!, password: pwdController.text);
+        await user.reauthenticateWithCredential(cred);
+      }
+      final uid = user.uid;
+      await _firestoreService.deleteGoal(uid, goal.goalId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: TrText('Objectif supprimé.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: TrText('Suppression impossible: $e')),
+        );
+      }
+    }
   }
 }
 
@@ -998,6 +1119,15 @@ class _FundGoalModalState extends State<FundGoalModal> {
   final FirestoreService _firestoreService = FirestoreService();
 
   @override
+  void initState() {
+    super.initState();
+    // Pré-sélectionner le premier compte disponible pour éviter le cas null
+    if (widget.accounts.isNotEmpty) {
+      _selectedAccount = widget.accounts.first;
+    }
+  }
+
+  @override
   void dispose() {
     _amountController.dispose();
     super.dispose();
@@ -1010,6 +1140,7 @@ class _FundGoalModalState extends State<FundGoalModal> {
         ? widget.goal.currentAmount / widget.goal.targetAmount 
         : 0.0;
     final currencyService = context.watch<CurrencyService>();
+    debugPrint('[FundGoalModal] goal=${widget.goal.goalId} remaining=$remaining progress=$progress account=${_selectedAccount?.accountId}');
 
     return SafeArea(
       top: false,
@@ -1018,6 +1149,7 @@ class _FundGoalModalState extends State<FundGoalModal> {
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1166,8 +1298,12 @@ class _FundGoalModalState extends State<FundGoalModal> {
                   setState(() {
                     _selectedAccount = value;
                   });
+                  debugPrint('[FundGoalModal] selected account: ${_selectedAccount?.accountId}');
                 },
                 validator: (value) {
+                  if (widget.accounts.isEmpty) {
+                    return 'Aucun compte disponible';
+                  }
                   if (value == null) {
                     return 'Veuillez sélectionner un compte';
                   }
@@ -1201,9 +1337,6 @@ class _FundGoalModalState extends State<FundGoalModal> {
                   }
                   if (amount <= 0) {
                     return 'Le montant doit être positif';
-                  }
-                  if (_selectedAccount != null && amount > _selectedAccount!.balance) {
-                    return 'Solde insuffisant';
                   }
                   return null;
                 },
@@ -1276,6 +1409,18 @@ class _FundGoalModalState extends State<FundGoalModal> {
   }
 
   void _fundGoal() async {
+    if (widget.accounts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: TrText('Aucun compte disponible. Créez ou créditez un compte.')),
+      );
+      return;
+    }
+    if (_selectedAccount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: TrText('Sélectionnez un compte source.')),
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
@@ -1291,9 +1436,13 @@ class _FundGoalModalState extends State<FundGoalModal> {
       widget.onFundingCompleted();
       if (mounted) Navigator.pop(context);
     } catch (e) {
+      debugPrint('[FundGoalModal] funding error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: TrText('Erreur: $e')),
+          SnackBar(
+            content: TrText('Erreur lors de l\'allocation: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
