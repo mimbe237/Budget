@@ -107,6 +107,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   Future<void> _saveTransaction() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    // Sauvegarder d'abord les valeurs du formulaire (notamment _amount)
+    _formKey.currentState!.save();
+    
     final currencyService = context.read<CurrencyService>();
     
     if (_selectedAccountId == null) {
@@ -130,8 +134,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       );
       return;
     }
-    
-    _formKey.currentState!.save();
     
     // Afficher un loader
     showDialog(
