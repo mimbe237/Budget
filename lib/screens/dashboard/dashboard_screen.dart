@@ -747,35 +747,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TrText(
-                    'Total Net',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 10),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: TrText(
-                      currency.formatAmount(totalBalance),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TrText(
+                      'Total Net',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16, fontWeight: FontWeight.w600),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  TrText(
-                    '${accounts.length} compte(s)',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Formater le montant sans devise
+                        final formatter = NumberFormat('#,##0.00', 'fr_FR');
+                        final amountStr = formatter.format(totalBalance);
+                        final currencySymbol = currency.currencySymbol;
+                        
+                        // Déterminer la taille adaptative selon la longueur
+                        double fontSize;
+                        if (amountStr.length > 15) {
+                          fontSize = 24; // Très long
+                        } else if (amountStr.length > 12) {
+                          fontSize = 28; // Long
+                        } else {
+                          fontSize = 34; // Normal
+                        }
+                        
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TrText(
+                              amountStr,
+                              maxLines: 1,
+                              overflow: TextOverflow.visible,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: fontSize,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            TrText(
+                              currencySymbol,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TrText(
+                      '${accounts.length} compte(s)',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
               Container(
                 padding: const EdgeInsets.all(14),
@@ -1126,34 +1157,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ? categories.firstWhere((c) => c.categoryId == tx.categoryId,
                       orElse: () => categories.first)
                   : null;
-              final categoryLabel = txCategory?.name ?? tx.category ?? 'Sans catégorie';
+              final categoryLabel = _resolveCategoryLabel(txCategory, tx);
               final formattedDate = DateFormat('dd/MM/yyyy').format(tx.date);
 
-              return ListTile(
-                leading: Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: txColor.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(txIcon, color: txColor),
-                ),
-                title: TrText(
-                  tx.description ?? '',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: TrText(
-                  '$formattedDate · $categoryLabel',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                trailing: TrText(
-                  '$prefix ${currencyService.formatAmount(tx.amount, targetCurrency)}',
-                  style: TextStyle(
-                    color: txColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    // Icône dans un cercle coloré
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: txColor.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(txIcon, color: txColor, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    
+                    // Colonne principale (description + date/catégorie)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TrText(
+                            tx.description ?? '',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          TrText(
+                            '$formattedDate · $categoryLabel',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 8),
+                    
+                    // Montant avec contrainte de largeur
+                    Flexible(
+                      flex: 0,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 140),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TrText(
+                              '$prefix ${currencyService.formatAmountCompact(tx.amount)}',
+                              style: TextStyle(
+                                color: txColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
             }).toList(),
@@ -1502,6 +1579,21 @@ class _InsightCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _resolveCategoryLabel(Category? category, Transaction tx) {
+    final fromCategory = category?.name;
+    if (fromCategory != null && fromCategory.trim().isNotEmpty) return fromCategory;
+    final fromTx = tx.category;
+    if (fromTx != null && fromTx.trim().isNotEmpty) return fromTx;
+    switch (tx.type) {
+      case TransactionType.income:
+        return t('Revenu');
+      case TransactionType.expense:
+        return t('Dépense');
+      case TransactionType.transfer:
+        return t('Transfert');
+    }
   }
 }
 

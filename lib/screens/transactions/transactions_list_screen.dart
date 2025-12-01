@@ -345,20 +345,14 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
                               final dateLabel = DateFormat('dd/MM/yyyy').format(tx.date);
                               
                               // Résoudre catégorie depuis categoryId
-                              final category = tx.categoryId != null 
-                                  ? categories.firstWhere((c) => c.categoryId == tx.categoryId, 
-                                      orElse: () => Category(
-                                        categoryId: '', 
-                                        userId: '', 
-                                        name: tx.category ?? 'Sans catégorie', 
-                                        type: CategoryType.expense, 
-                                        icon: '💳', 
-                                        color: '#808080', 
-                                        createdAt: DateTime.now(), 
-                                        updatedAt: DateTime.now()))
-                                  : null;
-                              final categoryName = category?.name ?? tx.category ?? 'Sans catégorie';
-                              final iconText = category?.icon ?? tx.category ?? '💳';
+                              Category? category;
+                              if (tx.categoryId != null) {
+                                try {
+                                  category = categories.firstWhere((c) => c.categoryId == tx.categoryId);
+                                } catch (_) {}
+                              }
+                              final categoryName = _resolveCategoryName(category, tx);
+                              final iconText = _resolveIcon(category, tx);
                               final leadingChar = iconText.isNotEmpty ? iconText.characters.first : '💳';
 
                               return Card(
@@ -442,7 +436,8 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
                     : Colors.blueGrey;
             final prefix = isIncome ? '+' : isExpense ? '-' : '';
             final dateLabel = DateFormat('dd/MM/yyyy').format(tx.date);
-            final categoryName = tx.category ?? 'Sans catégorie';
+            final categoryName = _resolveCategoryName(null, tx);
+            final iconText = _resolveIcon(null, tx);
             // Temps restant (30 jours - deletedAt)
             String remainingText = '';
             if (tx.deletedAt != null) {
@@ -465,7 +460,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
                 leading: CircleAvatar(
                   backgroundColor: color.withValues(alpha: 0.12),
                   child: TrText(
-                    categoryName.isNotEmpty ? categoryName.characters.first : '💳',
+                    iconText.isNotEmpty ? iconText.characters.first : '💳',
                     style: const TextStyle(fontSize: 20),
                   ),
                 ),
@@ -1179,5 +1174,42 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> with Si
         );
       },
     );
+  }
+
+  String _typeLabel(app_transaction.TransactionType type) {
+    switch (type) {
+      case app_transaction.TransactionType.income:
+        return t('Revenu');
+      case app_transaction.TransactionType.expense:
+        return t('Dépense');
+      case app_transaction.TransactionType.transfer:
+        return t('Transfert');
+    }
+  }
+
+  String _resolveCategoryName(Category? category, app_transaction.Transaction tx) {
+    final fromCategory = category?.name;
+    if (fromCategory != null && fromCategory.trim().isNotEmpty) return fromCategory;
+    final fromTx = tx.category;
+    if (fromTx != null && fromTx.trim().isNotEmpty) return fromTx;
+    return _typeLabel(tx.type);
+  }
+
+  String _resolveIcon(Category? category, app_transaction.Transaction tx) {
+    final fromCategory = category?.icon;
+    if (fromCategory != null && fromCategory.trim().isNotEmpty) return fromCategory;
+    final fromTx = tx.category;
+    if (fromTx != null && fromTx.trim().isNotEmpty) {
+      final chars = fromTx.characters;
+      if (chars.isNotEmpty) return chars.first;
+    }
+    switch (tx.type) {
+      case app_transaction.TransactionType.income:
+        return '📈';
+      case app_transaction.TransactionType.expense:
+        return '📉';
+      case app_transaction.TransactionType.transfer:
+        return '🔁';
+    }
   }
 }

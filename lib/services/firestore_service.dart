@@ -2283,4 +2283,83 @@ class FirestoreService {
       throw Exception('Erreur lors de l\'export des données: $e');
     }
   }
+
+  // ============================================================================
+  // RÉINITIALISATION DES DONNÉES (DATA RESET)
+  // ============================================================================
+
+  /// Réinitialisation complète : supprime transactions + objectifs/dettes soldés
+  /// Conserve : comptes, catégories, objectifs actifs, dettes actives, budget, paramètres
+  Future<void> fullDataReset(String userId) async {
+    try {
+      final batch = _firestore.batch();
+      int deletedCount = 0;
+
+      // 1. Supprimer toutes les transactions
+      final transactionsSnapshot = await _transactionsCollection(userId).get();
+      for (final doc in transactionsSnapshot.docs) {
+        batch.delete(doc.reference);
+        deletedCount++;
+      }
+
+      // 2. Supprimer uniquement les objectifs complétés
+      final goalsSnapshot = await _goalsCollection(userId).get();
+      for (final doc in goalsSnapshot.docs) {
+        final goal = Goal.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+        if (goal.status == GoalStatus.completed) {
+          batch.delete(doc.reference);
+          deletedCount++;
+        }
+      }
+
+      // 3. Supprimer uniquement les dettes/créances soldées
+      final iousSnapshot = await _iousCollection(userId).get();
+      for (final doc in iousSnapshot.docs) {
+        final iou = IOU.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+        if (iou.status == IOUStatus.completed || 
+            iou.status == IOUStatus.paid || 
+            iou.status == IOUStatus.cancelled) {
+          batch.delete(doc.reference);
+          deletedCount++;
+        }
+      }
+
+      // 4. Réinitialiser les soldes des comptes à 0 (optionnel - selon ton choix)
+      // Commenté pour conserver les soldes actuels
+      /*
+      final accountsSnapshot = await _accountsCollection(userId).get();
+      for (final doc in accountsSnapshot.docs) {
+        batch.update(doc.reference, {
+          'balance': 0.0,
+          'updatedAt': Timestamp.fromDate(DateTime.now()),
+        });
+      }
+      */
+
+      await batch.commit();
+      debugPrint('✓ Full reset completed: $deletedCount items deleted');
+    } catch (e) {
+      throw Exception('Erreur lors de la réinitialisation complète: $e');
+    }
+  }
+
+  /// Crée un backup avant réinitialisation
+  Future<String> createBackupBeforeReset(String userId) async {
+    try {
+      final backupData = await exportUserData(userId);
+      final backupId = 'backup_${DateTime.now().millisecondsSinceEpoch}';
+      
+      // Sauvegarder dans une collection spéciale
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('backups')
+          .doc(backupId)
+          .set(backupData);
+      
+      return backupId;
+    } catch (e) {
+      throw Exception('Erreur lors de la création du backup: $e');
+    }
+  }
 }

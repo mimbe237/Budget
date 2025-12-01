@@ -119,15 +119,6 @@ class SettingsHubScreen extends StatelessWidget {
                 },
               ),
               _Tile(
-                icon: Icons.delete_outline,
-                title: 'Réinitialiser les données',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: TrText('Réinitialisation disponible dans Profil avancé')),
-                  );
-                },
-              ),
-              _Tile(
                 icon: Icons.policy_outlined,
                 title: 'Confidentialité & CGU',
                 onTap: () {
@@ -135,6 +126,19 @@ class SettingsHubScreen extends StatelessWidget {
                     const SnackBar(content: TrText('Lien vers la politique de confidentialité')),
                   );
                 },
+              ),
+            ],
+          ),
+          _Section(
+            title: '⚠️ Zone Danger',
+            backgroundColor: Colors.red.shade50,
+            children: [
+              _Tile(
+                icon: Icons.delete_forever,
+                title: 'Réinitialisation complète',
+                subtitle: 'Supprimer l\'historique et données soldées',
+                iconColor: Colors.red,
+                onTap: () => _showResetDialog(context),
               ),
             ],
           ),
@@ -308,10 +312,11 @@ class _LogoutCard extends StatelessWidget {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.children});
+  const _Section({required this.title, required this.children, this.backgroundColor});
 
   final String title;
   final List<Widget> children;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -320,10 +325,15 @@ class _Section extends StatelessWidget {
       children: [
         TrText(
           title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: backgroundColor != null ? Colors.red.shade700 : null,
+          ),
         ),
         const SizedBox(height: 8),
         Card(
+          color: backgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDesign.radiusLarge),
           ),
@@ -343,6 +353,7 @@ class _Tile extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.trailing,
+    this.iconColor,
     required this.onTap,
   });
 
@@ -350,12 +361,13 @@ class _Tile extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget? trailing;
+  final Color? iconColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: AppDesign.primaryIndigo),
+      leading: Icon(icon, color: iconColor ?? AppDesign.primaryIndigo),
       title: TrText(
         title,
         style: const TextStyle(fontWeight: FontWeight.w600),
@@ -436,6 +448,193 @@ Future<void> _showLanguageSheet(
       ),
     ),
   );
+}
+
+Future<void> _showResetDialog(BuildContext context) async {
+  final userId = FirestoreService().currentUserId;
+  if (userId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: TrText('Vous devez être connecté')),
+    );
+    return;
+  }
+
+  bool agreedToTerms = false;
+  int countdown = 5;
+
+  await showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => StatefulBuilder(
+      builder: (context, setState) {
+        // Démarrer le countdown
+        if (countdown > 0) {
+          Future.delayed(const Duration(seconds: 1), () {
+            if (countdown > 0) {
+              setState(() => countdown--);
+            }
+          });
+        }
+
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 32),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: TrText(
+                  'Réinitialisation Complète',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TrText(
+                        '🗑️ Sera supprimé :',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      SizedBox(height: 8),
+                      TrText('✓ Toutes les transactions'),
+                      TrText('✓ Objectifs complétés'),
+                      TrText('✓ Dettes soldées'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TrText(
+                        '✅ Sera conservé :',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      SizedBox(height: 8),
+                      TrText('✓ Comptes et soldes'),
+                      TrText('✓ Catégories'),
+                      TrText('✓ Objectifs actifs'),
+                      TrText('✓ Dettes actives'),
+                      TrText('✓ Budget et paramètres'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: agreedToTerms,
+                      onChanged: countdown == 0
+                          ? (val) => setState(() => agreedToTerms = val ?? false)
+                          : null,
+                    ),
+                    const Expanded(
+                      child: TrText(
+                        'Je comprends que cette action est irréversible',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const TrText('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: (countdown == 0 && agreedToTerms)
+                  ? () async {
+                      Navigator.pop(ctx);
+                      await _performReset(context, userId);
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700,
+                foregroundColor: Colors.white,
+              ),
+              child: countdown > 0
+                  ? TrText('Patientez ($countdown s)')
+                  : const TrText('Réinitialiser'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
+Future<void> _performReset(BuildContext context, String userId) async {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const Center(
+      child: Card(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              TrText('Réinitialisation en cours...'),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
+  try {
+    // Créer un backup avant
+    await FirestoreService().createBackupBeforeReset(userId);
+    
+    // Effectuer la réinitialisation
+    await FirestoreService().fullDataReset(userId);
+    
+    if (context.mounted) {
+      Navigator.pop(context); // Fermer le loader
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: TrText('✓ Réinitialisation réussie. Un backup a été créé.'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      Navigator.pop(context); // Fermer le loader
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: TrText('Erreur: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 }
 
 Future<void> _showCurrencySheet(

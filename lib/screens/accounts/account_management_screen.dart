@@ -570,7 +570,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         subtitle: TrText(
-          '${dateFmt.format(tx.date)} · ${isTransfer ? 'Transfert' : (tx.category ?? 'Sans catégorie')}',
+          '${dateFmt.format(tx.date)} · ${isTransfer ? t('Transfert') : _resolveTxCategoryLabel(tx)}',
           style: const TextStyle(color: Colors.grey),
         ),
         trailing: Column(
@@ -1463,6 +1463,18 @@ class _EditAccountModalState extends State<EditAccountModal> {
         ],
       ),
     );
+  }
+
+  String _resolveTxCategoryLabel(Transaction tx) {
+    if (tx.category != null && tx.category!.trim().isNotEmpty) return tx.category!;
+    switch (tx.type) {
+      case TransactionType.income:
+        return t('Revenu');
+      case TransactionType.expense:
+        return t('Dépense');
+      case TransactionType.transfer:
+        return t('Transfert');
+    }
   }
 }
 

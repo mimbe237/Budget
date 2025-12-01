@@ -14,9 +14,12 @@ class RevolutionaryLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    final isMobile = mediaQuery != null && mediaQuery.size.width < 600;
+    final showFullLockup = withText && !isMobile;
     final semantics = t('Budget Pro');
-    if (withText) {
-      // Full lockup (icône + texte) for marketing/hero contexts.
+    if (showFullLockup) {
+      // Full lockup (icône + texte) for marketing/hero contexts; drop text on mobile.
       return SvgPicture.asset(
         'assets/images/logo-full.svg',
         height: size * 1.6,

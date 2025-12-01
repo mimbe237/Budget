@@ -1281,7 +1281,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         subtitle: TrText(
-                          '${tx.date.day}/${tx.date.month}/${tx.date.year} · ${tx.category ?? 'Sans catégorie'}',
+                          '${tx.date.day}/${tx.date.month}/${tx.date.year} · ${_resolveTxCategoryLabel(tx)}',
                           style: const TextStyle(color: Colors.grey),
                         ),
                         trailing: TrText(
@@ -1644,6 +1644,18 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         backgroundColor: AppDesign.incomeColor,
       ),
     );
+  }
+
+  String _resolveTxCategoryLabel(Transaction tx) {
+    if (tx.category != null && tx.category!.trim().isNotEmpty) return tx.category!;
+    switch (tx.type) {
+      case TransactionType.income:
+        return t('Revenu');
+      case TransactionType.expense:
+        return t('Dépense');
+      case TransactionType.transfer:
+        return t('Transfert');
+    }
   }
 }
 

@@ -1030,7 +1030,8 @@ class _LanguageChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isFr = code == 'fr';
+    const flagByCode = {'fr': '🇫🇷', 'en': '🇬🇧'};
+    const labelByCode = {'fr': 'Français', 'en': 'English'};
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
@@ -1048,15 +1049,33 @@ class _LanguageChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.language, color: Colors.grey[700], size: 18),
-          const SizedBox(width: 6),
           DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: code,
-              items: const [
-                DropdownMenuItem(value: 'fr', child: Text('Français')),
-                DropdownMenuItem(value: 'en', child: Text('English')),
-              ],
+              items: flagByCode.keys
+                  .map(
+                    (lang) => DropdownMenuItem(
+                      value: lang,
+                      child: Row(
+                        children: [
+                          Text(flagByCode[lang]!, style: const TextStyle(fontSize: 18)),
+                          const SizedBox(width: 6),
+                          Text(labelByCode[lang]!),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+              selectedItemBuilder: (context) => flagByCode.keys
+                  .map(
+                    (lang) => Center(
+                      child: Text(
+                        flagByCode[lang]!,
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  )
+                  .toList(),
               onChanged: (value) {
                 if (value != null) onSelect(value);
               },
