@@ -30,6 +30,13 @@ Bienvenue ! Voici un guide pour naviguer dans la documentation de ce projet.
 | **[PROJECT_SUMMARY.md](./PROJECT_SUMMARY.md)** | Résumé et statistiques | 5 min |
 | **[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)** | Arborescence détaillée | 5 min |
 
+### 🌍 Système de Traduction
+
+| Document | Description | Temps de Lecture |
+|----------|-------------|------------------|
+| **[TRANSLATION_SYSTEM_GUIDE.md](./TRANSLATION_SYSTEM_GUIDE.md)** | Guide complet du système de traduction | 15 min |
+| **[TRANSLATION_QUICKSTART.md](./TRANSLATION_QUICKSTART.md)** | Démarrage rapide traductions | 2 min |
+
 ### 🎨 Design & Vision
 
 | Document | Description | Temps de Lecture |
