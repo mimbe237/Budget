@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/translation_service.dart';
 
@@ -157,6 +158,7 @@ String t(String key, {Map<String, String>? params}) =>
     AppLocalizations.translateGlobal(key, params: params);
 
 /// Drop-in replacement for Text that goes through the localization layer.
+/// Écoute automatiquement les changements de traductions via TranslationService
 class TrText extends StatelessWidget {
   const TrText(
     this.data, {
@@ -193,7 +195,15 @@ class TrText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final translated = AppLocalizations.of(context).translate(data);
+    // Écouter les changements de TranslationService pour mise à jour dynamique
+    final translationService = context.watch<TranslationService>();
+    final localeProvider = context.watch<LocaleProvider>();
+    
+    // Forcer la reconstruction quand les traductions changent
+    final languageCode = localeProvider.locale.languageCode;
+    final translated = translationService.getTranslation(data, languageCode) ?? 
+                       AppLocalizations.of(context).translate(data);
+    
     return Text(
       translated,
       key: key,

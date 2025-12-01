@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import '../../utils/translation_keys_scanner.dart';
+import '../../utils/init_translations.dart';
 
 /// Écran de gestion des traductions pour les admins
 /// Permet d'ajouter, modifier et supprimer des traductions dynamiquement
@@ -49,6 +50,11 @@ class _TranslationManagementScreenState extends State<TranslationManagementScree
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_backup_restore),
+            onPressed: _initializeBaseTranslations,
+            tooltip: 'Initialiser traductions de base',
+          ),
           IconButton(
             icon: const Icon(Icons.scanner),
             onPressed: _scanForMissingKeys,
@@ -802,6 +808,74 @@ class _TranslationManagementScreenState extends State<TranslationManagementScree
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: TrText('Erreur lors de l\'ajout: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _initializeBaseTranslations() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const TrText('Initialiser les traductions de base'),
+        content: TrText(
+          'Cela va ajouter ${TranslationInitializer.baseTranslations.length} traductions essentielles.\n\n'
+          'Les traductions existantes ne seront pas modifiées.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const TrText('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const TrText('Initialiser'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        title: TrText('Initialisation...'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            TrText('Ajout des traductions de base'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      await TranslationInitializer.addMissingTranslations(
+        TranslationInitializer.baseTranslations,
+      );
+      await _translationService.loadTranslations();
+
+      if (mounted) {
+        Navigator.pop(context); // Fermer loader
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: TrText('Traductions de base initialisées avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: TrText('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
