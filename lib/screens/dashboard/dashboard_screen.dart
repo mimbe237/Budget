@@ -931,38 +931,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    return StreamBuilder<List<Transaction>>(
-      stream: _firestoreService.getTransactionsStream(
-        userId,
-        startDate: startOfMonth,
-        endDate: now,
-        limit: 300,
+    return StreamBuilder<List<dynamic>>(
+      stream: Rx.combineLatest2(
+        _firestoreService.getTransactionsStream(
+          userId,
+          startDate: startOfMonth,
+          endDate: now,
+          limit: 300,
+        ),
+        _firestoreService.getIOUsStream(userId),
+        (transactions, ious) => [transactions, ious],
       ),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _placeholderCard(
             title: t('Performance mensuelle'),
-            message: 'Erreur de chargement des transactions.',
+            message: 'Erreur de chargement des données.',
           );
         }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
+        final transactions = snapshot.data![0] as List<Transaction>;
+        final ious = snapshot.data![1] as List<IOU>;
+
         double income = 0.0;
         double expense = 0.0;
         double debtAmount = 0.0;
-        final debtKeywords = ['dette', 'prêt', 'loan', 'debt'];
 
-        for (final tx in snapshot.data!) {
+        // Calculer revenus et dépenses des transactions
+        for (final tx in transactions) {
           if (tx.type == TransactionType.income) {
             income += tx.amount;
           } else if (tx.type == TransactionType.expense) {
             expense += tx.amount;
-            if (tx.category != null &&
-                debtKeywords.any((k) => tx.category!.toLowerCase().contains(k))) {
-              debtAmount += tx.amount;
-            }
+          }
+        }
+
+        // Calculer le total des dettes actives (type payable - je dois)
+        for (final iou in ious) {
+          if (iou.type == IOUType.payable && 
+              iou.status != IOUStatus.completed && 
+              iou.status != IOUStatus.paid && 
+              iou.status != IOUStatus.cancelled) {
+            debtAmount += iou.currentBalance;
           }
         }
 
