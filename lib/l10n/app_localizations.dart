@@ -26,11 +26,116 @@ class AppLocalizations {
     Locale('en'),
   ];
 
-  // Legacy local dictionaries removed. Firestore is the single source of truth.
   static const _localizedValues = <String, Map<String, String>>{
-    'fr': {},
-    'en': {},
+    'fr': {
+      'Reste': 'Reste',
+      'Budget Pro': 'Budget Pro',
+      'Gestion Budget': 'Gestion Budget',
+      'Votre argent sous contrôle': 'Votre argent sous contrôle',
+      'Gérer les catégories': 'Gérer les catégories',
+      'Ajouter une dépense': 'Ajouter une dépense',
+      'Ajouter un revenu': 'Ajouter un revenu',
+      'Répartition Visuelle': 'Répartition Visuelle',
+      'Poches Budgétaires': 'Poches Budgétaires',
+      'Synthèse par poche': 'Synthèse par poche',
+      'Transactions (Budget)': 'Transactions (Budget)',
+      'Période': 'Période',
+      'Reset': 'Reset',
+      'Aucune transaction pour cette période.': 'Aucune transaction pour cette période.',
+      'Par Défaut': 'Par Défaut',
+      'Revenus par catégorie (mois)': 'Revenus par catégorie (mois)',
+      'Mois précédent': 'Mois précédent',
+      'Mois en cours': 'Mois en cours',
+      'Plan Budgétaire': 'Plan Budgétaire',
+      'Solde budgété pour ce mois': 'Solde budgété pour ce mois',
+      'Total alloué': 'Total alloué',
+      'Dépensé': 'Dépensé',
+      'Restant théorique': 'Restant théorique',
+      'Solde Global Actuel': 'Solde Global Actuel',
+      'Accès rapides': 'Accès rapides',
+      'Historique Récent': 'Historique Récent',
+      'Voir tout': 'Voir tout',
+      'Ajouter dépense': 'Ajouter dépense',
+      'Achats, factures et sorties': 'Achats, factures et sorties',
+      'Ajouter revenu': 'Ajouter revenu',
+      'Salaires, primes et entrées': 'Salaires, primes et entrées',
+      'Gérer budget': 'Gérer budget',
+      'Suivi des poches et limites': 'Suivi des poches et limites',
+      'Gérer comptes': 'Gérer comptes',
+      'Soldes et transferts gérés.': 'Soldes et transferts gérés.',
+      'Suivre objectifs': 'Suivre objectifs',
+      'Épargne et projets d\'avenir': 'Épargne et projets d\'avenir',
+      'Gérer dettes': 'Gérer dettes',
+      'Emprunts et crédits réglés.': 'Emprunts et crédits réglés.',
+      'Catégories': 'Catégories',
+      'Gérer vos catégories': 'Gérer vos catégories',
+      'Historique': 'Historique',
+      'Toutes vos transactions': 'Toutes vos transactions',
+      'Performance Mensuelle': 'Performance Mensuelle',
+      'Budget par catégorie': 'Budget par catégorie',
+      'Alertes budget': 'Alertes budget',
+      'Dépassements et notifications': 'Dépassements et notifications',
+      'Analyses IA': 'Analyses IA',
+      'Insights, anomalies, coaching': 'Insights, anomalies, coaching',
+    },
+    'en': {
+      'Reste': 'Remaining',
+      'Budget Pro': 'Budget Pro',
+      'Gestion Budget': 'Budget Management',
+      'Votre argent sous contrôle': 'Your money under control',
+      'Gérer les catégories': 'Manage categories',
+      'Ajouter une dépense': 'Add an expense',
+      'Ajouter un revenu': 'Add an income',
+      'Répartition Visuelle': 'Visual breakdown',
+      'Poches Budgétaires': 'Budget pockets',
+      'Synthèse par poche': 'Pocket summary',
+      'Transactions (Budget)': 'Transactions (Budget)',
+      'Période': 'Period',
+      'Reset': 'Reset',
+      'Aucune transaction pour cette période.': 'No transactions for this period.',
+      'Par Défaut': 'Default',
+      'Revenus par catégorie (mois)': 'Income by category (month)',
+      'Mois précédent': 'Previous month',
+      'Mois en cours': 'Current month',
+      'Plan Budgétaire': 'Budget Plan',
+      'Solde budgété pour ce mois': 'Budgeted amount for this month',
+      'Total alloué': 'Total allocated',
+      'Dépensé': 'Spent',
+      'Restant théorique': 'Remaining (planned)',
+      'Solde Global Actuel': 'Current Net Balance',
+      'Accès rapides': 'Quick actions',
+      'Historique Récent': 'Recent history',
+      'Voir tout': 'See all',
+      'Ajouter dépense': 'Add expense',
+      'Achats, factures et sorties': 'Purchases, bills, outings',
+      'Ajouter revenu': 'Add income',
+      'Salaires, primes et entrées': 'Salaries, bonuses and inflows',
+      'Gérer budget': 'Manage budget',
+      'Suivi des poches et limites': 'Track pockets and limits',
+      'Gérer comptes': 'Manage accounts',
+      'Soldes et transferts gérés.': 'Balances and transfers managed.',
+      'Suivre objectifs': 'Track goals',
+      'Épargne et projets d\'avenir': 'Savings and future projects',
+      'Gérer dettes': 'Manage debts',
+      'Emprunts et crédits réglés.': 'Loans and credits handled.',
+      'Catégories': 'Categories',
+      'Gérer vos catégories': 'Manage your categories',
+      'Historique': 'History',
+      'Toutes vos transactions': 'All your transactions',
+      'Performance Mensuelle': 'Monthly performance',
+      'Budget par catégorie': 'Budget by category',
+      'Alertes budget': 'Budget alerts',
+      'Dépassements et notifications': 'Overruns and notifications',
+      'Analyses IA': 'AI analyses',
+      'Insights, anomalies, coaching': 'Insights, anomalies, coaching',
+    },
   };
+
+  /// Expose les traductions locales pour un seed Firestore éventuel
+  static Map<String, Map<String, String>> get baseTranslations => {
+        for (final entry in _localizedValues['fr']!.entries)
+          entry.key: {'fr': entry.value, 'en': _localizedValues['en']?[entry.key] ?? entry.key},
+      };
 
   String translate(String key, {Map<String, String>? params}) {
     final languageCode = supportedLocales
@@ -39,10 +144,11 @@ class AppLocalizations {
         ? locale.languageCode
         : 'fr';
 
-    // Priority 1: Check Firestore translations (dynamic, admin-managed)
+    // Priority 1: Firestore translations (dynamic, admin-managed)
     String? mapped = translationService.getTranslation(key, languageCode);
 
-    // Legacy local dictionaries and auto-translate removed.
+    // Priority 2: Local dictionary fallback
+    mapped ??= _localizedValues[languageCode]?[key];
 
     var value = mapped ?? key;
 

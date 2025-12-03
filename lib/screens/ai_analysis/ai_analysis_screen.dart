@@ -105,6 +105,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         _isLoading = false;
       });
     }
+  }
+
   void _onCurrencyChanged() {
     if (!mounted || _isLoading) return;
     setState(() {
@@ -113,8 +115,6 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
       _calculateHealthScore();
       _calculateBadgesAndAchievements();
       _generateCurrentChallenge();
-    });
-  }   _recommendations = _generateRecommendations();
     });
   }
 
@@ -860,35 +860,6 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
   // =========================================================================
   // UI
   // =========================================================================
-
-  @override
-  void dispose() {
-    _currencyService.removeListener(_onCurrencyChanged);
-    super.dispose();
-  }
-}
-
-/// Painter pour le motif décoratif du défi
-class _PatternPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-
-    // Dessiner des cercles décoratifs
-    for (var i = 0; i < 5; i++) {
-      canvas.drawCircle(
-        Offset(size.width * (0.2 + i * 0.2), size.height * 0.3),
-        20 + i * 5,
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 
   @override
   Widget build(BuildContext context) {
@@ -2603,4 +2574,33 @@ class _PatternPainter extends CustomPainter {
       ),
     );
   }
+
+  @override
+  void dispose() {
+    _currencyService.removeListener(_onCurrencyChanged);
+    super.dispose();
+  }
+}
+
+/// Painter pour le motif décoratif du défi
+class _PatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    // Dessiner des cercles décoratifs
+    for (var i = 0; i < 5; i++) {
+      canvas.drawCircle(
+        Offset(size.width * (0.2 + i * 0.2), size.height * 0.3),
+        20 + i * 5,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -23,6 +23,8 @@ import 'package:budget/services/theme_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../onboarding/onboarding_wizard_screen.dart';
 import '../settings/settings_hub_screen.dart';
+import '../settings/notification_settings_screen.dart';
+import '../ai_analysis/ai_analysis_screen.dart';
 
 /// Dashboard principal affichant le solde global, les performances mensuelles
 /// et l'historique récent des transactions en temps réel
@@ -601,18 +603,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildQuickAccess(BuildContext context) {
     final shortcuts = [
       _ShortcutAction(
-        label: t('Ajouter dépense'),
-        subtitle: t('Achats, factures et sorties'),
-        icon: Icons.remove_circle_outline,
+        label: t('Alertes budget'),
+        subtitle: t('Dépassements et notifications'),
+        icon: Icons.notifications_active_rounded,
         color: AppDesign.expenseColor,
-        onTap: () => _navigateToTransaction(context, TransactionType.expense),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+        ),
       ),
       _ShortcutAction(
-        label: t('Ajouter revenu'),
-        subtitle: t('Salaires, primes et entrées'),
-        icon: Icons.add_circle_outline,
-        color: AppDesign.incomeColor,
-        onTap: () => _navigateToTransaction(context, TransactionType.income),
+        label: t('Analyses IA'),
+        subtitle: t('Insights, anomalies, coaching'),
+        icon: Icons.auto_graph_rounded,
+        color: AppDesign.primaryPurple,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AIAnalysisScreen()),
+        ),
       ),
       _ShortcutAction(
         label: t('Gérer budget'),
@@ -696,7 +704,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   .map(
                     (s) => SizedBox(
                           width: cardWidth,
-                          height: 120,
+                          height: 88,
                           child: _ShortcutCard(
                             action: s,
                             width: cardWidth,
@@ -978,10 +986,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Grille des indicateurs mensuels (revenus, dépenses, reste, objectifs)
+  /// Grille des indicateurs mensuels (revenus, dépenses, dettes, objectifs) avec tendance vs mois précédent
   Widget _buildMonthlyInsightCards(BuildContext context) {
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
+    final startOfLastMonth = DateTime(now.year, now.month - 1, 1);
+    final endOfLastMonth = DateTime(now.year, now.month, 0);
     final userId = _firestoreService.currentUserId;
 
     if (userId == null) {
@@ -992,16 +1002,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return StreamBuilder<List<dynamic>>(
-      stream: Rx.combineLatest2(
+      stream: CombineLatestStream.list([
         _firestoreService.getTransactionsStream(
           userId,
           startDate: startOfMonth,
           endDate: now,
           limit: 300,
         ),
+        _firestoreService.getTransactionsStream(
+          userId,
+          startDate: startOfLastMonth,
+          endDate: endOfLastMonth,
+          limit: 300,
+        ),
         _firestoreService.getIOUsStream(userId),
-        (transactions, ious) => [transactions, ious],
-      ),
+      ]),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _placeholderCard(
@@ -1014,11 +1029,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
 
         final transactions = snapshot.data![0] as List<Transaction>;
-        final ious = snapshot.data![1] as List<IOU>;
+        final transactionsLast = snapshot.data![1] as List<Transaction>;
+        final ious = snapshot.data![2] as List<IOU>;
 
         double income = 0.0;
         double expense = 0.0;
         double debtAmount = 0.0;
+        double incomeLast = 0.0;
+        double expenseLast = 0.0;
 
         // Calculer revenus et dépenses des transactions
         for (final tx in transactions) {
@@ -1026,6 +1044,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             income += tx.amount;
           } else if (tx.type == TransactionType.expense) {
             expense += tx.amount;
+          }
+        }
+
+        for (final tx in transactionsLast) {
+          if (tx.type == TransactionType.income) {
+            incomeLast += tx.amount;
+          } else if (tx.type == TransactionType.expense) {
+            expenseLast += tx.amount;
           }
         }
 
@@ -1041,6 +1067,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         final remaining = income - expense;
         const targetAmount = 2500.0; // TODO: Récupérer de la config utilisateur
+        String _deltaText(double current, double previous) {
+          if (previous <= 0) return 'N/A';
+          final pct = ((current - previous) / previous * 100).toStringAsFixed(0);
+          final prefix = (current - previous) >= 0 ? '+' : '';
+          return '$prefix$pct% vs mois dernier';
+        }
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -1061,14 +1093,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   amount: income,
                   emoji: '💰',
                   color: AppDesign.incomeColor,
-                  subtitle: t('Total encaissé'),
+                  subtitle: _deltaText(income, incomeLast),
+                  trendColor: (income >= incomeLast || incomeLast == 0) ? AppDesign.incomeColor : AppDesign.expenseColor,
                 ),
                 _InsightCard(
                   title: t('Dépenses du mois'),
                   amount: expense,
                   emoji: '💸',
                   color: AppDesign.expenseColor,
-                  subtitle: t('Total déboursé'),
+                  subtitle: _deltaText(expense, expenseLast),
+                  trendColor: (expense <= expenseLast || expenseLast == 0) ? AppDesign.incomeColor : AppDesign.expenseColor,
                 ),
                 _InsightCard(
                   title: t('Dettes du mois'),
@@ -1335,6 +1369,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final now = DateTime.now();
     final greeting = _greetingLabel(now.hour);
     final startOfMonth = DateTime(now.year, now.month, 1);
+    final isCompact = MediaQuery.of(context).size.width < 430;
 
     if (userId == null) {
       return _placeholderCard(
@@ -1375,6 +1410,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final remaining = income - expense;
         final burnRate = income > 0 ? (expense / income).clamp(0.0, 2.0) : 0.0;
         final remainingPct = income > 0 ? (remaining / income).clamp(-1.0, 1.0) : 0.0;
+        final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+        final idealRatio = daysInMonth > 0 ? now.day / daysInMonth : 0.0;
+        final delta = ((burnRate - idealRatio) * 100).toStringAsFixed(0);
+        final isAhead = burnRate <= idealRatio;
+        final coaching = isAhead
+            ? 'Vous dépensez ${delta.replaceAll('-', '')}% plus lentement que prévu.'
+            : 'Vous dépensez ${delta.replaceAll('-', '')}% plus vite que prévu.';
 
         return Container(
           width: double.infinity,
@@ -1392,6 +1434,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Column(
@@ -1445,70 +1488,157 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               const SizedBox(height: 18),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              if (isCompact) ...[
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TrText(
+                      currency.formatAmount(totalBalance),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 26,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    TrText(
+                      'Solde global net',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TrText(
+                      coaching,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.78),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 8,
                       children: [
-                        TrText(
-                          currency.formatAmount(totalBalance),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 28,
+                        ElevatedButton.icon(
+                          onPressed: () => _navigateToTransaction(context, TransactionType.expense),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(alpha: 0.14),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.south_west_rounded, size: 18),
+                          label: const TrText(
+                            'Ajouter dépense',
+                            style: TextStyle(fontWeight: FontWeight.w800),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        TrText(
-                          'Solde global net',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontSize: 13,
+                        ElevatedButton.icon(
+                          onPressed: () => _navigateToTransaction(context, TransactionType.income),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: _brandTeal,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.north_east_rounded, size: 18),
+                          label: const TrText(
+                            'Ajouter revenu',
+                            style: TextStyle(fontWeight: FontWeight.w800),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 8,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () => _navigateToTransaction(context, TransactionType.expense),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.14),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        icon: const Icon(Icons.south_west_rounded, size: 18),
-                        label: const TrText(
-                          'Ajouter dépense',
-                          style: TextStyle(fontWeight: FontWeight.w800),
-                        ),
+                  ],
+                ),
+              ] else ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TrText(
+                            currency.formatAmount(totalBalance),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 28,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          TrText(
+                            'Solde global net',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TrText(
+                            coaching,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.78),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                      ElevatedButton.icon(
-                        onPressed: () => _navigateToTransaction(context, TransactionType.income),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: _brandTeal,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 8,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () => _navigateToTransaction(context, TransactionType.expense),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(alpha: 0.14),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.south_west_rounded, size: 18),
+                          label: const TrText(
+                            'Ajouter dépense',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
                         ),
-                        icon: const Icon(Icons.north_east_rounded, size: 18),
-                        label: const TrText(
-                          'Ajouter revenu',
-                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ElevatedButton.icon(
+                          onPressed: () => _navigateToTransaction(context, TransactionType.income),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: _brandTeal,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.north_east_rounded, size: 18),
+                          label: const TrText(
+                            'Ajouter revenu',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 18),
               Wrap(
                 spacing: 12,
@@ -1881,6 +2011,7 @@ class _InsightCard extends StatelessWidget {
   final String emoji;
   final Color color;
   final String subtitle;
+  final Color? trendColor;
 
   const _InsightCard({
     required this.title,
@@ -1888,6 +2019,7 @@ class _InsightCard extends StatelessWidget {
     required this.color,
     required this.emoji,
     this.subtitle = '',
+    this.trendColor,
   });
 
   @override
@@ -1926,11 +2058,11 @@ class _InsightCard extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: TrText(
-                  emoji,
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ),
-              const SizedBox(width: 10),
+            emoji,
+            style: const TextStyle(fontSize: 16),
+          ),
+        ),
+        const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1947,14 +2079,15 @@ class _InsightCard extends StatelessWidget {
                     ),
                     if (subtitle.isNotEmpty)
                       TrText(
-                        subtitle,
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontSize: 11,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    subtitle,
+                    style: TextStyle(
+                      color: trendColor ?? Colors.grey[700],
+                      fontSize: 12,
+                      fontWeight: trendColor != null ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   ],
                 ),
               ),
@@ -2008,10 +2141,10 @@ class _ShortcutCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         width: width,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: action.color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(color: action.color.withValues(alpha: 0.18)),
           boxShadow: [
             BoxShadow(
@@ -2406,6 +2539,17 @@ class _PocketSummaryRow extends StatelessWidget {
     // Montants déjà dans la devise courante : ne pas reconvertir
     final plannedConverted = item.planned;
     final engagedConverted = item.engaged;
+    final remaining = plannedConverted - engagedConverted;
+    final statusColor = ratio >= 1
+        ? const Color(0xFFEF5350)
+        : ratio >= 0.75
+            ? const Color(0xFFFFB300)
+            : const Color(0xFF26A69A);
+    final statusLabel = ratio >= 1
+        ? t('Dépassement')
+        : ratio >= 0.75
+            ? t('À surveiller')
+            : t('OK');
     Color barColor;
     if (ratio >= 1) {
       barColor = const Color(0xFFEF5350);
@@ -2453,6 +2597,30 @@ class _PocketSummaryRow extends StatelessWidget {
                       color: AppDesign.incomeColor,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
+                    ),
+                  ),
+                  TrText(
+                    '${t('Reste')} ${currencyService.formatAmount(remaining, targetCurrency)}',
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: TrText(
+                      statusLabel,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 ],

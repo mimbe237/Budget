@@ -55,6 +55,19 @@ class AppBootstrap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Seed de traductions de base si Firestore est présent et vide.
+    Future.microtask(() async {
+      final translationService = TranslationService();
+      await translationService.loadTranslations();
+      if (translationService.translations.isEmpty) {
+        await translationService.importTranslations(
+          AppLocalizations.baseTranslations,
+          modifiedBy: 'auto-seed',
+        );
+      }
+      translationService.startRealtime();
+    });
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LocaleProvider()..loadLocale()),

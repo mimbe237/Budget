@@ -29,6 +29,7 @@ class _TranslationManagementScreenState extends State<TranslationManagementScree
   void initState() {
     super.initState();
     _translationService.loadTranslations();
+    _translationService.startRealtime();
   }
 
   @override
@@ -59,6 +60,11 @@ class _TranslationManagementScreenState extends State<TranslationManagementScree
             icon: const Icon(Icons.scanner),
             onPressed: _scanForMissingKeys,
             tooltip: 'Scanner les clés',
+          ),
+          IconButton(
+            icon: const Icon(Icons.sync_alt),
+            onPressed: _syncFromAppBaseTranslations,
+            tooltip: 'Sync base (AppLocalizations)',
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -864,6 +870,55 @@ class _TranslationManagementScreenState extends State<TranslationManagementScree
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: TrText('Traductions de base initialisées avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: TrText('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _syncFromAppBaseTranslations() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        title: TrText('Synchronisation'),
+        content: Padding(
+          padding: EdgeInsets.all(12.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 12),
+              TrText('Injection des clés de base...'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      await _translationService.importTranslations(
+        AppLocalizations.baseTranslations,
+        modifiedBy: 'admin-sync',
+      );
+      await _translationService.loadTranslations();
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: TrText('Clés de base synchronisées'),
             backgroundColor: Colors.green,
           ),
         );

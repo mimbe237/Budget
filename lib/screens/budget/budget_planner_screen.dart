@@ -22,6 +22,8 @@ import '../../services/theme_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:budget/l10n/app_localizations.dart';
 import '../../widgets/modern_page_app_bar.dart';
+import '../settings/notification_settings_screen.dart';
+import '../ai_analysis/ai_analysis_screen.dart';
 
 /// Écran de planification budgétaire avec répartition intelligente
 class BudgetPlannerScreen extends StatefulWidget {
@@ -110,6 +112,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     final totalAllocated = _totalIncome * _getTotalAllocation();
     final totalSpent = _actualSpending.values.fold<double>(0, (s, v) => s + v);
     final allocationPct = (_getTotalAllocation() * 100).clamp(0.0, 999.0);
+    final isCompact = MediaQuery.of(context).size.width < 430;
     final statusOver = allocationPct > 100.1;
     final statusUnder = allocationPct < 99.9;
     final statusColor = statusOver
@@ -135,123 +138,181 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         boxShadow: AppDesign.mediumShadow,
       ),
       padding: const EdgeInsets.all(AppDesign.paddingLarge),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TrText(
-                      t('Plan Budgétaire'),
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         TrText(
-                          currency.formatAmount(_totalIncome),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
+                          t('Plan Budgétaire'),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: TrText(
-                            '$statusLabel · ${allocationPct.toStringAsFixed(1)}%',
-                            style: TextStyle(
-                              color: statusColor,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12,
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            TrText(
+                              currency.formatAmount(_totalIncome),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: isCompact ? 24 : 26,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: TrText(
+                                '$statusLabel · ${allocationPct.toStringAsFixed(1)}%',
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        TrText(
+                          t('Solde budgété pour ce mois'),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontSize: 13,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    TrText(
-                      t('Solde budgété pour ce mois'),
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.75),
-                        fontSize: 13,
+                  ),
+                  if (!isCompact)
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 8,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (ctx) => TransactionFormScreen(
+                                  transactionType: TransactionType.expense,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(alpha: 0.12),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.south_west_rounded, size: 18),
+                          label: const TrText(
+                            'Ajouter dépense',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (ctx) => TransactionFormScreen(
+                                  transactionType: TransactionType.income,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppDesign.incomeColor,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.north_east_rounded, size: 18),
+                          label: const TrText(
+                            'Ajouter revenu',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              if (isCompact) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (ctx) => TransactionFormScreen(
+                              transactionType: TransactionType.expense,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.12),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      icon: const Icon(Icons.south_west_rounded, size: 18),
+                      label: const TrText(
+                        'Ajouter dépense',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (ctx) => TransactionFormScreen(
+                              transactionType: TransactionType.income,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppDesign.incomeColor,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      icon: const Icon(Icons.north_east_rounded, size: 18),
+                      label: const TrText(
+                        'Ajouter revenu',
+                        style: TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
                   ],
                 ),
-              ),
+              ],
+              const SizedBox(height: 16),
               Wrap(
-                spacing: 10,
-                runSpacing: 8,
+                spacing: 12,
+                runSpacing: 12,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (ctx) => TransactionFormScreen(
-                            transactionType: TransactionType.expense,
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.12),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    icon: const Icon(Icons.south_west_rounded, size: 18),
-                    label: const TrText(
-                      'Ajouter dépense',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (ctx) => TransactionFormScreen(
-                            transactionType: TransactionType.income,
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppDesign.incomeColor,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    icon: const Icon(Icons.north_east_rounded, size: 18),
-                    label: const TrText(
-                      'Ajouter revenu',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
               _budgetHeroPill(
                 label: t('Total alloué'),
                 value: currency.formatAmount(totalAllocated),
@@ -758,9 +819,9 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   Widget _buildQuickActions(BuildContext context, {required bool isWide}) {
     final actions = [
       _budgetActionButton(
-        label: t('Ajouter une dépense'),
-        helper: 'Factures, courses, loisirs',
-        icon: Icons.south_west_rounded,
+        label: t('Alertes budget'),
+        helper: t('Dépassements et notifications'),
+        icon: Icons.notifications_active_rounded,
         colors: [
           AppDesign.expenseColor.withValues(alpha: 0.9),
           AppDesign.expenseColor,
@@ -768,27 +829,23 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (ctx) => TransactionFormScreen(
-                transactionType: TransactionType.expense,
-              ),
+              builder: (ctx) => const NotificationSettingsScreen(),
             ),
           );
         },
       ),
       _budgetActionButton(
-        label: t('Ajouter un revenu'),
-        helper: 'Salaire, primes, bonus',
-        icon: Icons.north_east_rounded,
+        label: t('Analyses IA'),
+        helper: t('Insights, anomalies, coaching'),
+        icon: Icons.auto_graph_rounded,
         colors: [
-          AppDesign.incomeColor.withValues(alpha: 0.95),
-          AppDesign.incomeColor,
+          AppDesign.primaryPurple.withValues(alpha: 0.9),
+          AppDesign.primaryPurple,
         ],
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (ctx) => TransactionFormScreen(
-                transactionType: TransactionType.income,
-              ),
+              builder: (ctx) => const AIAnalysisScreen(),
             ),
           );
         },

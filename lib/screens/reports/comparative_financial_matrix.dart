@@ -72,28 +72,47 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
   void _processTransactionsToMatrix(List<app_transaction.Transaction> transactions, List<Category> categories) {
     final Map<String, Map<int, double>> matrix = {};
     final Map<String, String> icons = {};
-
+    
+    // Créer un map categoryId -> categoryName pour le lookup rapide
+    final Map<String, String> categoryIdToName = {};
+    final Map<String, String> categoryIdToIcon = {};
+    
     // Initialiser toutes les catégories avec des valeurs nulles
     for (var category in categories) {
       if (category.isActive) {
         final categoryName = category.name;
         matrix[categoryName] = {};
         icons[categoryName] = category.icon;
+        categoryIdToName[category.categoryId] = categoryName;
+        categoryIdToIcon[category.categoryId] = category.icon;
       }
     }
 
     // Remplir avec les transactions réelles
     for (var tx in transactions) {
-      final categoryName = tx.category ?? 'Autre';
+      // Essayer d'abord avec categoryId, puis fallback sur category name
+      String categoryName = 'Autre';
+      
+      if (tx.categoryId != null && categoryIdToName.containsKey(tx.categoryId)) {
+        categoryName = categoryIdToName[tx.categoryId]!;
+      } else if (tx.category != null && tx.category!.isNotEmpty) {
+        // Fallback: chercher une catégorie qui correspond au nom
+        final matchingCategory = categories.firstWhere(
+          (cat) => cat.name.toLowerCase().trim() == tx.category!.toLowerCase().trim(),
+          orElse: () => categories.firstWhere(
+            (cat) => cat.categoryId == 'autre',
+            orElse: () => categories.first,
+          ),
+        );
+        categoryName = matchingCategory.name;
+      }
+      
       final monthIndex = tx.date.month; // 1..12
       
-      // Extraction de l'icône si présente dans le nom (ex: "🍔 Nourriture")
-      if (!icons.containsKey(categoryName)) {
-        icons[categoryName] = _extractIcon(categoryName);
-      }
-
+      // S'assurer que la catégorie existe dans la matrice
       if (!matrix.containsKey(categoryName)) {
         matrix[categoryName] = {};
+        icons[categoryName] = _extractIcon(categoryName);
       }
 
       matrix[categoryName]![monthIndex] = (matrix[categoryName]![monthIndex] ?? 0) + tx.amount;
