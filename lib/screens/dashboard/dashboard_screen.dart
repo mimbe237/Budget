@@ -36,6 +36,10 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final Color _brandTeal = const Color(0xFF00796B);
+  final Color _accentCoral = const Color(0xFFFF7A59);
+  final Color _softBackground = const Color(0xFFF5F7FB);
+
+  app_transaction.TransactionType? _recentFilter;
 
   @override
   void initState() {
@@ -55,7 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final targetLabel = targetLang == 'fr' ? 'FR 🇫🇷' : 'EN 🇬🇧';
     final selectedLabel = targetLang == 'fr' ? 'Français' : 'English';
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: _softBackground,
       appBar: AppBar(
         toolbarHeight: 74,
         titleSpacing: 12,
@@ -228,15 +232,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<Widget> _buildMobileSections(BuildContext context) {
     return [
+      _buildHeroSection(context),
+      const SizedBox(height: AppDesign.spacingMedium),
       _buildOnboardingChecklist(context),
       const SizedBox(height: AppDesign.spacingMedium),
       _buildQuickAccess(context),
       const SizedBox(height: AppDesign.spacingLarge),
-      const TrText(
-        "Solde Global Actuel",
-        style: TextStyle(fontSize: 18, color: Colors.grey),
-      ),
-      const SizedBox(height: AppDesign.spacingSmall),
       _buildTotalBalanceCard(),
       const SizedBox(height: AppDesign.spacingMedium),
       _buildBudgetExcellenceCard(),
@@ -257,15 +258,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<Widget> _buildLeftDesktopSections(BuildContext context) {
     return [
+      _buildHeroSection(context),
+      const SizedBox(height: AppDesign.spacingMedium),
       _buildOnboardingChecklist(context),
       const SizedBox(height: AppDesign.spacingMedium),
       _buildQuickAccess(context),
       const SizedBox(height: AppDesign.spacingLarge),
-      const TrText(
-        "Solde Global Actuel",
-        style: TextStyle(fontSize: 18, color: Colors.grey),
-      ),
-      const SizedBox(height: AppDesign.spacingSmall),
       _buildTotalBalanceCard(),
       const SizedBox(height: AppDesign.spacingMedium),
       _buildBudgetExcellenceCard(),
@@ -566,6 +564,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
           label: const TrText('Voir tout'),
         ),
       ],
+    );
+  }
+
+  Widget _buildTransactionFilters() {
+    final options = [
+      {'label': t('Toutes'), 'value': null},
+      {'label': t('Revenus'), 'value': TransactionType.income},
+      {'label': t('Dépenses'), 'value': TransactionType.expense},
+      {'label': t('Transferts'), 'value': TransactionType.transfer},
+    ];
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: options.map((opt) {
+        final value = opt['value'] as TransactionType?;
+        final label = opt['label'] as String;
+        final selected = _recentFilter == value;
+        return ChoiceChip(
+          label: TrText(label),
+          selected: selected,
+          selectedColor: AppDesign.primaryIndigo.withValues(alpha: 0.16),
+          labelStyle: TextStyle(
+            color: selected ? AppDesign.primaryIndigo : Colors.grey[800],
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+          ),
+          onSelected: (_) {
+            setState(() => _recentFilter = value);
+          },
+        );
+      }).toList(),
     );
   }
 
@@ -1106,136 +1135,149 @@ class _DashboardScreenState extends State<DashboardScreen> {
             }
 
             final transactions = snapshot.data!;
-        if (transactions.isEmpty) {
-          return Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(AppDesign.paddingLarge),
-              child: Center(
-                child: TrText("Aucune transaction récente. Ajoutez-en une !"),
-              ),
-            ),
-          );
-        }
+            final filtered = _recentFilter == null
+                ? transactions
+                : transactions.where((tx) => tx.type == _recentFilter).toList();
 
-        return Card(
-          elevation: 6,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
-          ),
-          child: Column(
-            children: transactions.take(5).map((tx) {
-              final isExpense = tx.type == TransactionType.expense;
-              final isIncome = tx.type == TransactionType.income;
-              final isTransfer = tx.type == TransactionType.transfer;
-              final currencyService = context.watch<CurrencyService>();
-              final targetCurrency = currencyService.currentCurrency;
-
-              Color txColor;
-              IconData txIcon;
-              String prefix;
-
-              if (isIncome) {
-                txColor = AppDesign.incomeColor;
-                txIcon = Icons.call_received_rounded;
-                prefix = '+';
-              } else if (isTransfer) {
-                txColor = AppDesign.transferColor;
-                txIcon = Icons.swap_horiz_rounded;
-                prefix = '';
-              } else {
-                txColor = AppDesign.expenseColor;
-                txIcon = Icons.call_made_rounded;
-                prefix = '-';
-              }
-
-              // Résoudre catégorie depuis categoryId
-              final txCategory = tx.categoryId != null && categories.isNotEmpty
-                  ? categories.firstWhere((c) => c.categoryId == tx.categoryId,
-                      orElse: () => categories.first)
-                  : null;
-              final categoryLabel = _resolveCategoryLabel(txCategory, tx);
-              final formattedDate = DateFormat('dd/MM/yyyy').format(tx.date);
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  children: [
-                    // Icône dans un cercle coloré
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: txColor.withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
+            if (filtered.isEmpty) {
+              return Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDesign.borderRadiusLarge),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppDesign.paddingLarge),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTransactionFilters(),
+                      const SizedBox(height: 12),
+                      const Center(
+                        child: TrText("Aucune transaction récente. Ajoutez-en une !"),
                       ),
-                      child: Icon(txIcon, color: txColor, size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    
-                    // Colonne principale (description + date/catégorie)
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Card(
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12, right: 12, top: 12),
+                    child: _buildTransactionFilters(),
+                  ),
+                  ...filtered.take(6).map((tx) {
+                    final isExpense = tx.type == TransactionType.expense;
+                    final isIncome = tx.type == TransactionType.income;
+                    final isTransfer = tx.type == TransactionType.transfer;
+                    final currencyService = context.watch<CurrencyService>();
+
+                    Color txColor;
+                    IconData txIcon;
+                    String prefix;
+
+                    if (isIncome) {
+                      txColor = AppDesign.incomeColor;
+                      txIcon = Icons.call_received_rounded;
+                      prefix = '+';
+                    } else if (isTransfer) {
+                      txColor = AppDesign.transferColor;
+                      txIcon = Icons.swap_horiz_rounded;
+                      prefix = '';
+                    } else {
+                      txColor = AppDesign.expenseColor;
+                      txIcon = Icons.call_made_rounded;
+                      prefix = '-';
+                    }
+
+                    // Résoudre catégorie depuis categoryId
+                    final txCategory = tx.categoryId != null && categories.isNotEmpty
+                        ? categories.firstWhere(
+                            (c) => c.categoryId == tx.categoryId,
+                            orElse: () => categories.first,
+                          )
+                        : null;
+                    final categoryLabel = _resolveCategoryLabel(txCategory, tx);
+                    final formattedDate = DateFormat('dd/MM/yyyy').format(tx.date);
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Row(
                         children: [
-                          TrText(
-                            tx.description ?? '',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
+                          Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: txColor.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                            child: Icon(txIcon, color: txColor, size: 22),
                           ),
-                          const SizedBox(height: 3),
-                          TrText(
-                            '$formattedDate · $categoryLabel',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 12,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TrText(
+                                  tx.description ?? '',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 3),
+                                TrText(
+                                  '$formattedDate · $categoryLabel',
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            flex: 0,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 140),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TrText(
+                                    '$prefix ${currencyService.formatAmountCompact(tx.amount)}',
+                                    style: TextStyle(
+                                      color: txColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    
-                    const SizedBox(width: 8),
-                    
-                    // Montant avec contrainte de largeur
-                    Flexible(
-                      flex: 0,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 140),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TrText(
-                              '$prefix ${currencyService.formatAmountCompact(tx.amount)}',
-                              style: TextStyle(
-                                color: txColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        );
+                    );
+                  }).toList(),
+                ],
+              ),
+            );
           },
         );
       },
@@ -1284,6 +1326,244 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeroSection(BuildContext context) {
+    final userId = _firestoreService.currentUserId;
+    final now = DateTime.now();
+    final greeting = _greetingLabel(now.hour);
+    final startOfMonth = DateTime(now.year, now.month, 1);
+
+    if (userId == null) {
+      return _placeholderCard(
+        title: t('Bienvenue'),
+        message: 'Connectez-vous pour personnaliser votre page d’accueil et suivre vos budgets.',
+      );
+    }
+
+    final accounts$ = _firestoreService.getAccountsStream(userId);
+    final tx$ = _firestoreService.getTransactionsStream(
+      userId,
+      startDate: startOfMonth,
+      endDate: now,
+      limit: 300,
+    );
+
+    return StreamBuilder<List<dynamic>>(
+      stream: CombineLatestStream.list([accounts$, tx$]),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return _heroLoadingShell();
+        }
+
+        final accounts = snapshot.data![0] as List<Account>;
+        final txs = snapshot.data![1] as List<Transaction>;
+        final currency = context.watch<CurrencyService>();
+
+        final totalBalance = accounts.fold<double>(0.0, (sum, acc) => sum + acc.balance);
+        double income = 0;
+        double expense = 0;
+        for (final tx in txs) {
+          if (tx.type == TransactionType.income) {
+            income += tx.amount;
+          } else if (tx.type == TransactionType.expense) {
+            expense += tx.amount;
+          }
+        }
+        final remaining = income - expense;
+        final burnRate = income > 0 ? (expense / income).clamp(0.0, 2.0) : 0.0;
+        final remainingPct = income > 0 ? (remaining / income).clamp(-1.0, 1.0) : 0.0;
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [_brandTeal, _accentCoral.withValues(alpha: 0.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+            boxShadow: AppDesign.mediumShadow,
+          ),
+          padding: const EdgeInsets.all(AppDesign.paddingLarge),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TrText(
+                          '$greeting 👋',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TrText(
+                          'Votre argent sous contrôle. Continuez sur cette lancée.',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          burnRate <= 0.6 ? Icons.check_circle : Icons.warning_amber_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        TrText(
+                          'Rythme ${ (burnRate * 100).toStringAsFixed(0)}%',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TrText(
+                          currency.formatAmount(totalBalance),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 28,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        TrText(
+                          'Solde global net',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => _navigateToTransaction(context, TransactionType.expense),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.14),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        icon: const Icon(Icons.south_west_rounded, size: 18),
+                        label: const TrText(
+                          'Ajouter dépense',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () => _navigateToTransaction(context, TransactionType.income),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: _brandTeal,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        icon: const Icon(Icons.north_east_rounded, size: 18),
+                        label: const TrText(
+                          'Ajouter revenu',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _HeroStatPill(
+                    label: t('Revenus du mois'),
+                    value: currency.formatAmount(income),
+                    badge: 'Flux entrant',
+                    color: Colors.white,
+                    background: Colors.white.withValues(alpha: 0.08),
+                  ),
+                  _HeroStatPill(
+                    label: t('Dépenses du mois'),
+                    value: currency.formatAmount(expense),
+                    badge: 'Sorties',
+                    color: Colors.white,
+                    background: Colors.white.withValues(alpha: 0.08),
+                  ),
+                  _HeroStatPill(
+                    label: t('Restant'),
+                    value: currency.formatAmount(remaining),
+                    badge: '${(remainingPct * 100).toStringAsFixed(0)}% du revenu',
+                    color: Colors.white,
+                    background: Colors.white.withValues(alpha: 0.08),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _greetingLabel(int hour) {
+    if (hour < 12) return t('Bonjour');
+    if (hour < 18) return t('Bon après-midi');
+    return t('Bonsoir');
+  }
+
+  Widget _heroLoadingShell() {
+    return Container(
+      height: 210,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_brandTeal.withValues(alpha: 0.7), _accentCoral.withValues(alpha: 0.7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+      ),
+      alignment: Alignment.center,
+      child: const CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
       ),
     );
   }
@@ -1357,6 +1637,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final categories = snapshot.data![0] as List<Category>;
         final txs = snapshot.data![1] as List<Transaction>;
         final budgetPlan = snapshot.data![2] as Map<String, dynamic>?;
+        final Map<String, String> catNames = {
+          for (final c in categories) c.categoryId: c.name,
+        };
 
         // Préparation des allocations/plafonds
         Map<String, double> allocations = Map.from(DEFAULT_ALLOCATION);
@@ -1364,7 +1647,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (budgetPlan != null) {
           final rawAlloc = budgetPlan['categoryAllocations'] as Map<String, dynamic>?;
           if (rawAlloc != null && rawAlloc.isNotEmpty) {
-            allocations = rawAlloc.map((k, v) => MapEntry(k, (v as num).toDouble()));
+            final mapped = {
+              for (final key in DEFAULT_ALLOCATION.keys) key: 0.0,
+            };
+            bool hasMapped = false;
+            rawAlloc.forEach((key, value) {
+              final pct = (value as num?)?.toDouble() ?? 0.0;
+              if (pct <= 0) return;
+
+              if (DEFAULT_ALLOCATION.containsKey(key)) {
+                mapped[key] = pct;
+                hasMapped = true;
+                return;
+              }
+
+              final categoryName = catNames[key] ?? key;
+              final pocket = _mapPocket(categoryName);
+              mapped[pocket] = (mapped[pocket] ?? 0.0) + pct;
+              hasMapped = true;
+            });
+            if (hasMapped) {
+              allocations = mapped;
+            }
           }
           final tb = budgetPlan['totalBudget'];
           if (tb is num) totalBudget = tb.toDouble();
@@ -1380,9 +1684,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
             .map((cat) {
           final pocket = _mapPocket(cat.name);
           final planned = (allocations[pocket] ?? DEFAULT_ALLOCATION[pocket] ?? 0) * totalBudget;
+          
+          // Calculer le montant engagé en vérifiant categoryId OU category (nom)
           final engaged = txs
-              .where((t) => t.categoryId == cat.categoryId && t.type == TransactionType.expense)
+              .where((t) {
+                if (t.type != TransactionType.expense) return false;
+                
+                // Vérifier par ID (prioritaire)
+                if (t.categoryId != null && t.categoryId == cat.categoryId) {
+                  return true;
+                }
+                
+                // Vérifier par nom (fallback si categoryId est null)
+                if (t.category != null && 
+                    t.category!.toLowerCase().trim() == cat.name.toLowerCase().trim()) {
+                  return true;
+                }
+                
+                return false;
+              })
               .fold<double>(0, (sum, t) => sum + t.amount);
+          
           return _PocketSummaryItem(
             name: cat.name,
             icon: cat.icon,
@@ -1489,6 +1811,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case TransactionType.transfer:
         return t('Transfert');
     }
+  }
+}
+
+class _HeroStatPill extends StatelessWidget {
+  final String label;
+  final String value;
+  final String badge;
+  final Color color;
+  final Color background;
+
+  const _HeroStatPill({
+    required this.label,
+    required this.value,
+    required this.badge,
+    required this.color,
+    required this.background,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            badge,
+            style: TextStyle(
+              color: color.withValues(alpha: 0.8),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color.withValues(alpha: 0.8),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1723,12 +2105,38 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
         final txs = snapshot.data![1] as List<Transaction>;
         final budgetPlan = snapshot.data![2] as Map<String, dynamic>?;
 
+        final Map<String, String> catNames = {
+          for (final c in categories) c.categoryId: c.name,
+        };
+
         Map<String, double> allocations = Map.from(DEFAULT_ALLOCATION);
         double totalBudget = 0;
         if (budgetPlan != null) {
           final rawAlloc = budgetPlan['categoryAllocations'] as Map<String, dynamic>?;
           if (rawAlloc != null && rawAlloc.isNotEmpty) {
-            allocations = rawAlloc.map((k, v) => MapEntry(k, (v as num).toDouble()));
+            final mapped = {
+              for (final key in DEFAULT_ALLOCATION.keys) key: 0.0,
+            };
+            bool hasMapped = false;
+            rawAlloc.forEach((key, value) {
+              final pct = (value as num?)?.toDouble() ?? 0.0;
+              if (pct <= 0) return;
+
+              if (DEFAULT_ALLOCATION.containsKey(key)) {
+                mapped[key] = pct;
+                hasMapped = true;
+                return;
+              }
+
+              final categoryName = catNames[key] ?? key;
+              final pocket = _mapPocket(categoryName);
+              mapped[pocket] = (mapped[pocket] ?? 0.0) + pct;
+              hasMapped = true;
+            });
+
+            if (hasMapped) {
+              allocations = mapped;
+            }
           }
           final tb = budgetPlan['totalBudget'];
           if (tb is num) totalBudget = tb.toDouble();
@@ -1743,9 +2151,27 @@ class CategoryBudgetProgressBlock extends StatelessWidget {
           final pocket = _mapPocket(cat.name);
           final allocatedShare = allocations[pocket] ?? DEFAULT_ALLOCATION[pocket] ?? 0;
           final allocated = allocatedShare * totalBudget;
+          
+          // Calculer le montant dépensé en vérifiant categoryId OU category (nom)
           final spent = txs
-              .where((t) => t.categoryId == cat.categoryId && t.type == TransactionType.expense)
+              .where((t) {
+                if (t.type != TransactionType.expense) return false;
+                
+                // Vérifier par ID (prioritaire)
+                if (t.categoryId != null && t.categoryId == cat.categoryId) {
+                  return true;
+                }
+                
+                // Vérifier par nom (fallback si categoryId est null)
+                if (t.category != null && 
+                    t.category!.toLowerCase().trim() == cat.name.toLowerCase().trim()) {
+                  return true;
+                }
+                
+                return false;
+              })
               .fold<double>(0, (sum, t) => sum + t.amount);
+          
           return _CategoryBudgetItem(
             name: cat.name,
             icon: cat.icon,

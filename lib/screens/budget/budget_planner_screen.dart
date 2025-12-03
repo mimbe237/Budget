@@ -42,6 +42,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   Stream<List<Transaction>> _transactionsStream = const Stream.empty();
   TransactionType? _txFilter;
   DateTimeRange? _txRange;
+  bool _usePreviousIncomePeriod = false;
   
   // Contrôleurs pour chaque champ de montant
   final Map<String, TextEditingController> _amountControllers = {};
@@ -104,6 +105,220 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     );
   }
 
+  Widget _buildBudgetHero({required bool isWide}) {
+    final currency = context.watch<CurrencyService>();
+    final totalAllocated = _totalIncome * _getTotalAllocation();
+    final totalSpent = _actualSpending.values.fold<double>(0, (s, v) => s + v);
+    final allocationPct = (_getTotalAllocation() * 100).clamp(0.0, 999.0);
+    final statusOver = allocationPct > 100.1;
+    final statusUnder = allocationPct < 99.9;
+    final statusColor = statusOver
+        ? AppDesign.expenseColor
+        : statusUnder
+            ? Colors.amber.shade700
+            : AppDesign.incomeColor;
+    final statusLabel = statusOver
+        ? t('Dépassement')
+        : statusUnder
+            ? t('Incomplet')
+            : t('Équilibré');
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppDesign.primaryIndigo.withValues(alpha: 0.92), AppDesign.incomeColor.withValues(alpha: 0.9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+        boxShadow: AppDesign.mediumShadow,
+      ),
+      padding: const EdgeInsets.all(AppDesign.paddingLarge),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TrText(
+                      t('Plan Budgétaire'),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        TrText(
+                          currency.formatAmount(_totalIncome),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: TrText(
+                            '$statusLabel · ${allocationPct.toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              color: statusColor,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    TrText(
+                      t('Solde budgété pour ce mois'),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.75),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (ctx) => TransactionFormScreen(
+                            transactionType: TransactionType.expense,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.12),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.south_west_rounded, size: 18),
+                    label: const TrText(
+                      'Ajouter dépense',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (ctx) => TransactionFormScreen(
+                            transactionType: TransactionType.income,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppDesign.incomeColor,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.north_east_rounded, size: 18),
+                    label: const TrText(
+                      'Ajouter revenu',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _budgetHeroPill(
+                label: t('Total alloué'),
+                value: currency.formatAmount(totalAllocated),
+                helper: '${allocationPct.toStringAsFixed(1)}%',
+              ),
+              _budgetHeroPill(
+                label: t('Dépensé'),
+                value: currency.formatAmount(totalSpent),
+                helper: t('vs budget'),
+              ),
+              _budgetHeroPill(
+                label: t('Restant théorique'),
+                value: currency.formatAmount(totalAllocated - totalSpent),
+                helper: t('Après allocations'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _budgetHeroPill({
+    required String label,
+    required String value,
+    required String helper,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TrText(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 4),
+          TrText(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+          TrText(
+            helper,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildIncomeCategoriesRecap() {
     final userId = _firestoreService.currentUserId;
     if (userId == null) {
@@ -114,14 +329,19 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     }
 
     final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1);
+    final startOfMonth = _usePreviousIncomePeriod
+        ? DateTime(now.year, now.month - 1, 1)
+        : DateTime(now.year, now.month, 1);
+    final endDate = _usePreviousIncomePeriod
+        ? DateTime(now.year, now.month, 0)
+        : now;
 
     final categories$ = _firestoreService.getCategoriesStream(userId, type: CategoryType.income);
     final transactions$ = _firestoreService.getTransactionsStream(
       userId,
       type: TransactionType.income,
       startDate: startOfMonth,
-      endDate: now,
+      endDate: endDate,
       limit: 500,
     );
 
@@ -177,9 +397,22 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const TrText(
-                  'Revenus par catégorie (mois)',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const TrText(
+                      'Revenus par catégorie (mois)',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    ChoiceChip(
+                      label: TrText(_usePreviousIncomePeriod ? 'Mois précédent' : 'Mois en cours'),
+                      selected: _usePreviousIncomePeriod,
+                      selectedColor: AppDesign.primaryIndigo.withValues(alpha: 0.14),
+                      onSelected: (_) {
+                        setState(() => _usePreviousIncomePeriod = !_usePreviousIncomePeriod);
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 ...items.map((i) => _IncomeCategoryRow(item: i)).toList(),
@@ -264,7 +497,31 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
       if (budgetPlan != null) {
         final rawAlloc = (budgetPlan['categoryAllocations'] as Map<String, dynamic>?);
         if (rawAlloc != null && rawAlloc.isNotEmpty) {
-          allocations = rawAlloc.map((k, v) => MapEntry(k, (v as num).toDouble()));
+          // Map Firestore allocations (stockées par catégorie) vers les poches affichées
+          final pocketAllocations = {
+            for (final key in DEFAULT_BUDGET_CATEGORIES.keys) key: 0.0,
+          };
+          bool hasMappedAllocation = false;
+
+          rawAlloc.forEach((key, value) {
+            final percentage = (value as num?)?.toDouble() ?? 0.0;
+            if (percentage <= 0) return;
+
+            if (DEFAULT_BUDGET_CATEGORIES.containsKey(key)) {
+              pocketAllocations[key] = percentage;
+              hasMappedAllocation = true;
+              return;
+            }
+
+            final categoryName = catNames[key] ?? key;
+            final pocket = _mapPocket(categoryName);
+            pocketAllocations[pocket] = (pocketAllocations[pocket] ?? 0.0) + percentage;
+            hasMappedAllocation = true;
+          });
+
+          if (hasMappedAllocation) {
+            allocations = pocketAllocations;
+          }
         }
         final tb = budgetPlan['totalBudget'];
         if (tb is num) totalBudget = tb.toDouble();
@@ -403,6 +660,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildBudgetHero(isWide: isWide),
+                  const SizedBox(height: AppDesign.spacingMedium),
                   _buildQuickActions(context, isWide: isWide),
                   const SizedBox(height: AppDesign.spacingLarge),
                   Align(
@@ -463,17 +722,24 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                         const SizedBox(width: AppDesign.spacingLarge),
                         Expanded(
                           flex: 2,
-                          child: _buildBudgetSummaryPanel(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildBudgetSummaryPanel(),
+                              const SizedBox(height: AppDesign.spacingLarge),
+                              _buildIncomeCategoriesRecap(),
+                            ],
+                          ),
                         ),
                       ],
                     )
                   else ...[
+                    _buildBudgetSummaryPanel(),
+                    const SizedBox(height: AppDesign.spacingLarge),
                     _buildAllocationList(),
                     const SizedBox(height: AppDesign.spacingLarge),
-                    _buildBudgetSummaryPanel(),
+                    _buildIncomeCategoriesRecap(),
                   ],
-                  const SizedBox(height: AppDesign.spacingLarge),
-                  _buildIncomeCategoriesRecap(),
                   const SizedBox(height: AppDesign.spacingLarge),
                   _buildTransactionsSection(),
                   const SizedBox(height: 120),
@@ -1049,18 +1315,52 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   }
 
   Widget _buildAllocationList() {
+    final totalPercent = (_getTotalAllocation() * 100).clamp(0.0, 999.0);
+    final isOver = totalPercent > 100.0 + 0.1;
+    final isUnder = totalPercent < 99.9;
+    final badgeColor = isOver
+        ? AppDesign.expenseColor
+        : isUnder
+            ? Colors.amber.shade700
+            : AppDesign.incomeColor;
+    final badgeLabel = isOver
+        ? 'Dépassement'
+        : isUnder
+            ? 'Incomplet'
+            : 'Équilibré';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const TrText(
-              'Poches Budgétaires',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                const TrText(
+                  'Poches Budgétaires',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: TrText(
+                    '${totalPercent.toStringAsFixed(1)}% · $badgeLabel',
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
             TextButton.icon(
               onPressed: _resetToDefaultAllocation,
@@ -1082,10 +1382,20 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   }
 
   Widget _buildBudgetSummaryPanel() {
-    final entries = DEFAULT_BUDGET_CATEGORIES.entries.map((entry) {
-      final key = entry.key;
-      final name = entry.value['name']!;
-      final icon = entry.value['icon']!;
+    final sortedKeys = DEFAULT_BUDGET_CATEGORIES.keys.toList()
+      ..sort((a, b) {
+        final plannedA = (_allocations[a] ?? 0.0) * _totalIncome;
+        final plannedB = (_allocations[b] ?? 0.0) * _totalIncome;
+        final engagedA = _actualSpending[a] ?? 0.0;
+        final engagedB = _actualSpending[b] ?? 0.0;
+        final ratioA = plannedA > 0 ? engagedA / plannedA : 0.0;
+        final ratioB = plannedB > 0 ? engagedB / plannedB : 0.0;
+        return ratioB.compareTo(ratioA);
+      });
+
+    final entries = sortedKeys.map((key) {
+      final name = DEFAULT_BUDGET_CATEGORIES[key]!['name']!;
+      final icon = DEFAULT_BUDGET_CATEGORIES[key]!['icon']!;
       final planned = (_allocations[key] ?? 0.0) * _totalIncome;
       final engaged = _actualSpending[key] ?? 0.0;
       final ratio = planned > 0 ? (engaged / planned).clamp(0.0, 1.2) : 0.0;
@@ -1094,6 +1404,16 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           : ratio < 0.85
               ? Colors.amber.shade700
               : AppDesign.expenseColor;
+      final badgeColor = ratio >= 1
+          ? AppDesign.expenseColor
+          : ratio >= 0.8
+              ? Colors.amber.shade700
+              : AppDesign.incomeColor;
+      final badgeLabel = ratio >= 1
+          ? 'Dépassement'
+          : ratio >= 0.8
+              ? 'À surveiller'
+              : 'OK';
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Column(
@@ -1122,20 +1442,41 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     ),
                   ],
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    TrText(
-                      'Prévu ${context.watch<CurrencyService>().formatAmount(planned)}',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                    TrText(
-                      'Engagé ${context.watch<CurrencyService>().formatAmount(engaged)}',
-                      style: TextStyle(
-                        color: barColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: badgeColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      child: TrText(
+                        badgeLabel,
+                        style: TextStyle(
+                          color: badgeColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        TrText(
+                          'Prévu ${context.watch<CurrencyService>().formatAmount(planned)}',
+                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                        TrText(
+                          'Engagé ${context.watch<CurrencyService>().formatAmount(engaged)}',
+                          style: TextStyle(
+                            color: barColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1349,6 +1690,16 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     final actualSpent = _actualSpending[categoryKey] ?? 0.0;
     final isOverBudget = actualSpent > amount;
     final spentPercentage = amount > 0 ? (actualSpent / amount).clamp(0.0, 1.0) : 0.0;
+    final badgeColor = isOverBudget
+        ? AppDesign.expenseColor
+        : spentPercentage > 0.75
+            ? Colors.amber.shade700
+            : AppDesign.incomeColor;
+    final badgeLabel = isOverBudget
+        ? 'Dépassement'
+        : spentPercentage > 0.75
+            ? 'À surveiller'
+            : 'OK';
 
     return Card(
       elevation: 2,
@@ -1385,19 +1736,36 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (actualSpent > 0)
-                      TrText(
-                        'Dépensé: ${currency.formatAmount(actualSpent)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isOverBudget ? AppDesign.expenseColor : Colors.grey[600],
                         ),
                       ),
+                      if (actualSpent > 0)
+                        TrText(
+                          'Dépensé: ${currency.formatAmount(actualSpent)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isOverBudget ? AppDesign.expenseColor : Colors.grey[600],
+                          ),
+                        ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TrText(
+                    badgeLabel,
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 if (_editingRowKey == categoryKey)
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
@@ -1559,7 +1927,9 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   void _updateAmountsFromPercentages() {
     for (var entry in _allocations.entries) {
       final amount = _totalIncome * entry.value;
-      _amountControllers[entry.key]!.text = amount.toStringAsFixed(2);
+      if (_amountControllers.containsKey(entry.key)) {
+        _amountControllers[entry.key]!.text = amount.toStringAsFixed(2);
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:budget/l10n/app_localizations.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants/app_design.dart';
 import '../../services/currency_service.dart';
 import '../../services/firestore_service.dart';
@@ -568,7 +569,11 @@ Future<void> _showResetDialog(BuildContext context) async {
               onPressed: (countdown == 0 && agreedToTerms)
                   ? () async {
                       Navigator.pop(ctx);
-                      await _performReset(context, userId);
+                      // Demander le mot de passe avant de procéder
+                      final confirmed = await _confirmWithPassword(context);
+                      if (confirmed && context.mounted) {
+                        await _performReset(context, userId);
+                      }
                     }
                   : null,
               style: ElevatedButton.styleFrom(
@@ -586,7 +591,120 @@ Future<void> _showResetDialog(BuildContext context) async {
   );
 }
 
+Future<bool> _confirmWithPassword(BuildContext context) async {
+  final passwordController = TextEditingController();
+  bool passwordVisible = false;
+  
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.lock_outline, color: Colors.red.shade700),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: TrText(
+                'Confirmer avec mot de passe',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const TrText(
+              'Entrez votre mot de passe pour confirmer la réinitialisation :',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: !passwordVisible,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Mot de passe',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.lock),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    passwordVisible ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () => setState(() => passwordVisible = !passwordVisible),
+                ),
+              ),
+              onSubmitted: (_) {
+                if (passwordController.text.isNotEmpty) {
+                  Navigator.pop(ctx, true);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const TrText('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (passwordController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: TrText('Veuillez entrer votre mot de passe'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+              
+              // Vérifier le mot de passe avec Firebase Auth
+              try {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null || user.email == null) {
+                  Navigator.pop(ctx, false);
+                  return;
+                }
+                
+                // Tenter une réauthentification
+                final credential = EmailAuthProvider.credential(
+                  email: user.email!,
+                  password: passwordController.text,
+                );
+                
+                await user.reauthenticateWithCredential(credential);
+                Navigator.pop(ctx, true);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: TrText('Mot de passe incorrect'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+            ),
+            child: const TrText('Confirmer'),
+          ),
+        ],
+      ),
+    ),
+  );
+  
+  passwordController.dispose();
+  return result ?? false;
+}
+
 Future<void> _performReset(BuildContext context, String userId) async {
+  if (!context.mounted) return;
+  
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -616,23 +734,29 @@ Future<void> _performReset(BuildContext context, String userId) async {
     
     if (context.mounted) {
       Navigator.pop(context); // Fermer le loader
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: TrText('✓ Réinitialisation réussie. Un backup a été créé.'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 4),
-        ),
-      );
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: TrText('✓ Réinitialisation réussie. Un backup a été créé.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
     }
   } catch (e) {
     if (context.mounted) {
       Navigator.pop(context); // Fermer le loader
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: TrText('Erreur: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: TrText('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
