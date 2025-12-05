@@ -9,7 +9,7 @@ import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/modern_page_app_bar.dart';
 import '../../widgets/screen_header.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 /// Écran de suivi des dettes (je dois) et créances (on me doit)

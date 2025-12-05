@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 
 class RevolutionaryLogo extends StatelessWidget {
   final double size;

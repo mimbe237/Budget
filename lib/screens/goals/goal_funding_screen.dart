@@ -12,7 +12,7 @@ import '../../services/firestore_service.dart';
 import '../../widgets/modern_page_app_bar.dart';
 import '../../widgets/screen_header.dart';
 import '../../widgets/app_modal.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 
 /// Écran de suivi et financement des objectifs d'épargne
 class GoalFundingScreen extends StatefulWidget {

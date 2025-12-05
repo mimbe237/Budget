@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/notification_service.dart';
 import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 
 /// Écran de paramètres des notifications
 class NotificationSettingsScreen extends StatefulWidget {

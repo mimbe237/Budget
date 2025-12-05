@@ -16,6 +16,8 @@ interface User {
   balance: number;
   createdAt: string;
   lastActive: string;
+  countryCode?: string;
+  phoneNumber?: string;
 }
 
 function UsersContent() {
@@ -23,7 +25,9 @@ function UsersContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [filterCountry, setFilterCountry] = useState('all');
   const [pageSize, setPageSize] = useState(20);
+  const [usersByCountry, setUsersByCountry] = useState<Record<string, number>>({});
   const [sortField, setSortField] = useState<'createdAt' | 'balance' | 'email'>('createdAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
@@ -76,7 +80,7 @@ function UsersContent() {
       const list: User[] = slice.map(d => {
         const raw = d.data();
         interface RawTimestamp { toDate?: () => Date }
-        interface RawUser { email?: string; displayName?: string; role?: string; status?: string; balance?: number; createdAt?: RawTimestamp | string; lastActive?: RawTimestamp | string }
+        interface RawUser { email?: string; displayName?: string; role?: string; status?: string; balance?: number; createdAt?: RawTimestamp | string; lastActive?: RawTimestamp | string; countryCode?: string; phoneNumber?: string }
         const data: RawUser = raw as RawUser;
         const status = data.status === 'suspended' ? 'suspended' : 'active';
         const createdAt = (data.createdAt as RawTimestamp)?.toDate?.()?.toISOString() || (typeof data.createdAt === 'string' ? data.createdAt : '');
@@ -90,6 +94,8 @@ function UsersContent() {
           balance: data.balance || 0,
           createdAt,
           lastActive,
+          countryCode: data.countryCode,
+          phoneNumber: data.phoneNumber,
         };
       });
       setUsers(list);
@@ -109,9 +115,26 @@ function UsersContent() {
       setIsLoadingPage(false);
     }
   }
+  // Charger statistiques par pays
+  async function loadCountryStats() {
+    try {
+      const snap = await getDocs(collection(db, 'users'));
+      const stats: Record<string, number> = {};
+      snap.docs.forEach(doc => {
+        const data = doc.data();
+        const country = data.countryCode || 'unknown';
+        stats[country] = (stats[country] || 0) + 1;
+      });
+      setUsersByCountry(stats);
+    } catch (e) {
+      console.error('Error loading country stats:', e);
+    }
+  }
+
   // Chargement initial une seule fois
   useEffect(() => {
     loadPage(true);
+    loadCountryStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -192,7 +215,8 @@ function UsersContent() {
       user.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       user.displayName.toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchesRole = filterRole === 'all' || user.role === filterRole;
-    return matchesSearch && matchesRole;
+    const matchesCountry = filterCountry === 'all' || user.countryCode === filterCountry;
+    return matchesSearch && matchesRole && matchesCountry;
   });
 
   const adminCount = users.filter((user) => user.role === 'admin').length;
@@ -293,6 +317,49 @@ function UsersContent() {
         </div>
       </div>
 
+      {/* Stats par pays */}
+      {Object.keys(usersByCountry).length > 0 && (
+        <div className="rounded-3xl border border-white/70 bg-white/90 px-6 py-5 shadow-sm ring-1 ring-black/5 backdrop-blur dark:border-gray-800/80 dark:bg-gray-900/70">
+          <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">
+            Utilisateurs par pays ({Object.keys(usersByCountry).length} pays)
+          </h3>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {Object.entries(usersByCountry)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 12)
+              .map(([code, count]) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setFilterCountry(code)}
+                  className={`group flex flex-col items-center gap-2 rounded-xl border p-3 transition ${
+                    filterCountry === code
+                      ? 'border-[var(--brand)] bg-[var(--brand)]/10'
+                      : 'border-gray-200 bg-white/50 hover:border-[var(--brand)]/50 dark:border-gray-700 dark:bg-gray-800/50'
+                  }`}
+                >
+                  <span className="text-3xl">
+                    {code !== 'unknown' ? String.fromCodePoint(...[...code.toUpperCase()].map(c => 127397 + c.charCodeAt(0))) : '🌍'}
+                  </span>
+                  <div className="text-center">
+                    <p className="text-xs font-bold text-gray-600 dark:text-gray-400">
+                      {code.toUpperCase()}
+                    </p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {count}
+                    </p>
+                  </div>
+                </button>
+              ))}
+          </div>
+          {Object.keys(usersByCountry).length > 12 && (
+            <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+              +{Object.keys(usersByCountry).length - 12} autres pays dans le filtre
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Filters + Sorting / Pagination */}
       <div className="rounded-3xl border border-white/70 bg-white/90 px-4 py-5 shadow-sm ring-1 ring-black/5 backdrop-blur dark:border-gray-800/80 dark:bg-gray-900/70">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
@@ -326,6 +393,20 @@ function UsersContent() {
               <option value="admin">Admin</option>
               <option value="premium">Premium</option>
               <option value="user">User</option>
+            </select>
+            <select
+              value={filterCountry}
+              onChange={(e) => setFilterCountry(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm font-semibold text-gray-800 shadow-inner shadow-black/5 focus:border-[var(--brand)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/30 dark:border-gray-700 dark:bg-gray-800/70 dark:text-white"
+            >
+              <option value="all">Tous les pays ({Object.values(usersByCountry).reduce((a,b) => a+b, 0)})</option>
+              {Object.entries(usersByCountry)
+                .sort((a, b) => b[1] - a[1])
+                .map(([code, count]) => (
+                  <option key={code} value={code}>
+                    {code.toUpperCase()} ({count})
+                  </option>
+                ))}
             </select>
             <div className="flex gap-2">
               {['all', 'admin', 'premium', 'user'].map((role) => {
@@ -391,6 +472,7 @@ function UsersContent() {
             <thead className="bg-gray-50/80 text-left text-xs uppercase tracking-wide text-gray-500 backdrop-blur dark:bg-gray-900/80 dark:text-gray-400">
               <tr>
                 <th className="px-6 py-3">Utilisateur</th>
+                <th className="px-6 py-3">Pays</th>
                 <th className="px-6 py-3">Rôle</th>
                 <th className="px-6 py-3">Statut</th>
                 <th className="px-6 py-3">Solde</th>
@@ -415,7 +497,15 @@ function UsersContent() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">{roleBadge(user.role)}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{user.countryCode ? String.fromCodePoint(...[...user.countryCode.toUpperCase()].map(c => 127397 + c.charCodeAt(0))) : '🌍'}</span>
+                      <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                        {user.countryCode?.toUpperCase() || 'N/A'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-3">{roleBadge(user.role)}</td>
                   <td className="px-6 py-4">{statusBadge(user.status)}</td>
                   <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">
                     {user.balance.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}

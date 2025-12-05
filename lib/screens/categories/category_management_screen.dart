@@ -3,7 +3,7 @@ import '../../services/firestore_service.dart';
 import '../../models/category.dart';
 import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import '../transactions/transactions_list_screen.dart';
 
 const List<String> _categoryIcons = [

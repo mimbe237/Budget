@@ -6,7 +6,7 @@ import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
 import 'global_financial_flow_block.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 
 enum ReportPeriod { currentMonth, lastMonth, quarter, year, custom }
 

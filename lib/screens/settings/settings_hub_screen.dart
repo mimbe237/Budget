@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants/app_design.dart';
 import '../../services/currency_service.dart';
@@ -9,8 +9,9 @@ import '../../services/theme_service.dart';
 import '../profile/profile_settings_screen.dart';
 import '../settings/notification_settings_screen.dart';
 import '../budget/budget_planner_screen.dart';
-import '../auth/auth_screen.dart';
+import '../auth/login_screen.dart';
 import '../../widgets/currency_conversion_dialog.dart';
+import '../../providers/locale_provider.dart';
 
 /// Page unifiée Profil & Paramètres
 class SettingsHubScreen extends StatelessWidget {
@@ -385,7 +386,7 @@ Future<void> _handleLogout(BuildContext context) async {
   await FirestoreService().logout();
   if (!context.mounted) return;
   Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-    MaterialPageRoute(builder: (_) => const AuthScreen()),
+    MaterialPageRoute(builder: (_) => const LoginScreen()),
     (route) => false,
   );
 }

@@ -10,7 +10,7 @@ import '../../services/firestore_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../widgets/revolutionary_logo.dart';
 import '../transactions/transactions_list_screen.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import 'package:budget/services/currency_service.dart';
 
 /// Écran d'analyse intelligente des finances personnelles

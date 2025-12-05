@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_design.dart';
 import '../screens/navigation/main_navigation_shell.dart';
 import 'revolutionary_logo.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import '../screens/settings/settings_hub_screen.dart';
 
 class ModernPageAppBar extends StatelessWidget implements PreferredSizeWidget {

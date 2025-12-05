@@ -3,12 +3,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/firestore_service.dart';
 import '../navigation/main_navigation_shell.dart';
 import '../../widgets/revolutionary_logo.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:budget/services/currency_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/user_profile.dart';
 import 'password_reset_screen.dart';
+import '../legal/privacy_policy_screen.dart';
+import '../legal/terms_of_service_screen.dart';
+import '../support/support_screen.dart';
+import '../../services/app_settings_service.dart';
+import '../../widgets/country_search_dialog.dart';
+import '../../providers/locale_provider.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -24,6 +30,8 @@ class _AuthScreenState extends State<AuthScreen> {
   static const Color _brandSecondary = Color(0xFFC542C1);
   static const Color _brandSurface = Color(0xFFF1EEFF);
 
+  final _settingsService = AppSettingsService();
+
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -36,11 +44,96 @@ class _AuthScreenState extends State<AuthScreen> {
   String _selectedCountryCode = 'CM';
   String _selectedLanguageCode = 'fr';
 
+  @override
+  void initState() {
+    super.initState();
+    // Charger les paramètres dès l'initialisation
+    _settingsService.loadSettings();
+  }
+
   static const List<Map<String, String>> _countryOptions = [
-    {'code': 'CM', 'name': 'Cameroun', 'dial': '+237'},
-    {'code': 'FR', 'name': 'France', 'dial': '+33'},
-    {'code': 'US', 'name': 'États-Unis', 'dial': '+1'},
-    {'code': 'CI', 'name': 'Côte d\'Ivoire', 'dial': '+225'},
+    // Afrique francophone
+    {'code': 'BJ', 'name': 'Bénin', 'nameEn': 'Benin', 'dial': '+229'},
+    {'code': 'BF', 'name': 'Burkina Faso', 'nameEn': 'Burkina Faso', 'dial': '+226'},
+    {'code': 'BI', 'name': 'Burundi', 'nameEn': 'Burundi', 'dial': '+257'},
+    {'code': 'CM', 'name': 'Cameroun', 'nameEn': 'Cameroon', 'dial': '+237'},
+    {'code': 'CF', 'name': 'Centrafrique', 'nameEn': 'Central African Republic', 'dial': '+236'},
+    {'code': 'KM', 'name': 'Comores', 'nameEn': 'Comoros', 'dial': '+269'},
+    {'code': 'CG', 'name': 'Congo-Brazzaville', 'nameEn': 'Congo', 'dial': '+242'},
+    {'code': 'CD', 'name': 'RDC', 'nameEn': 'DR Congo', 'dial': '+243'},
+    {'code': 'CI', 'name': 'Côte d\'Ivoire', 'nameEn': 'Ivory Coast', 'dial': '+225'},
+    {'code': 'DJ', 'name': 'Djibouti', 'nameEn': 'Djibouti', 'dial': '+253'},
+    {'code': 'GA', 'name': 'Gabon', 'nameEn': 'Gabon', 'dial': '+241'},
+    {'code': 'GN', 'name': 'Guinée', 'nameEn': 'Guinea', 'dial': '+224'},
+    {'code': 'MG', 'name': 'Madagascar', 'nameEn': 'Madagascar', 'dial': '+261'},
+    {'code': 'ML', 'name': 'Mali', 'nameEn': 'Mali', 'dial': '+223'},
+    {'code': 'NE', 'name': 'Niger', 'nameEn': 'Niger', 'dial': '+227'},
+    {'code': 'RW', 'name': 'Rwanda', 'nameEn': 'Rwanda', 'dial': '+250'},
+    {'code': 'SN', 'name': 'Sénégal', 'nameEn': 'Senegal', 'dial': '+221'},
+    {'code': 'SC', 'name': 'Seychelles', 'nameEn': 'Seychelles', 'dial': '+248'},
+    {'code': 'TD', 'name': 'Tchad', 'nameEn': 'Chad', 'dial': '+235'},
+    {'code': 'TG', 'name': 'Togo', 'nameEn': 'Togo', 'dial': '+228'},
+    {'code': 'VU', 'name': 'Vanuatu', 'nameEn': 'Vanuatu', 'dial': '+678'},
+    // Afrique anglophone
+    {'code': 'ZA', 'name': 'Afrique du Sud', 'nameEn': 'South Africa', 'dial': '+27'},
+    {'code': 'BW', 'name': 'Botswana', 'nameEn': 'Botswana', 'dial': '+267'},
+    {'code': 'GM', 'name': 'Gambie', 'nameEn': 'Gambia', 'dial': '+220'},
+    {'code': 'GH', 'name': 'Ghana', 'nameEn': 'Ghana', 'dial': '+233'},
+    {'code': 'KE', 'name': 'Kenya', 'nameEn': 'Kenya', 'dial': '+254'},
+    {'code': 'LS', 'name': 'Lesotho', 'nameEn': 'Lesotho', 'dial': '+266'},
+    {'code': 'LR', 'name': 'Liberia', 'nameEn': 'Liberia', 'dial': '+231'},
+    {'code': 'MW', 'name': 'Malawi', 'nameEn': 'Malawi', 'dial': '+265'},
+    {'code': 'MU', 'name': 'Maurice', 'nameEn': 'Mauritius', 'dial': '+230'},
+    {'code': 'NA', 'name': 'Namibie', 'nameEn': 'Namibia', 'dial': '+264'},
+    {'code': 'NG', 'name': 'Nigéria', 'nameEn': 'Nigeria', 'dial': '+234'},
+    {'code': 'UG', 'name': 'Ouganda', 'nameEn': 'Uganda', 'dial': '+256'},
+    {'code': 'SL', 'name': 'Sierra Leone', 'nameEn': 'Sierra Leone', 'dial': '+232'},
+    {'code': 'SZ', 'name': 'Eswatini', 'nameEn': 'Eswatini', 'dial': '+268'},
+    {'code': 'TZ', 'name': 'Tanzanie', 'nameEn': 'Tanzania', 'dial': '+255'},
+    {'code': 'ZM', 'name': 'Zambie', 'nameEn': 'Zambia', 'dial': '+260'},
+    {'code': 'ZW', 'name': 'Zimbabwe', 'nameEn': 'Zimbabwe', 'dial': '+263'},
+    // Europe francophone
+    {'code': 'BE', 'name': 'Belgique', 'nameEn': 'Belgium', 'dial': '+32'},
+    {'code': 'FR', 'name': 'France', 'nameEn': 'France', 'dial': '+33'},
+    {'code': 'LU', 'name': 'Luxembourg', 'nameEn': 'Luxembourg', 'dial': '+352'},
+    {'code': 'MC', 'name': 'Monaco', 'nameEn': 'Monaco', 'dial': '+377'},
+    {'code': 'CH', 'name': 'Suisse', 'nameEn': 'Switzerland', 'dial': '+41'},
+    // Europe anglophone
+    {'code': 'IE', 'name': 'Irlande', 'nameEn': 'Ireland', 'dial': '+353'},
+    {'code': 'MT', 'name': 'Malte', 'nameEn': 'Malta', 'dial': '+356'},
+    {'code': 'GB', 'name': 'Royaume-Uni', 'nameEn': 'United Kingdom', 'dial': '+44'},
+    // Amériques francophone
+    {'code': 'CA', 'name': 'Canada', 'nameEn': 'Canada', 'dial': '+1'},
+    {'code': 'HT', 'name': 'Haïti', 'nameEn': 'Haiti', 'dial': '+509'},
+    // Amériques anglophone
+    {'code': 'AG', 'name': 'Antigua-et-Barbuda', 'nameEn': 'Antigua and Barbuda', 'dial': '+1268'},
+    {'code': 'BS', 'name': 'Bahamas', 'nameEn': 'Bahamas', 'dial': '+1242'},
+    {'code': 'BB', 'name': 'Barbade', 'nameEn': 'Barbados', 'dial': '+1246'},
+    {'code': 'BZ', 'name': 'Belize', 'nameEn': 'Belize', 'dial': '+501'},
+    {'code': 'DM', 'name': 'Dominique', 'nameEn': 'Dominica', 'dial': '+1767'},
+    {'code': 'GD', 'name': 'Grenade', 'nameEn': 'Grenada', 'dial': '+1473'},
+    {'code': 'GY', 'name': 'Guyana', 'nameEn': 'Guyana', 'dial': '+592'},
+    {'code': 'JM', 'name': 'Jamaïque', 'nameEn': 'Jamaica', 'dial': '+1876'},
+    {'code': 'KN', 'name': 'Saint-Kitts-et-Nevis', 'nameEn': 'Saint Kitts and Nevis', 'dial': '+1869'},
+    {'code': 'LC', 'name': 'Sainte-Lucie', 'nameEn': 'Saint Lucia', 'dial': '+1758'},
+    {'code': 'VC', 'name': 'Saint-Vincent-et-les-Grenadines', 'nameEn': 'Saint Vincent and the Grenadines', 'dial': '+1784'},
+    {'code': 'TT', 'name': 'Trinité-et-Tobago', 'nameEn': 'Trinidad and Tobago', 'dial': '+1868'},
+    {'code': 'US', 'name': 'États-Unis', 'nameEn': 'United States', 'dial': '+1'},
+    // Asie anglophone
+    {'code': 'IN', 'name': 'Inde', 'nameEn': 'India', 'dial': '+91'},
+    {'code': 'PK', 'name': 'Pakistan', 'nameEn': 'Pakistan', 'dial': '+92'},
+    {'code': 'PH', 'name': 'Philippines', 'nameEn': 'Philippines', 'dial': '+63'},
+    {'code': 'SG', 'name': 'Singapour', 'nameEn': 'Singapore', 'dial': '+65'},
+    {'code': 'LK', 'name': 'Sri Lanka', 'nameEn': 'Sri Lanka', 'dial': '+94'},
+    {'code': 'BD', 'name': 'Bangladesh', 'nameEn': 'Bangladesh', 'dial': '+880'},
+    // Océanie anglophone
+    {'code': 'AU', 'name': 'Australie', 'nameEn': 'Australia', 'dial': '+61'},
+    {'code': 'FJ', 'name': 'Fidji', 'nameEn': 'Fiji', 'dial': '+679'},
+    {'code': 'NZ', 'name': 'Nouvelle-Zélande', 'nameEn': 'New Zealand', 'dial': '+64'},
+    {'code': 'PG', 'name': 'Papouasie-Nouvelle-Guinée', 'nameEn': 'Papua New Guinea', 'dial': '+675'},
+    {'code': 'SB', 'name': 'Îles Salomon', 'nameEn': 'Solomon Islands', 'dial': '+677'},
+    {'code': 'WS', 'name': 'Samoa', 'nameEn': 'Samoa', 'dial': '+685'},
+    {'code': 'TO', 'name': 'Tonga', 'nameEn': 'Tonga', 'dial': '+676'},
   ];
 
   @override
@@ -426,25 +519,36 @@ class _AuthScreenState extends State<AuthScreen> {
         ],
         if (!_isLogin) ...[
           const SizedBox(height: 4),
-          DropdownButtonFormField<String>(
-            value: _selectedCountryCode,
-            decoration: InputDecoration(
-              labelText: t('Pays'),
-              prefixIcon: const Icon(Icons.public),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            items: _countryOptions
-                .map((c) => DropdownMenuItem(
-                      value: c['code'],
-                      child: Text('${c['name']} (${c['dial']})'),
-                    ))
-                .toList(),
-            onChanged: (code) {
-              if (code == null) return;
-              setState(() {
-                _selectedCountryCode = code;
-              });
+          InkWell(
+            onTap: () async {
+              final result = await showDialog<String>(
+                context: context,
+                builder: (context) => CountrySearchDialog(
+                  countries: _countryOptions,
+                  selectedCode: _selectedCountryCode,
+                  languageCode: _selectedLanguageCode,
+                ),
+              );
+              if (result != null) {
+                setState(() {
+                  _selectedCountryCode = result;
+                });
+              }
             },
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: t('Pays'),
+                prefixIcon: const Icon(Icons.public),
+                suffixIcon: const Icon(Icons.arrow_drop_down),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                _selectedLanguageCode == 'en'
+                    ? '${_countryOptions.firstWhere((c) => c['code'] == _selectedCountryCode)['nameEn'] ?? _countryOptions.firstWhere((c) => c['code'] == _selectedCountryCode)['name']} (${_countryOptions.firstWhere((c) => c['code'] == _selectedCountryCode)['dial']})'
+                    : '${_countryOptions.firstWhere((c) => c['code'] == _selectedCountryCode)['name']} (${_countryOptions.firstWhere((c) => c['code'] == _selectedCountryCode)['dial']})',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -524,7 +628,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     _errorMessage = null;
                   });
                 },
-          child: RichTrText(
+          child: RichText(
             text: TextSpan(
               text: _isLogin ? 'Pas encore de compte ? ' : 'Déjà un compte ? ',
               style: const TextStyle(color: Colors.black54),
@@ -608,26 +712,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                 _buildHeroPanel(),
                                 const SizedBox(height: 20),
                                 _buildAuthCard(),
-                                const SizedBox(height: 16),
-                                Center(
-                                  child: TextButton(
-                                    onPressed: () {
-                                      launchUrl(Uri.parse("https://www.beonweb.cm"), mode: LaunchMode.externalApplication);
-                                    },
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: _brandPrimary,
-                                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                                    ),
-                                    child: const Text(
-                                      "By BEONWEB",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        decoration: TextDecoration.none,
-                                        color: _brandPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                const SizedBox(height: 24),
+                                _buildFooterLinks(context),
                               ],
                             ),
                     ),
@@ -769,42 +855,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildStoreRow() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.smartphone, color: _brandPrimary),
-              SizedBox(width: 8),
-              TrText(
-                'Version mobile en cours',
-                style: TextStyle(fontWeight: FontWeight.w800, color: Colors.black87),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const TrText(
-            'App Store & Google Play bientôt disponibles. Liens inactifs pour le moment.',
-            style: TextStyle(color: Colors.black54, fontSize: 12),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _storeButton(label: 'App Store', icon: Icons.apple, enabled: false),
-              const SizedBox(width: 10),
-              _storeButton(label: 'Google Play', icon: Icons.android, enabled: false),
-            ],
-          ),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildAuthCard() {
@@ -1017,6 +1068,225 @@ class _AuthScreenState extends State<AuthScreen> {
           ],
         ),
         child: Icon(icon, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildFooterLinks(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isWide = width >= 960;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE7EAF1)),
+      ),
+      child: Column(
+        children: [
+          // Section liens principaux
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: isWide ? 24 : 16,
+            runSpacing: 12,
+            children: [
+              _footerLink(
+                context: context,
+                icon: Icons.privacy_tip_outlined,
+                label: 'Confidentialité',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
+                  );
+                },
+              ),
+              _footerDivider(),
+              _footerLink(
+                context: context,
+                icon: Icons.description_outlined,
+                label: 'Conditions',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TermsOfServiceScreen()),
+                  );
+                },
+              ),
+              _footerDivider(),
+              _footerLink(
+                context: context,
+                icon: Icons.support_agent,
+                label: 'Support',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SupportScreen()),
+                  );
+                },
+              ),
+              _footerDivider(),
+              _footerLink(
+                context: context,
+                icon: Icons.language,
+                label: 'Site Web',
+                onTap: () {
+                  launchUrl(
+                    Uri.parse(_settingsService.websiteUrl),
+                    mode: LaunchMode.externalApplication,
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFE7EAF1)),
+          const SizedBox(height: 16),
+          // Section contact
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 20,
+            runSpacing: 12,
+            children: [
+              _contactChip(
+                icon: Icons.email_outlined,
+                label: _settingsService.supportEmail,
+                onTap: () {
+                  launchUrl(Uri.parse('mailto:${_settingsService.supportEmail}'));
+                },
+              ),
+              _contactChip(
+                icon: Icons.chat_bubble_outline,
+                label: 'WhatsApp Support',
+                onTap: () {
+                  final whatsappUrl = _settingsService.whatsappUrl;
+                  launchUrl(
+                    Uri.parse('$whatsappUrl?text=Bonjour'),
+                    mode: LaunchMode.externalApplication,
+                  );
+                },
+                color: const Color(0xFF25D366),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Branding
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const TrText(
+                'Développé par',
+                style: TextStyle(color: Colors.black54, fontSize: 13),
+              ),
+              TextButton(
+                onPressed: () {
+                  launchUrl(
+                    Uri.parse(_settingsService.websiteUrl),
+                    mode: LaunchMode.externalApplication,
+                  );
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: _brandPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'BEONWEB',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    color: _brandPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          TrText(
+            '© 2025 Budget Pro. Tous droits réservés.',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[500],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _footerLink({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: _brandPrimary),
+            const SizedBox(width: 6),
+            TrText(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _brandPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _footerDivider() {
+    return Container(
+      width: 1,
+      height: 16,
+      color: const Color(0xFFE7EAF1),
+    );
+  }
+
+  Widget _contactChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    final chipColor = color ?? _brandPrimary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: chipColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: chipColor.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: chipColor),
+            const SizedBox(width: 6),
+            TrText(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: chipColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

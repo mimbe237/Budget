@@ -10,7 +10,7 @@ import '../../constants/app_design.dart';
 import '../../widgets/revolutionary_logo.dart';
 import '../../widgets/app_modal.dart';
 import '../transactions/transactions_list_screen.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import '../settings/settings_hub_screen.dart';
 
 /// Écran de gestion des comptes bancaires avec liste, ajout, édition et transfert

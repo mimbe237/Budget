@@ -20,7 +20,7 @@ import '../settings/notification_settings_screen.dart';
 import '../auth/auth_screen.dart';
 import '../../services/theme_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import '../../widgets/modern_page_app_bar.dart';
 import '../settings/notification_settings_screen.dart';
 import '../ai_analysis/ai_analysis_screen.dart';
@@ -771,7 +771,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     const SizedBox(height: AppDesign.spacingLarge),
                     _buildDonutChart(),
                   ],
-                  const SizedBox(height: AppDesign.spacingLarge),
+                  const SizedBox(height: AppDesign.spacingMedium),
                   if (isWide)
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,

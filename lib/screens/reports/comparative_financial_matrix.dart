@@ -5,7 +5,7 @@ import '../../models/transaction.dart' as app_transaction;
 import '../../models/category.dart';
 import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 
 class ComparativeFinancialMatrix extends StatefulWidget {
   final String userId;
@@ -505,7 +505,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
         ),
       ),
       child: TrText(
-        amount >= 1000 ? '${(amount/1000).toStringAsFixed(1)}k' : amount.toStringAsFixed(0),
+        amount >= 1000 ? '${(amount/1000).round()}k' : amount.toStringAsFixed(0),
         style: TextStyle(
           color: Colors.black87,
           fontSize: 12,
@@ -527,7 +527,7 @@ class _ComparativeFinancialMatrixState extends State<ComparativeFinancialMatrix>
         ),
       ),
       child: TrText(
-        amount >= 10000 ? '${(amount/1000).toStringAsFixed(1)}k' : amount.toStringAsFixed(0),
+        amount >= 1000 ? '${(amount/1000).round()}k' : amount.toStringAsFixed(0),
         style: TextStyle(
           fontWeight: FontWeight.bold,
           color: isBold ? (_isIncome ? AppDesign.incomeColor : AppDesign.expenseColor) : Colors.black87,
@@ -812,7 +812,7 @@ class _FullScreenMatrixViewState extends State<_FullScreenMatrixView> {
         ),
       ),
       child: TrText(
-        amount >= 1000 ? '${(amount / 1000).toStringAsFixed(1)}k' : amount.toStringAsFixed(0),
+        amount >= 1000 ? '${(amount / 1000).round()}k' : amount.toStringAsFixed(0),
         style: TextStyle(
           color: Colors.black87,
           fontSize: 12,
@@ -834,7 +834,7 @@ class _FullScreenMatrixViewState extends State<_FullScreenMatrixView> {
         ),
       ),
       child: TrText(
-        amount >= 10000 ? '${(amount / 1000).toStringAsFixed(1)}k' : amount.toStringAsFixed(0),
+        amount >= 1000 ? '${(amount / 1000).round()}k' : amount.toStringAsFixed(0),
         style: TextStyle(
           fontWeight: FontWeight.bold,
           color: isBold ? (widget.isIncome ? AppDesign.incomeColor : AppDesign.expenseColor) : Colors.black87,

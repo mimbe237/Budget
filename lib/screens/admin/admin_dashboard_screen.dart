@@ -4,7 +4,7 @@ import '../../constants/app_design.dart';
 import '../../models/user_profile.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/revolutionary_logo.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import 'translation_management_screen.dart';
 
 /// Écran d'administration (ADMIN SEULEMENT)

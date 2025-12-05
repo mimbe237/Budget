@@ -16,7 +16,7 @@ import '../trash/trash_screen.dart';
 import '../auth/auth_screen.dart';
 import '../../models/transaction.dart' as app_transaction;
 import 'package:rxdart/rxdart.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:budget/services/currency_service.dart';
 import 'package:budget/services/theme_service.dart';
@@ -25,6 +25,7 @@ import '../onboarding/onboarding_wizard_screen.dart';
 import '../settings/settings_hub_screen.dart';
 import '../settings/notification_settings_screen.dart';
 import '../ai_analysis/ai_analysis_screen.dart';
+import '../../providers/locale_provider.dart';
 
 /// Dashboard principal affichant le solde global, les performances mensuelles
 /// et l'historique récent des transactions en temps réel
@@ -245,9 +246,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _buildBudgetExcellenceCard(),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildPerformanceHeader(context),
-      const SizedBox(height: AppDesign.spacingSmall),
-      _buildSpendingChartPlaceholder(),
-      const SizedBox(height: AppDesign.spacingSmall),
       _buildMonthlyInsightCards(context),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildRecentHistoryHeader(context),
@@ -271,9 +269,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _buildBudgetExcellenceCard(),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildPerformanceHeader(context),
-      const SizedBox(height: AppDesign.spacingSmall),
-      _buildSpendingChartPlaceholder(),
-      const SizedBox(height: AppDesign.spacingSmall),
       _buildMonthlyInsightCards(context),
     ];
   }
@@ -724,7 +719,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         const TrText(
-          "Performance Mensuelle",
+          "Statut dettes & objectifs",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         TextButton.icon(
@@ -986,7 +981,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Grille des indicateurs mensuels (revenus, dépenses, dettes, objectifs) avec tendance vs mois précédent
+  /// Bloc des indicateurs avancés (dettes + objectifs) avec contexte et CTA
   Widget _buildMonthlyInsightCards(BuildContext context) {
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
@@ -1016,6 +1011,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           limit: 300,
         ),
         _firestoreService.getIOUsStream(userId),
+        _firestoreService.getGoalsStream(userId),
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -1031,6 +1027,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final transactions = snapshot.data![0] as List<Transaction>;
         final transactionsLast = snapshot.data![1] as List<Transaction>;
         final ious = snapshot.data![2] as List<IOU>;
+        final goals = snapshot.data![3] as List<Goal>;
 
         double income = 0.0;
         double expense = 0.0;
@@ -1065,72 +1062,98 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
         }
 
-        final remaining = income - expense;
-        const targetAmount = 2500.0; // TODO: Récupérer de la config utilisateur
-        String _deltaText(double current, double previous) {
-          if (previous <= 0) return 'N/A';
-          final pct = ((current - previous) / previous * 100).toStringAsFixed(0);
-          final prefix = (current - previous) >= 0 ? '+' : '';
-          return '$prefix$pct% vs mois dernier';
+        // Dettes: filtrer payables/je dois actifs
+        bool _isActive(IOUStatus status) =>
+            status != IOUStatus.paid && status != IOUStatus.completed && status != IOUStatus.cancelled;
+        final payable = ious.where((i) =>
+            (i.type == IOUType.payable || i.type == IOUType.iOwe) && _isActive(i.status));
+
+        final debtsThisMonth = payable.where((i) =>
+            i.dueDate.month == now.month && i.dueDate.year == now.year);
+        final debtsLastMonth = payable.where((i) =>
+            i.dueDate.month == endOfLastMonth.month && i.dueDate.year == endOfLastMonth.year);
+
+        double dueThisMonth = 0, paidThisMonth = 0;
+        for (final d in debtsThisMonth) {
+          dueThisMonth += d.amount;
+          paidThisMonth += d.paidAmount;
+        }
+        final remainingThisMonth = (dueThisMonth - paidThisMonth).clamp(0, double.infinity);
+        double dueLastMonth = 0;
+        for (final d in debtsLastMonth) {
+          dueLastMonth += d.amount;
+        }
+        final nextDue = payable
+            .where((d) => d.remainingAmount > 0)
+            .fold<DateTime?>(null, (min, d) => min == null || d.dueDate.isBefore(min) ? d.dueDate : min);
+        String debtStatus;
+        Color debtStatusColor;
+        if (nextDue != null && nextDue.isBefore(now) && remainingThisMonth > 0) {
+          debtStatus = t('En retard');
+          debtStatusColor = AppDesign.expenseColor;
+        } else if (remainingThisMonth > 0) {
+          debtStatus = t('À surveiller');
+          debtStatusColor = const Color(0xFFFFB300);
+        } else {
+          debtStatus = 'OK';
+          debtStatusColor = AppDesign.incomeColor;
         }
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final isNarrow = constraints.maxWidth < 620;
-            final crossAxisCount = isNarrow ? 1 : 2;
-            final aspectRatio = isNarrow ? 2.8 : 1.35;
+        // Objectifs: progression agrégée, meilleur/pire objectif, reste et échéance
+        final activeGoals = goals.where((g) => g.status == GoalStatus.active).toList();
+        final totalTarget = activeGoals.fold<double>(0, (s, g) => s + g.targetAmount);
+        final totalCurrent = activeGoals.fold<double>(0, (s, g) => s + g.currentAmount);
+        final globalProgress = totalTarget > 0 ? (totalCurrent / totalTarget * 100).clamp(0, 100) : 0.0;
+        Goal? topGoal;
+        Goal? lagGoal;
+        if (activeGoals.isNotEmpty) {
+          activeGoals.sort((a, b) => b.progressPercentage.compareTo(a.progressPercentage));
+          topGoal = activeGoals.first;
+          lagGoal = activeGoals.last;
+        }
+        final remainingGoalsAmount = (totalTarget - totalCurrent).clamp(0, double.infinity);
+        final closestDeadline = activeGoals.fold<DateTime?>(null, (min, g) {
+          return min == null || g.targetDate.isBefore(min) ? g.targetDate : min;
+        });
 
-            return GridView.count(
-              crossAxisCount: crossAxisCount,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: aspectRatio,
-              mainAxisSpacing: AppDesign.spacingMedium,
-              crossAxisSpacing: AppDesign.spacingMedium,
-              children: [
-                _InsightCard(
-                  title: t('Revenu du mois'),
-                  amount: income,
-                  emoji: '💰',
-                  color: AppDesign.incomeColor,
-                  subtitle: _deltaText(income, incomeLast),
-                  trendColor: (income >= incomeLast || incomeLast == 0) ? AppDesign.incomeColor : AppDesign.expenseColor,
-                ),
-                _InsightCard(
-                  title: t('Dépenses du mois'),
-                  amount: expense,
-                  emoji: '💸',
-                  color: AppDesign.expenseColor,
-                  subtitle: _deltaText(expense, expenseLast),
-                  trendColor: (expense <= expenseLast || expenseLast == 0) ? AppDesign.incomeColor : AppDesign.expenseColor,
-                ),
-                _InsightCard(
-                  title: t('Dettes du mois'),
-                  amount: debtAmount,
-                  emoji: '💳',
-                  color: AppDesign.expenseColor,
-                  subtitle: t('Remboursements & échéances'),
-                ),
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const GoalFundingScreen(),
-                      ),
-                    );
-                  },
-                  child: _InsightCard(
-                    title: t('Objectifs financés'),
-                    amount: targetAmount,
-                    emoji: '🎯',
-                    color: AppDesign.primaryPurple,
-                    subtitle: t('Progression'),
-                  ),
-                ),
-              ],
-            );
-          },
+        return Column(
+          children: [
+            _DebtInsightCard(
+              dueThisMonth: dueThisMonth,
+              paidThisMonth: paidThisMonth,
+              remaining: remainingThisMonth.toDouble(),
+              dueLastMonth: dueLastMonth,
+              nextDue: nextDue,
+              statusLabel: debtStatus,
+              statusColor: debtStatusColor,
+              onViewDebts: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const IOUTrackingScreen()),
+              ),
+              onPay: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const IOUTrackingScreen()),
+              ),
+            ),
+            const SizedBox(height: AppDesign.spacingMedium),
+            _GoalsInsightCard(
+              totalCurrent: totalCurrent,
+              totalTarget: totalTarget,
+              globalProgress: globalProgress.toDouble(),
+              topGoal: topGoal,
+              lagGoal: lagGoal,
+              remainingAmount: remainingGoalsAmount.toDouble(),
+              closestDeadline: closestDeadline,
+              onViewGoals: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const GoalFundingScreen()),
+              ),
+              onAddGoal: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const GoalFundingScreen()),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -2004,106 +2027,377 @@ class _HeroStatPill extends StatelessWidget {
   }
 }
 
-/// Widget réutilisable pour les cartes d'insights financiers
-class _InsightCard extends StatelessWidget {
-  final String title;
-  final double amount;
-  final String emoji;
-  final Color color;
-  final String subtitle;
-  final Color? trendColor;
+class _DebtInsightCard extends StatelessWidget {
+  final double dueThisMonth;
+  final double paidThisMonth;
+  final double remaining;
+  final double dueLastMonth;
+  final DateTime? nextDue;
+  final String statusLabel;
+  final Color statusColor;
+  final VoidCallback onViewDebts;
+  final VoidCallback onPay;
 
-  const _InsightCard({
-    required this.title,
-    required this.amount,
-    required this.color,
-    required this.emoji,
-    this.subtitle = '',
-    this.trendColor,
+  const _DebtInsightCard({
+    required this.dueThisMonth,
+    required this.paidThisMonth,
+    required this.remaining,
+    required this.dueLastMonth,
+    required this.nextDue,
+    required this.statusLabel,
+    required this.statusColor,
+    required this.onViewDebts,
+    required this.onPay,
   });
 
   @override
   Widget build(BuildContext context) {
+    final currency = context.watch<CurrencyService>();
+    final trendText = dueLastMonth > 0
+        ? '${((dueThisMonth - dueLastMonth) / dueLastMonth * 100).toStringAsFixed(0)}% vs mois dernier'
+        : 'N/A';
+    final trendColor = dueLastMonth == 0
+        ? Colors.grey[600]
+        : (dueThisMonth <= dueLastMonth ? AppDesign.incomeColor : AppDesign.expenseColor);
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            color.withValues(alpha: 0.18),
-            Colors.white,
-          ],
+          colors: [AppDesign.expenseColor.withValues(alpha: 0.12), Colors.white],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: AppDesign.mediumShadow,
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.18),
+                  color: AppDesign.expenseColor.withValues(alpha: 0.14),
                   shape: BoxShape.circle,
                 ),
-                child: TrText(
-            emoji,
-            style: const TextStyle(fontSize: 16),
-          ),
-        ),
-        const SizedBox(width: 10),
+                child: const Icon(Icons.request_quote_rounded, color: AppDesign.expenseColor),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TrText(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    const TrText(
+                      'Dettes du mois',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     ),
-                    if (subtitle.isNotEmpty)
-                      TrText(
-                    subtitle,
-                    style: TextStyle(
-                      color: trendColor ?? Colors.grey[700],
-                      fontSize: 12,
-                      fontWeight: trendColor != null ? FontWeight.w700 : FontWeight.w500,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: TrText(
+                            statusLabel,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TrText(
+                          trendText,
+                          style: TextStyle(
+                            color: trendColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
                   ],
                 ),
               ),
             ],
           ),
-          const Spacer(),
-          Builder(
-            builder: (context) => TrText(
-              context.watch<CurrencyService>().formatAmount(amount, null, false),
-              style: TextStyle(
-                color: color,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _metric(currency.formatAmount(dueThisMonth), t('Dû ce mois')),
+              _metric(currency.formatAmount(paidThisMonth), t('Déjà payé')),
+              _metric(currency.formatAmount(remaining), t('Reste à payer')),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (nextDue != null)
+            TrText(
+              '${t('Prochaine échéance')} : ${nextDue!.day}/${nextDue!.month} · ${nextDue!.year}',
+              style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w600),
+            ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: dueThisMonth > 0 ? (paidThisMonth / dueThisMonth).clamp(0, 1) : 0,
+            minHeight: 8,
+            backgroundColor: Colors.grey[200],
+            valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              OutlinedButton(
+                onPressed: onViewDebts,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppDesign.expenseColor,
+                  side: BorderSide(color: AppDesign.expenseColor.withValues(alpha: 0.4)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: TrText(t('Voir les dettes')),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: onPay,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppDesign.expenseColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                child: TrText(t('Payer une échéance')),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metric(String value, String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TrText(
+          value,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black87),
+        ),
+        const SizedBox(height: 4),
+        TrText(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+        ),
+      ],
+    );
+  }
+}
+
+class _GoalsInsightCard extends StatelessWidget {
+  final double totalCurrent;
+  final double totalTarget;
+  final double globalProgress;
+  final Goal? topGoal;
+  final Goal? lagGoal;
+  final double remainingAmount;
+  final DateTime? closestDeadline;
+  final VoidCallback onViewGoals;
+  final VoidCallback onAddGoal;
+
+  const _GoalsInsightCard({
+    required this.totalCurrent,
+    required this.totalTarget,
+    required this.globalProgress,
+    required this.topGoal,
+    required this.lagGoal,
+    required this.remainingAmount,
+    required this.closestDeadline,
+    required this.onViewGoals,
+    required this.onAddGoal,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final currency = context.watch<CurrencyService>();
+    final deadlineText = closestDeadline != null
+        ? 'Prochaine échéance : ${closestDeadline!.day}/${closestDeadline!.month}'
+        : 'Pas d’échéance proche';
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppDesign.primaryPurple.withValues(alpha: 0.12), Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+        boxShadow: AppDesign.mediumShadow,
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppDesign.primaryPurple.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.flag_rounded, color: AppDesign.primaryPurple),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: TrText(
+                  'Objectifs financés',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppDesign.primaryPurple.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TrText(
+                  '${globalProgress.toStringAsFixed(0)}% global',
+                  style: const TextStyle(
+                    color: AppDesign.primaryPurple,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _metric(currency.formatAmount(totalCurrent), 'Déjà financé'),
+              _metric(currency.formatAmount(totalTarget), 'Cible totale'),
+              _metric(currency.formatAmount(remainingAmount), 'Reste à financer'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: totalTarget > 0 ? (totalCurrent / totalTarget).clamp(0, 1) : 0,
+            minHeight: 8,
+            backgroundColor: Colors.grey[200],
+            valueColor: const AlwaysStoppedAnimation<Color>(AppDesign.primaryPurple),
+          ),
+          const SizedBox(height: 12),
+          if (topGoal != null || lagGoal != null)
+            Row(
+              children: [
+                if (topGoal != null)
+                  Expanded(
+                    child: _goalBadge(
+                      t('Top'),
+                      topGoal!.name,
+                      '${topGoal!.progressPercentage.toStringAsFixed(0)}%',
+                      AppDesign.incomeColor,
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                if (lagGoal != null)
+                  Expanded(
+                    child: _goalBadge(
+                      t('En retard (objectif)'),
+                      lagGoal!.name,
+                      '${lagGoal!.progressPercentage.toStringAsFixed(0)}%',
+                      AppDesign.expenseColor,
+                    ),
+                  ),
+              ],
+            ),
+          const SizedBox(height: 8),
+          TrText(
+            deadlineText,
+            style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              OutlinedButton(
+                onPressed: onViewGoals,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppDesign.primaryPurple,
+                  side: BorderSide(color: AppDesign.primaryPurple.withValues(alpha: 0.4)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: TrText(t('Voir mes objectifs')),
+              ),
+              const SizedBox(width: 12),
+              TextButton.icon(
+                onPressed: onAddGoal,
+                icon: const Icon(Icons.add, size: 16, color: AppDesign.primaryPurple),
+                label: TrText(
+                  t('Ajouter un objectif'),
+                  style: const TextStyle(
+                    color: AppDesign.primaryPurple,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metric(String value, String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TrText(
+          value,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black87),
+        ),
+        const SizedBox(height: 4),
+        TrText(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+        ),
+      ],
+    );
+  }
+
+  Widget _goalBadge(String title, String name, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TrText(
+            title,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 4),
+          TrText(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          TrText(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],

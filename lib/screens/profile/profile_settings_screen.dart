@@ -8,9 +8,9 @@ import '../../models/user_profile.dart';
 import '../settings/settings_hub_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../onboarding/onboarding_wizard_screen.dart';
-import '../auth/auth_screen.dart';
+import '../auth/login_screen.dart';
 import '../../widgets/revolutionary_logo.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 
 /// Écran de profil et paramètres utilisateur
 /// Affiche les informations du profil et permet de gérer les préférences
@@ -169,7 +169,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             await FirestoreService().logout();
             if (!mounted) return;
             Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const AuthScreen()),
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
               (route) => false,
             );
           },

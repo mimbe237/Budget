@@ -39,6 +39,14 @@ service cloud.firestore {
       }
     }
 
+    // Collection appSettings - paramètres globaux de l'application
+    match /appSettings/{settingId} {
+      // Lecture publique pour tous les utilisateurs authentifiés
+      allow read: if isAuthenticated();
+      // Écriture réservée aux admins uniquement
+      allow write: if isAdmin();
+    }
+
     // Exemples supplémentaires : transactions, admin_logs
     // Transactions utilisateur (sous-collection sous /users/{userId})
     match /users/{userId}/transactions/{transactionId} {

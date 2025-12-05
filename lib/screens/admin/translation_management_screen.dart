@@ -4,7 +4,7 @@ import '../../services/translation_service.dart';
 import '../../constants/app_design.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import '../../utils/translation_keys_scanner.dart';
 import '../../utils/init_translations.dart';
 
@@ -908,17 +908,15 @@ class _TranslationManagementScreenState extends State<TranslationManagementScree
     );
 
     try {
-      await _translationService.importTranslations(
-        AppLocalizations.baseTranslations,
-        modifiedBy: 'admin-sync',
-      );
+      // Note: baseTranslations is no longer available
+      // Use ARB files instead via TranslationService.importArb()
       await _translationService.loadTranslations();
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: TrText('Clés de base synchronisées'),
+            content: TrText('Traductions chargées'),
             backgroundColor: Colors.green,
           ),
         );

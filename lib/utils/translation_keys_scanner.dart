@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../l10n/app_localizations.dart';
+import '../l10n/localization_helpers.dart';
 
 /// Script utilitaire pour scanner le code et détecter toutes les clés de traduction
 /// Génère automatiquement la liste des textes à traduire

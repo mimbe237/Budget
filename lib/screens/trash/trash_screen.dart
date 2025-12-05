@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/transaction.dart';
 import '../../services/firestore_service.dart';
 import '../../services/currency_service.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 
 class TrashScreen extends StatelessWidget {
   const TrashScreen({Key? key}) : super(key: key);

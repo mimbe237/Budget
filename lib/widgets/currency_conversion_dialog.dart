@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_design.dart';
 import '../services/currency_service.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 
 /// Dialog shown when user switches currency
 /// Offers to convert existing balances or just change display format
@@ -53,7 +53,7 @@ class _CurrencyConversionDialogState extends State<CurrencyConversionDialog> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              AppLocalizations.of(context)?.translate('Changement de devise') ?? 'Changement de devise',
+              AppLocalizations.of(context)?.tr('Changement de devise') ?? 'Changement de devise',
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -136,7 +136,7 @@ class _CurrencyConversionDialogState extends State<CurrencyConversionDialog> {
           
           // Explanation
           Text(
-            AppLocalizations.of(context)?.translate('Que souhaitez-vous faire ?') ?? 'Que souhaitez-vous faire ?',
+            AppLocalizations.of(context)?.tr('Que souhaitez-vous faire ?') ?? 'Que souhaitez-vous faire ?',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -175,7 +175,7 @@ class _CurrencyConversionDialogState extends State<CurrencyConversionDialog> {
       actions: [
         TextButton(
           onPressed: _isConverting ? null : () => Navigator.pop(context),
-          child: Text(AppLocalizations.of(context)?.translate('Annuler') ?? 'Annuler'),
+          child: Text(AppLocalizations.of(context)?.tr('Annuler') ?? 'Annuler'),
         ),
         TextButton(
           onPressed: _isConverting
@@ -185,7 +185,7 @@ class _CurrencyConversionDialogState extends State<CurrencyConversionDialog> {
                   widget.onDisplayOnly?.call();
                 },
           child: Text(
-            AppLocalizations.of(context)?.translate('Affichage seul') ?? 'Affichage seul',
+            AppLocalizations.of(context)?.tr('Affichage seul') ?? 'Affichage seul',
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
@@ -202,7 +202,7 @@ class _CurrencyConversionDialogState extends State<CurrencyConversionDialog> {
             foregroundColor: Colors.white,
           ),
           child: Text(
-            AppLocalizations.of(context)?.translate('Convertir') ?? 'Convertir',
+            AppLocalizations.of(context)?.tr('Convertir') ?? 'Convertir',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
@@ -240,7 +240,7 @@ class _CurrencyConversionDialogState extends State<CurrencyConversionDialog> {
                   children: [
                     Expanded(
                       child: Text(
-                        AppLocalizations.of(context)?.translate(title) ?? title,
+                        AppLocalizations.of(context)?.tr(title) ?? title,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
@@ -271,7 +271,7 @@ class _CurrencyConversionDialogState extends State<CurrencyConversionDialog> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  AppLocalizations.of(context)?.translate(description) ?? description,
+                  AppLocalizations.of(context)?.tr(description) ?? description,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],

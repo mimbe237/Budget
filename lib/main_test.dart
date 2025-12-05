@@ -4,7 +4,7 @@ import 'firebase_options.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/accounts/account_management_screen.dart';
 import 'screens/ai_analysis/ai_analysis_screen.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_design.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../auth/auth_screen.dart';
+import '../auth/login_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../accounts/account_management_screen.dart';
 import '../budget/budget_planner_screen.dart';
@@ -13,12 +13,12 @@ import '../reports/analysis_hub_screen.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
 import '../profile/profile_settings_screen.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/app_modal.dart';
 import '../../services/currency_service.dart';
 import '../onboarding/onboarding_wizard_screen.dart';
-import '../../l10n/app_localizations.dart' show LocaleProvider;
+import '../../providers/locale_provider.dart';
 
 /// Shell de navigation principal avec BottomNavigationBar et menu d'actions rapides
 class MainNavigationShell extends StatefulWidget {
@@ -63,7 +63,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         await FirebaseAuth.instance.signOut();
         if (!mounted) return;
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const AuthScreen()),
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
         );
         ScaffoldMessenger.of(context).showSnackBar(
@@ -571,7 +571,7 @@ class QuickActionsMenu extends StatelessWidget {
           await FirestoreService().cleanupDemoDataOnLogout();
           await FirebaseAuth.instance.signOut();
           Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const AuthScreen()),
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
             (route) => false,
           );
         },

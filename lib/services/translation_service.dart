@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
+import 'dart:convert';
 
 /// Service pour gérer les traductions dynamiques depuis Firestore
 /// Permet aux admins de modifier les traductions sans redéployer l'app
@@ -55,6 +56,33 @@ class TranslationService extends ChangeNotifier {
     }, onError: (e) {
       debugPrint('⚠️ TranslationService realtime error: $e');
     });
+  }
+
+  /// Import depuis deux fichiers ARB (JSON strings), fusionne par clé
+  Future<void> importArb({required String enJson, required String frJson, String? modifiedBy}) async {
+    final Map<String, dynamic> enMap = json.decode(enJson) as Map<String, dynamic>;
+    final Map<String, dynamic> frMap = json.decode(frJson) as Map<String, dynamic>;
+    final Map<String, Map<String, String>> merged = {};
+    for (final entry in enMap.entries) {
+      if (entry.key.startsWith('@@')) continue;
+      merged[entry.key] = {
+        'en': (entry.value as String?) ?? entry.key,
+        'fr': (frMap[entry.key] as String?) ?? entry.key,
+        'category': 'general',
+        'status': 'active',
+      };
+    }
+    // Add FR-only keys
+    for (final entry in frMap.entries) {
+      if (entry.key.startsWith('@@')) continue;
+      merged.putIfAbsent(entry.key, () => {
+        'en': entry.key,
+        'fr': (entry.value as String?) ?? entry.key,
+        'category': 'general',
+        'status': 'active',
+      });
+    }
+    await importTranslations(merged, modifiedBy: modifiedBy ?? 'arb-import');
   }
 
   @override

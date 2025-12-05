@@ -7,9 +7,9 @@ import '../../services/mock_data_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/currency_service.dart';
 import '../../constants/app_design.dart';
-import '../auth/auth_screen.dart';
+import '../auth/login_screen.dart';
 import '../accounts/account_management_screen.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 
 /// Formulaire pour ajouter une transaction (dépense ou revenu)
 /// Type déterminé par le paramètre transactionType: 'expense' ou 'income'
@@ -115,14 +115,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     
     if (_selectedAccountId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: TrText('Veuillez sélectionner un compte.')),
+        SnackBar(content: TrText(AppLocalizations.of(context)!.tr('select_account_error'))),
       );
       return;
     }
 
     if (_selectedCategoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: TrText('Veuillez sélectionner une catégorie.')),
+        SnackBar(content: TrText(AppLocalizations.of(context)!.tr('select_category_error'))),
       );
       return;
     }
@@ -130,7 +130,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final userId = _firestoreService.currentUserId;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: TrText('Vous devez être connecté pour ajouter une transaction.')),
+        SnackBar(content: TrText(AppLocalizations.of(context)!.tr('must_be_logged_in_error'))),
       );
       return;
     }
@@ -158,15 +158,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const TrText('Discipline Budgétaire 🛡️'),
-                  content: const TrText(
-                    'Vous devez enregistrer un revenu ou une entrée de fonds avant d\'ajouter une dépense.\n\n'
-                    'Votre solde actuel est insuffisant pour effectuer cette opération.',
-                  ),
+                  title: TrText(AppLocalizations.of(context)!.tr('budget_discipline_title')),
+                  content: TrText(AppLocalizations.of(context)!.tr('budget_discipline_body')),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      child: const TrText('Compris'),
+                      child: TrText(AppLocalizations.of(context)!.tr('understood')),
                     ),
                   ],
                 ),
@@ -182,15 +179,17 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const TrText('Solde Insuffisant ⚠️'),
+                  title: TrText(AppLocalizations.of(context)!.tr('insufficient_balance_title')),
                   content: TrText(
-                    'Cette dépense de ${currencyService.formatAmount(_amount)} dépasse le solde disponible de ${currencyService.formatAmount(currentBalance)} sur ce compte.\n\n'
-                    'Veuillez choisir un autre compte ou enregistrer un revenu.',
+                    AppLocalizations.of(context)!.tr('insufficient_balance_body', params: {
+                      'expense': currencyService.formatAmount(_amount),
+                      'balance': currencyService.formatAmount(currentBalance),
+                    }),
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      child: const TrText('OK'),
+                      child: TrText(AppLocalizations.of(context)!.tr('ok')),
                     ),
                   ],
                 ),
@@ -514,7 +513,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
                 );
               },
               child: const TrText('Se connecter'),

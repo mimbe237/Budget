@@ -52,6 +52,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   # Ajoutez vos assets ici
   assets:
@@ -59,6 +60,8 @@ flutter:
     - assets/images/logo-icon.svg
     - assets/images/logo-icon.png
     - assets/images/budget-pro-icon.svg
+    - lib/l10n/app_en.arb
+    - lib/l10n/app_fr.arb
 
 flutter_launcher_icons:
   image_path: assets/images/logo-icon.png

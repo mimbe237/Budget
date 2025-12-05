@@ -3,7 +3,7 @@ import '../../constants/app_design.dart';
 import '../ai_analysis/ai_analysis_screen.dart';
 import 'advanced_reports_screen.dart';
 import '../../widgets/modern_page_app_bar.dart';
-import 'package:budget/l10n/app_localizations.dart';
+import 'package:budget/l10n/localization_helpers.dart';
 import '../transactions/transactions_list_screen.dart';
 
 class AnalysisHubScreen extends StatefulWidget {

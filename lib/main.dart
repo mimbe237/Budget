@@ -5,11 +5,12 @@ import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'l10n/app_localizations.dart';
+import 'l10n/localization_helpers.dart';
+import 'providers/locale_provider.dart';
 import 'services/currency_service.dart';
 import 'services/notification_preferences_service.dart';
 import 'screens/navigation/main_navigation_shell.dart';
-import 'screens/auth/auth_screen.dart';
+import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/transactions/transaction_form_screen.dart';
 import 'models/transaction.dart' as app_transaction;
@@ -60,10 +61,14 @@ class AppBootstrap extends StatelessWidget {
       final translationService = TranslationService();
       await translationService.loadTranslations();
       if (translationService.translations.isEmpty) {
-        await translationService.importTranslations(
-          AppLocalizations.baseTranslations,
-          modifiedBy: 'auto-seed',
-        );
+        try {
+          // Import depuis ARB si disponibles
+          final enJson = await DefaultAssetBundle.of(context).loadString('lib/l10n/app_en.arb');
+          final frJson = await DefaultAssetBundle.of(context).loadString('lib/l10n/app_fr.arb');
+          await translationService.importArb(enJson: enJson, frJson: frJson, modifiedBy: 'admin-auto-seed');
+        } catch (e) {
+          debugPrint('⚠️ ARB import failed, skipping: $e');
+        }
       }
       translationService.startRealtime();
     });
@@ -90,7 +95,7 @@ class BudgetApp extends StatelessWidget {
     final themeProvider = context.watch<ThemeProvider>();
 
     return MaterialApp(
-      title: t('Budget Pro'),
+      title: t('app_title'),
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         // Empêche le clavier de compresser les écrans : hauteur stable quel que soit le formulaire
@@ -286,14 +291,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
             return const MainNavigationShell();
           }
 
-          // Utilisateur non connecté → AuthScreen
-          return const AuthScreen();
+          // Utilisateur non connecté → Login
+          return const LoginScreen();
         },
       );
     } catch (e) {
-      // Si Firebase n'est pas initialisé, afficher directement AuthScreen
+      // Si Firebase n'est pas initialisé, afficher directement Login
       debugPrint('⚠️ Firebase Auth not available: $e');
-      return const AuthScreen();
+      return const LoginScreen();
     }
   }
 }
