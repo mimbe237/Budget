@@ -8,6 +8,7 @@ import '../../services/firestore_service.dart';
 import '../../widgets/discovery_tutorial.dart';
 import '../navigation/main_navigation_shell.dart';
 import '../../providers/locale_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Écran d'onboarding simplifié en 3 étapes
 /// Étape 1: Bienvenue (nom + devise + revenu mensuel)

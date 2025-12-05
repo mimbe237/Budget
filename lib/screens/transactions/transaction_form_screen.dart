@@ -10,6 +10,7 @@ import '../../constants/app_design.dart';
 import '../auth/login_screen.dart';
 import '../accounts/account_management_screen.dart';
 import 'package:budget/l10n/localization_helpers.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Formulaire pour ajouter une transaction (dépense ou revenu)
 /// Type déterminé par le paramètre transactionType: 'expense' ou 'income'

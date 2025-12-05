@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:budget/l10n/localization_helpers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../legal/privacy_policy_screen.dart';
 import '../legal/terms_of_service_screen.dart';
 import '../support/support_screen.dart';
@@ -15,18 +16,62 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  bool _rememberMe = false;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   Color get _primary => const Color(0xFF6A4CFF);
+  Color get _secondary => const Color(0xFF00D9FF);
   final AppSettingsService _settingsService = AppSettingsService();
 
   @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
+    _animationController.forward();
+    _loadRememberMe();
+  }
+
+  Future<void> _loadRememberMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _rememberMe = prefs.getBool('remember_me') ?? false;
+      if (_rememberMe) {
+        _emailController.text = prefs.getString('saved_email') ?? '';
+      }
+    });
+  }
+
+  Future<void> _saveRememberMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('remember_me', _rememberMe);
+    if (_rememberMe) {
+      await prefs.setString('saved_email', _emailController.text.trim());
+    } else {
+      await prefs.remove('saved_email');
+    }
+  }
+
+  @override
   void dispose() {
+    _animationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -36,6 +81,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     
     setState(() => _isLoading = true);
+    
+    // Sauvegarder "Se souvenir de moi"
+    await _saveRememberMe();
+    
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email.trim(),
@@ -45,7 +94,12 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       // Navigation to home screen happens in main.dart based on auth state
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Connexion réussie!')),
+        SnackBar(
+          content: const Text('✓ Connexion réussie!'),
+          backgroundColor: Colors.green.shade600,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
@@ -54,18 +108,41 @@ class _LoginScreenState extends State<LoginScreen> {
       if (e.code == 'user-not-found') {
         message = 'Utilisateur non trouvé';
       } else if (e.code == 'wrong-password') {
-        message = 'Mot de passe incorrect';
-      } else if (e.code == 'invalid-email') {
-        message = 'Email invalide';
-      } else if (e.code == 'user-disabled') {
-        message = 'Compte désactivé';
-      } else if (e.code == 'too-many-requests') {
-        message = 'Trop de tentatives. Réessayez plus tard';
-      }
-      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(child: Text(message)),
+            ],
+          ),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 4),
+        ),
       );
+      setState(() => _isLoading = false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(child: Text('Erreur: $e')),
+            ],
+          ),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      setState(() => _isLoading = false);
+    }
+  }   );
       setState(() => _isLoading = false);
     } catch (e) {
       if (!mounted) return;
@@ -188,11 +265,39 @@ class _LoginScreenState extends State<LoginScreen> {
               ).then((_) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Compte créé! Veuillez vous connecter')),
+                  const SnackBar(content: Text('Compte créé avec succès! Veuillez vous connecter')),
                 );
+                emailCtrl.clear();
+                passwordCtrl.clear();
+                confirmPasswordCtrl.clear();
               }).catchError((e) {
+                String errorMessage = 'Une erreur est survenue. Veuillez réessayer.';
+                
+                if (e is FirebaseAuthException) {
+                  switch (e.code) {
+                    case 'email-already-in-use':
+                      errorMessage = 'Cet email est déjà utilisé. Veuillez vous connecter ou en utiliser un autre.';
+                      break;
+                    case 'weak-password':
+                      errorMessage = 'Le mot de passe est trop faible. Utilisez au moins 8 caractères.';
+                      break;
+                    case 'invalid-email':
+                      errorMessage = 'L\'adresse email est invalide.';
+                      break;
+                    case 'operation-not-allowed':
+                      errorMessage = 'La création de compte est actuellement désactivée.';
+                      break;
+                    default:
+                      errorMessage = 'Erreur: ${e.message}';
+                  }
+                }
+                
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Erreur: $e')),
+                  SnackBar(
+                    content: Text(errorMessage),
+                    backgroundColor: Colors.red.shade700,
+                    duration: const Duration(seconds: 4),
+                  ),
                 );
               });
             },
@@ -202,7 +307,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -210,11 +314,46 @@ class _LoginScreenState extends State<LoginScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: cs.surfaceVariant.withOpacity(0.4),
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                _primary.withOpacity(0.1),
+                _secondary.withOpacity(0.05),
+                Colors.white,
+              ],
+            ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white,
+                          Colors.white.withOpacity(0.95),
+                        ],
+                      ),
+                      borderRadius: borderRadius,
+                      boxShadow: [
+                        BoxShadow(
+                          color: _primary.withOpacity(0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 6),
+                            Center(Insets.symmetric(horizontal: 24, vertical: 12),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Card(
@@ -225,20 +364,50 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
                     child: Form(
                       key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 6),
-                          Center(
-                            child: Column(
-                              children: [
-                                const RevolutionaryLogo(size: 60, withText: false),
-                                const SizedBox(height: 12),
-                                Text(
-                                  AppLocalizations.of(context)!.tr('app_title'),
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                                  textAlign: TextAlign.center,
+                          const SizedBox(height: 18),
+                          _buildEmailField(),
+                          const SizedBox(height: 14),
+                          _buildPasswordField(),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  SizedBox(
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+    );
+  }                                   activeColor: _primary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Se souvenir de moi',
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                              TextButton(
+                                onPressed: _onForgotPassword,
+                                child: Text(
+                                  AppLocalizations.of(context)!.tr('forgot_password'),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: _primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),      textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -273,39 +442,60 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          _buildLoginButton(),
-                          const SizedBox(height: 16),
-                          _buildSeparator(),
-                          const SizedBox(height: 14),
-                          _buildSocialButtons(),
-                          const SizedBox(height: 20),
-                          _buildFooterLinks(context),
-                          const SizedBox(height: 12),
-                          _buildCreateAccount(),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+  Widget _buildLoginButton() {
+    return Container(
+      height: 52,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_primary, _primary.withOpacity(0.8)],
         ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: _primary.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _isLoading
+            ? null
+            : () async {
+                if (!_formKey.currentState!.validate()) return;
+                setState(() => _isLoading = true);
+                await _onLogin(_emailController.text.trim(), _passwordController.text);
+              },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 0,
+          shadowColor: Colors.transparent,
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.lock_outline, size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'Connexion sécurisée',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
+                ],
+              ),
       ),
     );
-  }
-
-  Widget _buildEmailField() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: EdgeInsets.zero,
-      child: TextFormField(
-        controller: _emailController,
-        keyboardType: TextInputType.emailAddress,
-        textInputAction: TextInputAction.next,
-        autofillHints: const [AutofillHints.email],
-        decoration: InputDecoration(
+  }     decoration: InputDecoration(
           labelText: AppLocalizations.of(context)!.tr('email_label'),
           prefixIcon: const Icon(Icons.email_outlined),
           focusedBorder: OutlineInputBorder(
@@ -331,18 +521,41 @@ class _LoginScreenState extends State<LoginScreen> {
         obscureText: !_isPasswordVisible,
         textInputAction: TextInputAction.done,
         autofillHints: const [AutofillHints.password],
+        style: const TextStyle(fontSize: 15),
+        onFieldSubmitted: (_) {
+          if (_formKey.currentState!.validate()) {
+            _onLogin(_emailController.text.trim(), _passwordController.text);
+          }
+        },
         decoration: InputDecoration(
           labelText: AppLocalizations.of(context)!.tr('password_label'),
-          prefixIcon: const Icon(Icons.lock_outline),
+          prefixIcon: Icon(Icons.lock_outline, color: _primary),
           suffixIcon: IconButton(
-            icon: Icon(_isPasswordVisible ? Icons.visibility_off : Icons.visibility),
+            icon: Icon(
+              _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+              color: Colors.grey.shade600,
+            ),
             onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
           ),
+          filled: true,
+          fillColor: Colors.grey.shade50,
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: _primary, width: 1.4),
+            borderSide: BorderSide(color: _primary, width: 2),
           ),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.red.shade400, width: 1),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.red.shade400, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
         validator: (value) {
           if (value == null || value.isEmpty) return AppLocalizations.of(context)!.tr('password_required');

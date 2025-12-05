@@ -241,8 +241,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const SizedBox(height: AppDesign.spacingMedium),
       _buildQuickAccess(context),
       const SizedBox(height: AppDesign.spacingLarge),
-      _buildTotalBalanceCard(),
-      const SizedBox(height: AppDesign.spacingMedium),
       _buildBudgetExcellenceCard(),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildPerformanceHeader(context),
@@ -264,8 +262,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const SizedBox(height: AppDesign.spacingMedium),
       _buildQuickAccess(context),
       const SizedBox(height: AppDesign.spacingLarge),
-      _buildTotalBalanceCard(),
-      const SizedBox(height: AppDesign.spacingMedium),
       _buildBudgetExcellenceCard(),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildPerformanceHeader(context),
@@ -635,26 +631,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const AccountManagementScreen()),
-        ),
-      ),
-      _ShortcutAction(
-        label: t('Suivre objectifs'),
-        subtitle: t("Épargne et projets d'avenir"),
-        icon: Icons.flag_outlined,
-        color: AppDesign.primaryPurple,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const GoalFundingScreen()),
-        ),
-      ),
-      _ShortcutAction(
-        label: t('Gérer dettes'),
-        subtitle: t('Emprunts et crédits réglés.'),
-        icon: Icons.handshake_outlined,
-        color: Colors.deepOrange,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const IOUTrackingScreen()),
         ),
       ),
       _ShortcutAction(
@@ -1544,6 +1520,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        _BudgetGauge(
+                          value: burnRate.clamp(0.0, 1.5),
+                          ideal: idealRatio.clamp(0.0, 1.0),
+                          label: 'Rythme ${(burnRate * 100).toStringAsFixed(0)}%',
+                          coaching: isAhead ? 'Dans le rythme' : 'Au-dessus',
+                          color: isAhead ? AppDesign.incomeColor : AppDesign.expenseColor,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              _HeroCTAButton(
+                                label: 'Ajuster budget',
+                                icon: Icons.tune_rounded,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const BudgetPlannerScreen()),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              _HeroCTAButton(
+                                label: 'Voir alertes',
+                                icon: Icons.notifications_active_rounded,
+                                outlined: true,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 10,
@@ -1658,6 +1671,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _BudgetGauge(
+                      value: burnRate.clamp(0.0, 1.5),
+                      ideal: idealRatio.clamp(0.0, 1.0),
+                      label: 'Rythme ${(burnRate * 100).toStringAsFixed(0)}%',
+                      coaching: isAhead ? 'Dans le rythme' : 'Au-dessus',
+                      color: isAhead ? AppDesign.incomeColor : AppDesign.expenseColor,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _HeroCTAButton(
+                            label: 'Ajuster budget',
+                            icon: Icons.tune_rounded,
+                            compact: true,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const BudgetPlannerScreen()),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _HeroCTAButton(
+                            label: 'Voir alertes',
+                            icon: Icons.notifications_active_rounded,
+                            outlined: true,
+                            compact: true,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -2022,6 +2075,133 @@ class _HeroStatPill extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Jauge circulaire (thermomètre budgétaire) utilisée dans le hero.
+class _BudgetGauge extends StatelessWidget {
+  final double value;
+  final double ideal;
+  final String label;
+  final String coaching;
+  final Color color;
+
+  const _BudgetGauge({
+    required this.value,
+    required this.ideal,
+    required this.label,
+    required this.coaching,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final clampedValue = value.clamp(0.0, 1.5);
+    return SizedBox(
+      width: 96,
+      height: 96,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CircularProgressIndicator(
+            value: clampedValue > 1 ? 1 : clampedValue,
+            strokeWidth: 9,
+            backgroundColor: Colors.white.withValues(alpha: 0.18),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+          Positioned(
+            top: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: TrText(
+                '${(ideal * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TrText(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 4),
+              TrText(
+                coaching,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Boutons CTA compacts du hero (primaire ou outline).
+class _HeroCTAButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool outlined;
+  final bool compact;
+
+  const _HeroCTAButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.outlined = false,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = outlined ? Colors.white.withValues(alpha: 0.08) : Colors.white;
+    final fg = outlined ? Colors.white : AppDesign.primaryIndigo;
+    return TextButton.icon(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        backgroundColor: bg,
+        foregroundColor: fg,
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 10 : 14,
+          vertical: compact ? 10 : 12,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: outlined
+              ? BorderSide(color: Colors.white.withValues(alpha: 0.3))
+              : BorderSide.none,
+        ),
+      ),
+      icon: Icon(icon, size: compact ? 16 : 18),
+      label: TrText(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: compact ? 12 : 13,
+        ),
       ),
     );
   }

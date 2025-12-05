@@ -795,9 +795,9 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       ],
                     )
                   else ...[
-                    _buildBudgetSummaryPanel(),
-                    const SizedBox(height: AppDesign.spacingLarge),
                     _buildAllocationList(),
+                    const SizedBox(height: AppDesign.spacingLarge),
+                    _buildBudgetSummaryPanel(),
                     const SizedBox(height: AppDesign.spacingLarge),
                     _buildIncomeCategoriesRecap(),
                   ],

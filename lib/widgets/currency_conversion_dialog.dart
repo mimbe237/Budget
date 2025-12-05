@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../constants/app_design.dart';
 import '../services/currency_service.dart';
 import 'package:budget/l10n/localization_helpers.dart';
+import '../l10n/app_localizations.dart';
 
 /// Dialog shown when user switches currency
 /// Offers to convert existing balances or just change display format
