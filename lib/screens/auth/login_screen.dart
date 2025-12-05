@@ -92,6 +92,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
       
       if (!mounted) return;
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Row(

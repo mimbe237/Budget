@@ -1489,6 +1489,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             ),
           ],
         ),
+        const SizedBox(height: 8),
+        _buildCriticalPocketsChips(),
         const SizedBox(height: 12),
         ...() {
           final sortedKeys = DEFAULT_BUDGET_CATEGORIES.keys.toList();
@@ -2180,6 +2182,42 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     }).toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     return entries.take(limit).map((e) => e.key).toList();
+  }
+
+  /// Affiche des puces des poches les plus critiques (ratio le plus élevé).
+  Widget _buildCriticalPocketsChips() {
+    final critical = _topTensionPockets();
+    if (critical.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: critical.map((key) {
+        final planned = (_allocations[key] ?? 0.0) * _totalIncome;
+        final spent = _actualSpending[key] ?? 0.0;
+        final ratio = planned > 0 ? spent / planned : 0.0;
+        final color = ratio >= 1
+            ? AppDesign.expenseColor
+            : ratio >= 0.85
+                ? Colors.amber.shade700
+                : AppDesign.incomeColor;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TrText(
+            '$key · ${(ratio * 100).toStringAsFixed(0)}%',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 
   void _resetToDefaultAllocation() {

@@ -2111,29 +2111,11 @@ class _BudgetGauge extends StatelessWidget {
             backgroundColor: Colors.white.withValues(alpha: 0.18),
             valueColor: AlwaysStoppedAnimation<Color>(color),
           ),
-          Positioned(
-            top: 10,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: TrText(
-                '${(ideal * 100).toStringAsFixed(0)}%',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               TrText(
-                label,
+                '$label',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
@@ -2142,7 +2124,7 @@ class _BudgetGauge extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               TrText(
-                coaching,
+                'Idéal ${(ideal * 100).toStringAsFixed(0)}% • $coaching',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
