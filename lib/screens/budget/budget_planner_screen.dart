@@ -125,6 +125,11 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         : statusUnder
             ? t('Incomplet')
             : t('Équilibré');
+    final coaching = statusOver
+        ? 'Risque de dépassement, ajustez vos poches.'
+        : statusUnder
+            ? 'Allocations incomplètes, allouez le budget restant.'
+            : 'Budget équilibré, continuez ainsi.';
 
     return Container(
       width: double.infinity,
@@ -193,6 +198,17 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.75),
                             fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TrText(
+                          coaching,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.78),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -1277,12 +1293,49 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             const SizedBox(height: 20),
             SizedBox(
               height: 250,
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 60,
-                  sections: _buildPieChartSections(isOver),
-                ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 64,
+                      sections: _buildPieChartSections(isOver),
+                    ),
+                  ),
+                  Builder(
+                    builder: (context) {
+                      final topCategory = _allocations.entries.isNotEmpty
+                          ? _allocations.entries
+                              .reduce((a, b) => a.value >= b.value ? a : b)
+                          : null;
+                      final topLabel = topCategory?.key ?? 'N/A';
+                      final pct = totalPercentage * 100;
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TrText(
+                            '${pct.toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: isOver ? AppDesign.expenseColor : AppDesign.primaryIndigo,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TrText(
+                            'Plus lourde : $topLabel',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -1296,7 +1349,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             ),
             const SizedBox(height: 24),
             const Divider(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildChartLegend(),
           ],
         ),
@@ -1392,30 +1445,40 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const TrText(
-                  'Poches Budgétaires',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: badgeColor.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: TrText(
-                    '${totalPercent.toStringAsFixed(1)}% · $badgeLabel',
-                    style: TextStyle(
-                      color: badgeColor,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
+                Row(
+                  children: [
+                    const TrText(
+                      'Poches Budgétaires',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: badgeColor.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: TrText(
+                        '${totalPercent.toStringAsFixed(1)}% · $badgeLabel',
+                        style: TextStyle(
+                          color: badgeColor,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                TrText(
+                  'Alertes: ${_countOverBudgetPockets()} dépassement(s) · ${_countWatchPockets()} à surveiller',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
@@ -1427,13 +1490,26 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        ...DEFAULT_BUDGET_CATEGORIES.entries.map((entry) {
-          return _buildAllocationItem(
-            entry.key,
-            entry.value['icon']!,
-            entry.value['name']!,
-          );
-        }).toList(),
+        ...() {
+          final sortedKeys = DEFAULT_BUDGET_CATEGORIES.keys.toList();
+          sortedKeys.sort((a, b) {
+            final plannedA = (_allocations[a] ?? 0.0) * _totalIncome;
+            final plannedB = (_allocations[b] ?? 0.0) * _totalIncome;
+            final engagedA = _actualSpending[a] ?? 0.0;
+            final engagedB = _actualSpending[b] ?? 0.0;
+            final ratioA = plannedA > 0 ? engagedA / plannedA : 0.0;
+            final ratioB = plannedB > 0 ? engagedB / plannedB : 0.0;
+            return ratioB.compareTo(ratioA); // highest first
+          });
+          return sortedKeys.map((key) {
+            final entry = DEFAULT_BUDGET_CATEGORIES[key]!;
+            return _buildAllocationItem(
+              key,
+              entry['icon']!,
+              entry['name']!,
+            );
+          }).toList();
+        }(),
       ],
     );
   }
@@ -1490,12 +1566,25 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       child: TrText(icon, style: const TextStyle(fontSize: 16)),
                     ),
                     const SizedBox(width: 10),
-                    TrText(
-                      name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TrText(
+                          name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                        TrText(
+                          'Reste : ${context.watch<CurrencyService>().formatAmount(planned - engaged)}',
+                          style: TextStyle(
+                            color: barColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1564,12 +1653,32 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const TrText(
-              'Synthèse par poche',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    TrText(
+                      'Synthèse par poche',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    TrText(
+                      'Top 3 poches en tension en premier',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+                TextButton.icon(
+                  onPressed: _resetToDefaultAllocation,
+                  icon: const Icon(Icons.tune),
+                  label: const TrText('Rééquilibrer'),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             ...entries,
@@ -1593,12 +1702,22 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const TrText(
-                  'Transactions (Budget)',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const TrText(
+                      'Transactions (Budget)',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    TrText(
+                      'Met en avant les lignes qui font dépasser une poche.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
                 TextButton(
                   onPressed: _pickTxDateRange,
@@ -1664,6 +1783,13 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                               ? AppDesign.expenseColor
                               : Colors.blueGrey;
                       final prefix = isIncome ? '+' : isExpense ? '-' : '';
+                      final categoryName = _resolveTxCategoryLabel(tx);
+                      bool pocketOver = false;
+                      if (isExpense && DEFAULT_BUDGET_CATEGORIES.containsKey(categoryName)) {
+                        final planned = (_allocations[categoryName] ?? 0.0) * _totalIncome;
+                        final spent = _actualSpending[categoryName] ?? 0.0;
+                        pocketOver = planned > 0 && spent > planned;
+                      }
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(
@@ -1678,9 +1804,31 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                           tx.description?.isNotEmpty == true ? tx.description! : 'Transaction',
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
-                        subtitle: TrText(
-                          '${tx.date.day}/${tx.date.month}/${tx.date.year} · ${_resolveTxCategoryLabel(tx)}',
-                          style: const TextStyle(color: Colors.grey),
+                        subtitle: Row(
+                          children: [
+                            TrText(
+                              '${tx.date.day}/${tx.date.month}/${tx.date.year} · $categoryName',
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                            if (pocketOver) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppDesign.expenseColor.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const TrText(
+                                  'Poche dépassée',
+                                  style: TextStyle(
+                                    color: AppDesign.expenseColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         trailing: TrText(
                           '$prefix${context.watch<CurrencyService>().formatAmount(tx.amount, null, false)}',
@@ -1746,15 +1894,16 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     final amount = _totalIncome * percentage;
     final actualSpent = _actualSpending[categoryKey] ?? 0.0;
     final isOverBudget = actualSpent > amount;
-    final spentPercentage = amount > 0 ? (actualSpent / amount).clamp(0.0, 1.0) : 0.0;
+    final spentPercentage = amount > 0 ? (actualSpent / amount) : 0.0;
+    final remaining = (amount - actualSpent).clamp(0, double.infinity);
     final badgeColor = isOverBudget
         ? AppDesign.expenseColor
-        : spentPercentage > 0.75
+        : spentPercentage > 0.85
             ? Colors.amber.shade700
             : AppDesign.incomeColor;
     final badgeLabel = isOverBudget
         ? 'Dépassement'
-        : spentPercentage > 0.75
+        : spentPercentage > 0.85
             ? 'À surveiller'
             : 'OK';
 
@@ -1795,14 +1944,21 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (actualSpent > 0)
-                        TrText(
-                          'Dépensé: ${currency.formatAmount(actualSpent)}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isOverBudget ? AppDesign.expenseColor : Colors.grey[600],
-                          ),
+                      TrText(
+                        'Reste : ${currency.formatAmount(remaining.toDouble())}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: badgeColor,
+                          fontWeight: FontWeight.w700,
                         ),
+                      ),
+                      TrText(
+                        'Dépensé: ${currency.formatAmount(actualSpent)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isOverBudget ? AppDesign.expenseColor : Colors.grey[600],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1992,6 +2148,38 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
 
   double _getTotalAllocation() {
     return _allocations.values.fold(0.0, (sum, value) => sum + value);
+  }
+
+  int _countOverBudgetPockets() {
+    int count = 0;
+    for (final key in DEFAULT_BUDGET_CATEGORIES.keys) {
+      final planned = (_allocations[key] ?? 0.0) * _totalIncome;
+      final spent = _actualSpending[key] ?? 0.0;
+      if (planned > 0 && spent > planned) count++;
+    }
+    return count;
+  }
+
+  int _countWatchPockets() {
+    int count = 0;
+    for (final key in DEFAULT_BUDGET_CATEGORIES.keys) {
+      final planned = (_allocations[key] ?? 0.0) * _totalIncome;
+      final spent = _actualSpending[key] ?? 0.0;
+      final ratio = planned > 0 ? spent / planned : 0.0;
+      if (ratio >= 0.85 && spent <= planned) count++;
+    }
+    return count;
+  }
+
+  List<String> _topTensionPockets({int limit = 3}) {
+    final entries = DEFAULT_BUDGET_CATEGORIES.keys.map((key) {
+      final planned = (_allocations[key] ?? 0.0) * _totalIncome;
+      final spent = _actualSpending[key] ?? 0.0;
+      final ratio = planned > 0 ? spent / planned : 0.0;
+      return MapEntry(key, ratio);
+    }).toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return entries.take(limit).map((e) => e.key).toList();
   }
 
   void _resetToDefaultAllocation() {
