@@ -23,10 +23,12 @@ class LocaleProvider extends ChangeNotifier {
 
   /// Set and persist locale.
   Future<void> setLocale(Locale locale) async {
-    if (locale.languageCode == _locale.languageCode) return;
+    final changed = locale.languageCode != _locale.languageCode;
     _locale = locale;
     LocalizationHelper.setLocale(_locale);
-    notifyListeners();
+    if (changed) {
+      notifyListeners();
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('languageCode', locale.languageCode);

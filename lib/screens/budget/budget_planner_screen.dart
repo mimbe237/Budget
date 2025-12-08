@@ -121,10 +121,10 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             ? Colors.amber.shade700
             : AppDesign.incomeColor;
     final statusLabel = statusOver
-        ? t('Dépassement')
+        ? AppLocalizations.of(context)!.overspend
         : statusUnder
-            ? t('Incomplet')
-            : t('Équilibré');
+            ? AppLocalizations.of(context)!.incomplete
+            : AppLocalizations.of(context)!.balanced;
     final coaching = statusOver
         ? 'Risque de dépassement, ajustez vos poches.'
         : statusUnder
@@ -164,28 +164,31 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            TrText(
-                              currency.formatAmount(_totalIncome),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: isCompact ? 24 : 26,
-                                fontWeight: FontWeight.w900,
+                            Expanded(
+                              child: TrText(
+                                currency.formatAmount(_totalIncome),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: isCompact ? 24 : 26,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 10),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                               decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.18),
+                                color: Colors.white.withValues(alpha: 0.16),
                                 borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: statusColor.withValues(alpha: 0.35)),
                               ),
                               child: TrText(
                                 '$statusLabel · ${allocationPct.toStringAsFixed(1)}%',
                                 style: TextStyle(
-                                  color: statusColor,
-                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
                                   fontSize: 12,
                                 ),
                               ),
@@ -528,6 +531,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         }
       }
       setState(() {
+        _allocations = Map.from(DEFAULT_ALLOCATION);
         _actualSpending = spending;
         _initializeControllers();
       });
@@ -573,7 +577,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
 
       if (budgetPlan != null) {
         final rawAlloc = (budgetPlan['categoryAllocations'] as Map<String, dynamic>?);
-        if (rawAlloc != null && rawAlloc.isNotEmpty) {
+        if (rawAlloc != null && rawAlloc.isNotEmpty && rawAlloc.values.any((v) => ((v as num?)?.toDouble() ?? 0) > 0)) {
           // Map Firestore allocations (stockées par catégorie) vers les poches affichées
           final pocketAllocations = {
             for (final key in DEFAULT_BUDGET_CATEGORIES.keys) key: 0.0,
@@ -1054,24 +1058,22 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
 
           return Padding(
             padding: const EdgeInsets.all(AppDesign.paddingLarge),
-            child: isCompact
-                ? Column(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isCompact)
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       header,
                       const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: incomeField,
-                      ),
+                      SizedBox(width: double.infinity, child: incomeField),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: saveButton,
-                      ),
+                      SizedBox(width: double.infinity, child: saveButton),
                     ],
                   )
-                : Row(
+                else
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(child: header),
@@ -1081,6 +1083,17 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       Flexible(flex: 0, child: saveButton),
                     ],
                   ),
+                const SizedBox(height: 10),
+                TextButton.icon(
+                  onPressed: _resetToDefaultAllocation,
+                  icon: const Icon(Icons.tune),
+                  label: const TrText('Rééquilibrer'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppDesign.primaryIndigo,
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -1259,7 +1272,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             child: TrText(
               value,
               style: const TextStyle(
-                color: Colors.white,
+                // Use dark text to stay legible on light chips
+                color: Colors.black87,
                 fontWeight: FontWeight.w800,
               ),
               overflow: TextOverflow.ellipsis,
@@ -1403,7 +1417,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   }
 
   List<PieChartSectionData> _buildPieChartSections(bool isOver) {
-    return _allocations.entries.map((entry) {
+    return _allocations.entries.where((entry) => entry.value > 0.001).map((entry) {
       final name = entry.key;
       final percentage = entry.value;
       final color = isOver 
@@ -1533,7 +1547,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
       final icon = DEFAULT_BUDGET_CATEGORIES[key]!['icon']!;
       final planned = (_allocations[key] ?? 0.0) * _totalIncome;
       final engaged = _actualSpending[key] ?? 0.0;
-      final ratio = planned > 0 ? (engaged / planned).clamp(0.0, 1.2) : 0.0;
+      final ratio = (planned > 0 && engaged > 0) ? (engaged / planned).clamp(0.0, 1.2) : 0.0;
       final barColor = ratio < 0.6
           ? AppDesign.incomeColor
           : ratio < 0.85
@@ -1675,11 +1689,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     ),
                   ],
                 ),
-                TextButton.icon(
-                  onPressed: _resetToDefaultAllocation,
-                  icon: const Icon(Icons.tune),
-                  label: const TrText('Rééquilibrer'),
-                ),
+                const SizedBox.shrink(),
               ],
             ),
             const SizedBox(height: 12),
@@ -1895,8 +1905,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     final percentage = _allocations[categoryKey] ?? 0.0;
     final amount = _totalIncome * percentage;
     final actualSpent = _actualSpending[categoryKey] ?? 0.0;
-    final isOverBudget = actualSpent > amount;
-    final spentPercentage = amount > 0 ? (actualSpent / amount) : 0.0;
+    final isOverBudget = amount > 0 && actualSpent > amount;
+    final spentPercentage = (amount > 0 && actualSpent > 0) ? (actualSpent / amount).clamp(0.0, 2.0) : 0.0;
     final remaining = (amount - actualSpent).clamp(0, double.infinity);
     final badgeColor = isOverBudget
         ? AppDesign.expenseColor
@@ -2115,7 +2125,9 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               ),
               const SizedBox(height: 4),
               TrText(
-                '${currency.formatAmount(actualSpent)} / ${currency.formatAmount(amount)} (${(spentPercentage * 100).toStringAsFixed(0)}%)',
+                amount > 0 
+                  ? '${currency.formatAmount(actualSpent)} / ${currency.formatAmount(amount)} (${(spentPercentage * 100).toStringAsFixed(0)}%)'
+                  : '${currency.formatAmount(actualSpent)} (pas de budget alloué)',
                 style: TextStyle(
                   fontSize: 12,
                   color: isOverBudget ? AppDesign.expenseColor : Colors.grey[600],
@@ -2221,39 +2233,79 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   }
 
   void _resetToDefaultAllocation() {
+    const defaultPattern = '30/15/10/5/5/10/10/10/5 (100%)';
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const TrText('Réinitialiser le Budget'),
-        content: const TrText(
-          'Voulez-vous appliquer la répartition par défaut (30/15/10/5/5/10/10/10/5) ?\n\nCela remplacera votre configuration actuelle.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const TrText('Annuler'),
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 22, 24, 8),
+          contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          title: const TrText(
+            'Réinitialiser le budget ?',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _allocations = Map.from(DEFAULT_ALLOCATION);
-                for (var entry in _allocations.entries) {
-                  _percentageControllers[entry.key]!.text = (entry.value * 100).toStringAsFixed(1);
-                  _amountControllers[entry.key]!.text = (_totalIncome * entry.value).toStringAsFixed(2);
-                }
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: TrText('Budget réinitialisé avec succès !')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppDesign.primaryIndigo,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                SizedBox(height: 6),
+                TrText(
+                  'Appliquer la répartition par défaut : $defaultPattern',
+                  style: TextStyle(fontSize: 15, height: 1.4),
+                ),
+                SizedBox(height: 10),
+                TrText(
+                  'Cette action écrase vos réglages actuels. Aucune sauvegarde automatique.',
+                  style: TextStyle(fontSize: 13, color: Colors.black54, height: 1.4),
+                ),
+              ],
             ),
-            child: const TrText('Appliquer'),
           ),
-        ],
-      ),
+          actionsAlignment: MainAxisAlignment.end,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey[700],
+              ),
+              child: const TrText(
+                'Annuler',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _allocations = Map.from(DEFAULT_ALLOCATION);
+                  for (var entry in _allocations.entries) {
+                    _percentageControllers[entry.key]!.text = (entry.value * 100).toStringAsFixed(1);
+                    _amountControllers[entry.key]!.text = (_totalIncome * entry.value).toStringAsFixed(2);
+                  }
+                });
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: TrText('Budget réinitialisé avec succès !')),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppDesign.primaryIndigo,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: const TrText(
+                'Appliquer',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -2303,11 +2355,11 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     if (tx.category != null && tx.category!.trim().isNotEmpty) return tx.category!;
     switch (tx.type) {
       case TransactionType.income:
-        return t('Revenu');
+        return AppLocalizations.of(context)!.income;
       case TransactionType.expense:
-        return t('Dépense');
+        return AppLocalizations.of(context)!.expense;
       case TransactionType.transfer:
-        return t('Transfert');
+        return AppLocalizations.of(context)!.transfer;
     }
   }
 }

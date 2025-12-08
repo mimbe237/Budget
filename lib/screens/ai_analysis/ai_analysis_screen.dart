@@ -8,8 +8,9 @@ import '../../models/projection_result.dart';
 import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
 import '../../services/mock_data_service.dart';
-import '../../widgets/revolutionary_logo.dart';
 import '../transactions/transactions_list_screen.dart';
+import '../budget/budget_planner_screen.dart';
+import '../goals/goal_funding_screen.dart';
 import 'package:budget/l10n/localization_helpers.dart';
 import 'package:budget/services/currency_service.dart';
 
@@ -28,6 +29,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
   late final CurrencyService _currencyService;
 
   bool _isLoading = true;
+  int _analysisMonths = 3;
   bool _usingMockData = false;
   String? _loadError;
   List<app_transaction.Transaction> _transactions = [];
@@ -42,11 +44,17 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
   // Score de santé financière
   double _healthScore = 0.0;
   Map<String, dynamic> _healthDetails = {};
+  String _selectedPeriod = '3m'; // current | 3m | all
+  String? _selectedCategory;
+  List<String> _availableCategories = [];
+  final Set<String> _expandedAnomalies = {};
+  final Set<String> _expandedRecommendations = {};
   
   // Gamification
   List<Map<String, dynamic>> _badges = [];
   Map<String, dynamic>? _currentChallenge;
   List<Map<String, dynamic>> _achievements = [];
+  final GlobalKey _anomalySectionKey = GlobalKey();
 
   @override
   void initState() {
@@ -66,7 +74,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     try {
       final userId = _firestoreService.currentUserId;
       final now = DateTime.now();
-      final startWindow = DateTime(now.year, now.month - 2, 1);
+      final startWindow = DateTime(now.year, now.month - (_analysisMonths - 1), 1);
 
       if (userId != null) {
         _transactions = await _firestoreService.getTransactions(
@@ -90,6 +98,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
       _calculateHealthScore();
       _calculateBadgesAndAchievements();
       _generateCurrentChallenge();
+      _refreshCategoryFilters();
     } catch (e) {
       _loadError = e.toString();
       await _hydrateFromMock();
@@ -98,6 +107,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
       _calculateHealthScore();
       _calculateBadgesAndAchievements();
       _generateCurrentChallenge();
+      _refreshCategoryFilters();
     }
 
     if (mounted) {
@@ -118,6 +128,22 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     });
   }
 
+  void _setPeriodFilter(String id) {
+    final months = id == 'current'
+        ? 1
+        : id == '3m'
+            ? 3
+            : 6;
+    final shouldReload = _analysisMonths != months;
+    setState(() {
+      _selectedPeriod = id;
+      _analysisMonths = months;
+    });
+    if (shouldReload) {
+      _loadDataAndAnalyze();
+    }
+  }
+
   String _formatAmount(double amount) {
     return _currencyService.formatAmount(amount);
   }
@@ -128,6 +154,17 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     _goals = await _mockDataService.getGoals();
     _projectionResult = await _mockDataService.getMockProjection();
     _usingMockData = true;
+  }
+
+  void _refreshCategoryFilters() {
+    final categories = <String>{};
+    for (final t in _transactions) {
+      final name = t.category ?? t.categoryId;
+      if (name != null && name.isNotEmpty) {
+        categories.add(name);
+      }
+    }
+    _availableCategories = categories.toList()..sort();
   }
 
   BudgetPlan? _mapBudgetPlanFromFirestore(
@@ -187,6 +224,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         'description': 'Continuez à utiliser l\'app pour obtenir des analyses plus précises.',
         'advice': 'Plus vous enregistrez de transactions, plus nos analyses seront pertinentes.',
         'impact': 'neutral',
+        'period': 'all',
       });
       return anomalies;
     }
@@ -239,6 +277,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           'impact': percentOfBudget >= 20 ? 'high' : percentOfBudget >= 10 ? 'medium' : 'low',
           'impactText': 'Représente $percentOfBudget% de votre budget mensuel',
           'advice': _getAdviceForException(tx.amount, category, percentOfBudget, totalMonthBudget),
+          'period': 'current',
           'contextStats': {
             'percentOfCategory': percentOfCategory,
             'percentOfBudget': percentOfBudget,
@@ -270,6 +309,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
               'impact': percentDiff >= 100 ? 'high' : 'medium',
               'impactText': 'Dépassement de ${_formatAmount(diff)}',
               'advice': _getAdviceForIncrease(category, percentDiff, currentTotal, avgHistorical),
+              'period': 'current',
               'contextStats': {
                 'current': currentTotal,
                 'average': avgHistorical,
@@ -288,6 +328,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
               'impact': 'positive',
               'impactText': 'Économie de ${_formatAmount(diff.abs())}',
               'advice': 'Continuez comme ça ! Ces économies peuvent être transférées vers vos objectifs d\'épargne.',
+              'period': 'current',
               'contextStats': {
                 'current': currentTotal,
                 'average': avgHistorical,
@@ -314,6 +355,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         'analysis': 'Cohérence de $consistency% avec votre moyenne mensuelle',
         'impact': 'neutral',
         'advice': 'Votre gestion est régulière. Pensez à optimiser certaines catégories pour augmenter votre épargne.',
+        'period': 'all',
       });
     }
 
@@ -350,6 +392,43 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     }
 
     return defaultAdvice;
+  }
+
+  // =========================================================================
+  // FILTRES D'AFFICHAGE
+  // =========================================================================
+
+  List<Map<String, dynamic>> get _visibleAnomalies {
+    return _anomalies.where((anomaly) {
+      final period = (anomaly['period'] as String?) ?? 'all';
+      final category = (anomaly['category'] as String?) ?? '';
+      final title = (anomaly['title'] as String?) ?? '';
+
+      bool matchesPeriod;
+      if (_selectedPeriod == 'current') {
+        matchesPeriod = period == 'current';
+      } else if (_selectedPeriod == '3m') {
+        matchesPeriod = period == 'current' || period == '3m' || period == 'all';
+      } else {
+        matchesPeriod = true;
+      }
+      final matchesCategory = _selectedCategory == null ||
+          category.toLowerCase().contains(_selectedCategory!.toLowerCase()) ||
+          title.toLowerCase().contains(_selectedCategory!.toLowerCase());
+
+      return matchesPeriod && matchesCategory;
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> get _visibleRecommendations {
+    return _recommendations.where((rec) {
+      final category = (rec['category'] as String?) ?? '';
+      final title = (rec['title'] as String?) ?? '';
+      final matchesCategory = _selectedCategory == null ||
+          category.toLowerCase().contains(_selectedCategory!.toLowerCase()) ||
+          title.toLowerCase().contains(_selectedCategory!.toLowerCase());
+      return matchesCategory;
+    }).toList();
   }
 
   // =========================================================================
@@ -883,7 +962,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildLoadingSkeleton()
           : RefreshIndicator(
               onRefresh: _loadDataAndAnalyze,
               child: ListView(
@@ -894,17 +973,25 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                   16 + kBottomNavigationBarHeight,
                 ),
                 children: [
-                  // Titre d'accueil
+                  // Titre d'accueil + filtres rapides
                   _buildWelcomeHeader(),
+                  const SizedBox(height: 12),
+                  _buildFiltersBar(),
                   if (_usingMockData || _loadError != null) ...[
                     const SizedBox(height: 12),
                     _buildDataSourceBanner(),
                   ],
+                  const SizedBox(height: 16),
+                  _buildQuickSummary(),
                   const SizedBox(height: 24),
 
                   // Nouveau : Dashboard de santé financière
                   _buildHealthScoreDashboard(),
                   const SizedBox(height: 24),
+                  if (_transactions.isEmpty) ...[
+                    _buildEmptyStateCard(),
+                    const SizedBox(height: 24),
+                  ],
 
                   // Gamification : Badges
                   if (_badges.isNotEmpty) ...[
@@ -923,9 +1010,18 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                   ],
 
                   // Section 1 : Détection d'anomalies enrichies
-                  _buildSectionTitle('🔍 Analyse Intelligente', 'Détection et contexte des dépenses'),
-                  const SizedBox(height: 12),
-                  ..._anomalies.map((anomaly) => _buildEnrichedAnomalyCard(anomaly)),
+                  Column(
+                    key: _anomalySectionKey,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle('🔍 Analyse Intelligente', 'Détection et contexte des dépenses'),
+                      const SizedBox(height: 12),
+                      if (_visibleAnomalies.isEmpty)
+                        _buildEmptyAnomaliesCard()
+                      else
+                        ..._visibleAnomalies.map((anomaly) => _buildEnrichedAnomalyCard(anomaly)),
+                    ],
+                  ),
                   const SizedBox(height: 24),
 
                   // Section 2 : Projection future
@@ -941,15 +1037,110 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                   const SizedBox(height: 24),
 
                   // Section 4 : Toutes les recommandations
-                  if (_recommendations.length > 3) ...[
+                  if (_visibleRecommendations.length > 3) ...[
                     _buildSectionTitle('💡 Autres Recommandations', 'Suggestions complémentaires'),
                     const SizedBox(height: 12),
-                    ..._recommendations.skip(3).map((rec) => _buildRecommendationCard(rec)),
+                    ..._visibleRecommendations.skip(3).map((rec) => _buildRecommendationCard(rec)),
+                    const SizedBox(height: 24),
+                  ] else if (_visibleRecommendations.isEmpty) ...[
+                    _buildEmptyState(
+                      title: 'Pas de recommandations supplémentaires',
+                      subtitle: 'Continuez à suivre votre budget, nous vous alerterons si besoin.',
+                    ),
                     const SizedBox(height: 24),
                   ],
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildLoadingSkeleton() {
+    Widget skeletonCard({double height = 120}) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          gradient: LinearGradient(
+            colors: [
+              Colors.grey.shade200,
+              Colors.grey.shade100,
+              Colors.grey.shade200,
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        16 + kBottomNavigationBarHeight,
+      ),
+      children: [
+        Container(
+          height: 46,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        const SizedBox(height: 16),
+        skeletonCard(height: 140),
+        skeletonCard(height: 100),
+        skeletonCard(height: 180),
+        skeletonCard(height: 140),
+        skeletonCard(height: 160),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState({required String title, required String subtitle}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+              SizedBox(width: 8),
+              TrText(
+                'Tout est stable',
+                style: TextStyle(fontWeight: FontWeight.w700, color: Colors.green),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TrText(
+            title,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          TrText(
+            subtitle,
+            style: const TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1591,7 +1782,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
 
   /// Top 3 des recommandations prioritaires
   Widget _buildTop3Recommendations() {
-    final top3 = _recommendations.take(3).toList();
+    final top3 = _visibleRecommendations.take(3).toList();
     
     if (top3.isEmpty) {
       return const SizedBox.shrink();
@@ -1901,6 +2092,400 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     );
   }
 
+  Widget _buildQuickSummary() {
+    final anomaliesCount = _visibleAnomalies.length;
+    final recCount = _visibleRecommendations.length;
+    final hasPositiveScore = _healthScore >= 7.5;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const TrText(
+                'Synthèse IA',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppDesign.primaryIndigo,
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (hasPositiveScore)
+                _pill('Stable', Colors.green)
+              else
+                _pill('À surveiller', Colors.orange),
+              const Spacer(),
+              _pill('$anomaliesCount alertes', Colors.redAccent),
+              const SizedBox(width: 8),
+              _pill('$recCount actions', AppDesign.primaryIndigo),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppDesign.primaryIndigo.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    TrText(
+                      _healthScore.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: AppDesign.primaryIndigo,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    TrText(
+                      _healthDetails['rating'] as String? ?? '',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    TrText(
+                      'Recommandations prêtes',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    TrText(
+                      'Passez à l’action sur vos anomalies et projections en 2 clics.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: anomaliesCount == 0 ? null : () => _scrollToSection(),
+                  icon: const Icon(Icons.warning_amber_rounded, size: 18),
+                  label: const TrText('Voir mes alertes'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppDesign.expenseColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _openBudgetPlanner,
+                  icon: const Icon(Icons.tune, size: 18),
+                  label: const TrText('Ajuster mon budget'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppDesign.primaryIndigo,
+                    side: const BorderSide(color: AppDesign.primaryIndigo),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFiltersBar() {
+    final periodOptions = [
+      {'id': 'current', 'label': 'Mois en cours', 'icon': Icons.calendar_today},
+      {'id': '3m', 'label': '3 derniers mois', 'icon': Icons.date_range},
+      {'id': 'all', 'label': 'Tout', 'icon': Icons.all_inclusive},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const TrText(
+                'Filtres IA',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 8),
+              if (_usingMockData)
+                _pill('Données mockées', Colors.orange),
+              const Spacer(),
+              TextButton(
+                onPressed: () {
+                  _setPeriodFilter('current');
+                  setState(() {
+                    _selectedCategory = null;
+                  });
+                },
+                child: const TrText('Réinitialiser'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ...periodOptions.map((opt) {
+                final selected = _selectedPeriod == opt['id'];
+                return ChoiceChip(
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(opt['icon'] as IconData, size: 16),
+                      const SizedBox(width: 6),
+                      Text(opt['label'] as String),
+                    ],
+                  ),
+                  selected: selected,
+                  onSelected: (v) {
+                    if (!v) return;
+                    _setPeriodFilter(opt['id']! as String);
+                  },
+                  selectedColor: AppDesign.primaryIndigo.withValues(alpha: 0.1),
+                  labelStyle: TextStyle(
+                    color: selected ? AppDesign.primaryIndigo : Colors.grey[700],
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+              }),
+              _buildCategoryFilterChip(),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryFilterChip() {
+    final label = _selectedCategory ?? 'Toutes les catégories';
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        setState(() {
+          _selectedCategory = value == 'all' ? null : value;
+        });
+      },
+      itemBuilder: (context) {
+        return [
+          const PopupMenuItem(value: 'all', child: TrText('Toutes')),
+          ..._availableCategories.map(
+            (cat) => PopupMenuItem(value: cat, child: Text(cat)),
+          ),
+        ];
+      },
+      child: Chip(
+        avatar: const Icon(Icons.filter_alt, size: 16, color: AppDesign.primaryIndigo),
+        label: Text(label),
+        backgroundColor: AppDesign.primaryIndigo.withValues(alpha: 0.08),
+        labelStyle: const TextStyle(color: AppDesign.primaryIndigo, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _pill(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: TrText(
+        text,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  void _scrollToSection() {
+    final ctx = _anomalySectionKey.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  Widget _buildEmptyStateCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.auto_graph, color: AppDesign.primaryIndigo),
+              SizedBox(width: 8),
+              TrText(
+                'Ajoutez vos premières données',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const TrText(
+            'Enregistrez quelques transactions ou créez un objectif pour débloquer des insights IA précis.',
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _smallActionButton(
+                label: 'Ajouter des transactions',
+                icon: Icons.note_add_outlined,
+                color: AppDesign.primaryIndigo,
+                onTap: _openTransactions,
+              ),
+              _smallActionButton(
+                label: 'Créer un objectif',
+                icon: Icons.flag_outlined,
+                color: Colors.green,
+                onTap: _openGoals,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyAnomaliesCard() {
+    return _buildEmptyState(
+      title: 'Aucune anomalie détectée',
+      subtitle: 'Vos dépenses sont stables sur la période filtrée.',
+    );
+  }
+
+  Widget _smallActionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16, color: color),
+      label: Text(
+        label,
+        style: TextStyle(color: color, fontWeight: FontWeight.w700),
+      ),
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: color.withValues(alpha: 0.5)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  Widget _buildAnomalyActions(Color accentColor) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _smallActionButton(
+          label: 'Voir transactions',
+          icon: Icons.list_alt_outlined,
+          color: accentColor,
+          onTap: _openTransactions,
+        ),
+        _smallActionButton(
+          label: 'Ajuster budget',
+          icon: Icons.tune,
+          color: AppDesign.primaryIndigo,
+          onTap: _openBudgetPlanner,
+        ),
+        _smallActionButton(
+          label: 'Objectifs',
+          icon: Icons.flag_outlined,
+          color: Colors.green,
+          onTap: _openGoals,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecommendationActions(Color accentColor) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _smallActionButton(
+          label: 'Voir transactions',
+          icon: Icons.list_alt_outlined,
+          color: accentColor,
+          onTap: _openTransactions,
+        ),
+        _smallActionButton(
+          label: 'Ajuster budget',
+          icon: Icons.tune,
+          color: AppDesign.primaryIndigo,
+          onTap: _openBudgetPlanner,
+        ),
+        _smallActionButton(
+          label: 'Objectifs',
+          icon: Icons.flag_outlined,
+          color: Colors.green,
+          onTap: _openGoals,
+        ),
+      ],
+    );
+  }
+
   Widget _buildDataSourceBanner() {
     final Color badgeColor = _usingMockData ? Colors.orange : AppDesign.primaryIndigo;
     final String message = _usingMockData
@@ -1985,6 +2570,10 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     final impactText = anomaly['impactText'] as String?;
     final amount = anomaly['amount'] as double?;
     final contextStats = anomaly['contextStats'] as Map<String, dynamic>?;
+    final category = anomaly['category'] as String?;
+    final cardKey = '$title|${category ?? ''}';
+    final expanded = _expandedAnomalies.contains(cardKey);
+    final canExpand = description.length + (analysis?.length ?? 0) + (advice?.length ?? 0) > 180;
 
     // Déterminer les couleurs selon le type
     Color primaryColor;
@@ -2109,6 +2698,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                           color: Colors.grey[800],
                           fontWeight: FontWeight.w600,
                         ),
+                        maxLines: expanded ? null : 3,
+                        overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -2138,6 +2729,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                               color: Colors.grey[700],
                               height: 1.4,
                             ),
+                            maxLines: expanded ? null : 3,
+                            overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -2186,6 +2779,21 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                 // Statistiques contextuelles
                 if (contextStats != null && contextStats.isNotEmpty) ...[
                   const SizedBox(height: 12),
+                  Row(
+                    children: const [
+                      Icon(Icons.info_outline, size: 16, color: AppDesign.primaryIndigo),
+                      SizedBox(width: 6),
+                      TrText(
+                        'Pourquoi cette alerte ?',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppDesign.primaryIndigo,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -2237,6 +2845,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                                   color: Colors.grey[800],
                                   height: 1.4,
                                 ),
+                                maxLines: expanded ? null : 3,
+                                overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -2245,6 +2855,27 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                     ),
                   ),
                 ],
+
+                // Actions rapides
+                const SizedBox(height: 12),
+                if (canExpand)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        setState(() {
+                          if (expanded) {
+                            _expandedAnomalies.remove(cardKey);
+                          } else {
+                            _expandedAnomalies.add(cardKey);
+                          }
+                        });
+                      },
+                      child: TrText(expanded ? 'Voir moins' : 'Voir plus'),
+                    ),
+                  ),
+                const SizedBox(height: 6),
+                _buildAnomalyActions(primaryColor),
               ],
             ),
           ),
@@ -2495,6 +3126,11 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
   /// Carte de recommandation
   Widget _buildRecommendationCard(Map<String, dynamic> recommendation) {
     final type = recommendation['type'] as String;
+    final title = recommendation['title'] as String;
+    final description = recommendation['description'] as String;
+    final recKey = '$title|$type';
+    final expanded = _expandedRecommendations.contains(recKey);
+    final canExpand = description.length > 160;
     Color cardColor;
     Color iconBgColor;
 
@@ -2551,7 +3187,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TrText(
-                  recommendation['title'],
+                  title,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -2560,18 +3196,56 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
                 ),
                 const SizedBox(height: 6),
                 TrText(
-                  recommendation['description'],
+                  description,
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey[700],
                     height: 1.4,
                   ),
+                  maxLines: expanded ? null : 3,
+                  overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 10),
+                if (canExpand)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        setState(() {
+                          if (expanded) {
+                            _expandedRecommendations.remove(recKey);
+                          } else {
+                            _expandedRecommendations.add(recKey);
+                          }
+                        });
+                      },
+                      child: TrText(expanded ? 'Voir moins' : 'Voir plus'),
+                    ),
+                  ),
+                _buildRecommendationActions(cardColor),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  void _openTransactions() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const TransactionsListScreen()),
+    );
+  }
+
+  void _openBudgetPlanner() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const BudgetPlannerScreen()),
+    );
+  }
+
+  void _openGoals() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const GoalFundingScreen()),
     );
   }
 

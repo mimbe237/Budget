@@ -1,53 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Budget Pro Logo">
   <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#8B5CF6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#EC4899;stop-opacity:1" />
+    <linearGradient id="walletGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6D5BFF"/>
+      <stop offset="100%" stop-color="#F064C7"/>
+    </linearGradient>
+    <linearGradient id="strapGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#F7F7F7"/>
     </linearGradient>
   </defs>
-  
-  <!-- Fond avec coins arrondis et gradient violet → rose -->
-  <rect x="0" y="0" width="512" height="512" rx="120" ry="120" fill="url(#bgGradient)" />
-  
-  <!-- Étoiles décoratives (style sparkle) -->
-  <!-- Grande étoile centrale -->
-  <path d="M 256 180 L 266 210 L 296 220 L 266 230 L 256 260 L 246 230 L 216 220 L 246 210 Z" 
-        fill="white" opacity="0.95" />
-  
-  <!-- Étoile moyenne gauche -->
-  <path d="M 180 240 L 188 262 L 210 270 L 188 278 L 180 300 L 172 278 L 150 270 L 172 262 Z" 
-        fill="white" opacity="0.9" />
-  
-  <!-- Étoile moyenne droite -->
-  <path d="M 332 260 L 340 282 L 362 290 L 340 298 L 332 320 L 324 298 L 302 290 L 324 282 Z" 
-        fill="white" opacity="0.9" />
-  
-  <!-- Petite étoile coin (accent doré) -->
-  <path d="M 380 150 L 385 165 L 400 170 L 385 175 L 380 190 L 375 175 L 360 170 L 375 165 Z" 
-        fill="#FCD34D" opacity="1" />
-  
-  <!-- Icône de portefeuille (wallet) en bas, style outline minimaliste -->
-  <g transform="translate(200, 310)">
-    <!-- Corps du portefeuille -->
-    <rect x="0" y="10" width="112" height="76" rx="8" ry="8" 
-          fill="none" stroke="white" stroke-width="6" stroke-linejoin="round" />
-    
-    <!-- Rabat supérieur -->
-    <path d="M 8 10 L 8 0 Q 8 -4 12 -4 L 100 -4 Q 104 -4 104 0 L 104 10" 
-          fill="none" stroke="white" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" />
-    
-    <!-- Poche carte (détail) -->
-    <line x1="20" y1="35" x2="60" y2="35" 
-          stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.7" />
-    
-    <!-- Ligne accent -->
-    <line x1="20" y1="60" x2="92" y2="60" 
-          stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.5" />
-  </g>
-  
-  <!-- Ligne graphique croissance (accent) -->
-  <polyline points="160,320 200,295 240,310 280,280 320,290 360,265" 
-            fill="none" stroke="white" stroke-width="8" stroke-linecap="round" 
-            stroke-linejoin="round" opacity="0.85" />
+  <rect x="44" y="92" width="356" height="328" rx="56" fill="url(#walletGradient)"/>
+  <path d="M412 196h42c24 0 44 20 44 44v36c0 24-20 44-44 44h-42v-18c0-24-20-44-44-44h-26v-40h26c24 0 44-20 44-44v-18z" fill="url(#walletGradient)"/>
+  <rect x="404" y="224" width="52" height="40" rx="12" fill="url(#strapGradient)"/>
+  <circle cx="430" cy="244" r="10" fill="url(#walletGradient)"/>
+  <path d="M134 312l64-70 54 54 82-106 56 44" fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M330 174h54l-6-6m6 6l-6 6" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

@@ -239,7 +239,7 @@ class _GlobalFinancialFlowBlockState extends State<GlobalFinancialFlowBlock> {
             SizedBox(
               width: cardWidth,
               child: _flowCard(
-                label: t('Revenus'),
+                label: AppLocalizations.of(context)!.income,
                 amount: _totalIncome,
                 color: AppDesign.successGreen,
                 icon: Icons.arrow_upward_rounded,

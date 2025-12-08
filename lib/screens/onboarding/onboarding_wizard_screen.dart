@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:budget/l10n/localization_helpers.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 import '../../models/account.dart';
 import '../../services/firestore_service.dart';
@@ -9,6 +10,44 @@ import '../../widgets/discovery_tutorial.dart';
 import '../navigation/main_navigation_shell.dart';
 import '../../providers/locale_provider.dart';
 import '../../l10n/app_localizations.dart';
+
+class _AccountTemplate {
+  final String name;
+  final AccountType type;
+  final String icon;
+  final String color;
+
+  const _AccountTemplate({
+    required this.name,
+    required this.type,
+    required this.icon,
+    required this.color,
+  });
+}
+
+class _AccountDraft {
+  _AccountDraft({
+    required this.type,
+    required this.icon,
+    required this.color,
+    String name = '',
+    double balance = 0,
+  })  : nameController = TextEditingController(text: name),
+        balanceController = TextEditingController(
+          text: balance == 0 ? '0' : balance.toStringAsFixed(balance.truncateToDouble() == balance ? 0 : 2),
+        );
+
+  final TextEditingController nameController;
+  final TextEditingController balanceController;
+  final AccountType type;
+  final String icon;
+  final String color;
+
+  void dispose() {
+    nameController.dispose();
+    balanceController.dispose();
+  }
+}
 
 /// Écran d'onboarding simplifié en 3 étapes
 /// Étape 1: Bienvenue (nom + devise + revenu mensuel)
@@ -25,6 +64,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   static const Color _brandPrimary = Color(0xFF6C5CF7);
   static const Color _brandSecondary = Color(0xFFC542C1);
   static const Color _brandSurface = Color(0xFFF1EEFF);
+  static const Color _brandAccent = Color(0xFF00D9FF);
 
   final PageController _pageController = PageController();
   int _currentPage = 0;
@@ -39,10 +79,36 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   final TextEditingController _incomeController = TextEditingController();
   String _currency = 'XAF';
 
-  final TextEditingController _accountNameController = TextEditingController();
-  final TextEditingController _accountBalanceController = TextEditingController(text: '0');
-  final List<String> _accountIcons = ['💳','🏦','💰','📱'];
-  String _selectedAccountIcon = '💳';
+  final List<_AccountTemplate> _suggestedAccountTemplates = const [
+    _AccountTemplate(
+      name: 'Compte principal',
+      type: AccountType.checking,
+      icon: '💳',
+      color: '#6366F1',
+    ),
+    _AccountTemplate(
+      name: 'Épargne',
+      type: AccountType.savings,
+      icon: '🐷',
+      color: '#4CAF50',
+    ),
+    _AccountTemplate(
+      name: 'Carte',
+      type: AccountType.creditCard,
+      icon: '💳',
+      color: '#9C27B0',
+    ),
+    _AccountTemplate(
+      name: 'Espèces',
+      type: AccountType.cash,
+      icon: '💵',
+      color: '#FF9800',
+    ),
+  ];
+
+  late List<_AccountDraft> _accountDrafts;
+  bool _useSuggestedAccounts = true;
+  bool _skipAccounts = false;
 
   bool _wantsBudget = false;
   final TextEditingController _budgetAmountController = TextEditingController();
@@ -57,43 +123,291 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _accountDrafts = _buildSuggestedDrafts();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       backgroundColor: _brandSurface,
       appBar: AppBar(
-        title: const TrText('Configuration de démarrage'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        title: const TrText('Configuration immersive'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              physics: const ClampingScrollPhysics(),
-              onPageChanged: (index) => setState(() => _currentPage = index),
-              children: [
-                _buildStep1Welcome(),
-                _buildStep2Discovery(),
-                _buildStep3QuickSetup(),
-              ],
-            ),
-          ),
-          _buildBottomControls(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(
-                value: (_currentPage + 1) / 3,
-                minHeight: 6,
-                backgroundColor: Colors.white,
-                valueColor: AlwaysStoppedAnimation<Color>(_brandPrimary),
+          // Fond vibrant
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF1C1A33),
+                    Color(0xFF100F2A),
+                    Color(0xFF0F1424),
+                  ],
+                ),
               ),
             ),
           ),
+          Positioned(
+            top: -80,
+            left: -40,
+            child: _blurredCircle(180, _brandPrimary.withOpacity(0.35)),
+          ),
+          Positioned(
+            top: 40,
+            right: -50,
+            child: _blurredCircle(160, _brandSecondary.withOpacity(0.3)),
+          ),
+          Positioned(
+            bottom: -60,
+            left: 20,
+            child: _blurredCircle(200, _brandAccent.withOpacity(0.25)),
+          ),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: EdgeInsets.zero,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 12),
+                        _buildHeroBanner(),
+                        const SizedBox(height: 12),
+                        _buildStepBadges(),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: constraints.maxHeight * 0.55,
+                          child: PageView(
+                            controller: _pageController,
+                            physics: const ClampingScrollPhysics(),
+                            onPageChanged: (index) {
+                              if (!mounted) return;
+                              setState(() => _currentPage = index);
+                            },
+                            children: [
+                              _buildStep1Welcome(),
+                              _buildStep2Discovery(),
+                              _buildStep3QuickSetup(),
+                            ],
+                          ),
+                        ),
+                        _buildBottomControls(),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: LinearProgressIndicator(
+                              value: (_currentPage + 1) / 3,
+                              minHeight: 6,
+                              backgroundColor: Colors.white.withOpacity(0.2),
+                              valueColor: AlwaysStoppedAnimation<Color>(_brandPrimary),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _blurredCircle(double size, Color color) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color,
+            blurRadius: 60,
+            spreadRadius: 30,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroBanner() {
+    final titles = [
+      'Bienvenue',
+      'Découverte',
+      'Configuration',
+    ];
+    final subtitles = [
+      'Personnalisez votre profil en 2 minutes.',
+      'Explorez les super-pouvoirs Budget Pro.',
+      'Activez comptes, budgets et objectifs.',
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.white.withOpacity(0.12),
+              Colors.white.withOpacity(0.06),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.25),
+              blurRadius: 18,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.12),
+                border: Border.all(color: Colors.white.withOpacity(0.3)),
+              ),
+              child: const Icon(Icons.bolt, color: Colors.white, size: 26),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TrText(
+                    'Parcours express',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  TrText(
+                    titles[_currentPage],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  TrText(
+                    subtitles[_currentPage],
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.timelapse, color: Colors.white, size: 16),
+                  const SizedBox(width: 6),
+                  TrText(
+                    '${_currentPage + 1}/3',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepBadges() {
+    final steps = [
+      {'icon': Icons.person, 'label': 'Profil'},
+      {'icon': Icons.auto_graph, 'label': 'Découverte'},
+      {'icon': Icons.flag, 'label': 'Activation'},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: steps.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final data = entry.value;
+          final bool active = idx <= _currentPage;
+          return Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              margin: EdgeInsets.only(right: idx == steps.length - 1 ? 0 : 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: active
+                    ? LinearGradient(
+                        colors: [_brandPrimary, _brandSecondary.withOpacity(0.9)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: active ? null : Colors.white.withOpacity(0.08),
+                border: Border.all(
+                  color: active ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.2),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    data['icon'] as IconData,
+                    size: 18,
+                    color: active ? Colors.white : Colors.white70,
+                  ),
+                  const SizedBox(width: 6),
+                  TrText(
+                    data['label'] as String,
+                    style: TextStyle(
+                      color: active ? Colors.white : Colors.white70,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -102,8 +416,17 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey[200]!)),
+        color: Colors.white.withOpacity(0.04),
+        border: Border(
+          top: BorderSide(color: Colors.white.withOpacity(0.12)),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 18,
+            offset: const Offset(0, -6),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -113,7 +436,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
               onPressed: _previousPage,
               icon: const Icon(Icons.arrow_back),
               label: const TrText('Précédent'),
-              style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
+              style: TextButton.styleFrom(foregroundColor: Colors.white70),
             )
           else
             const SizedBox.shrink(),
@@ -177,103 +500,71 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                        // Sélecteur de langue
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                ChoiceChip(
-                  label: const TrText('FR'),
-                  selected: context.watch<LocaleProvider>().locale.languageCode == 'fr',
-                  onSelected: (_) async {
-                    context.read<LocaleProvider>().setLocale(const Locale('fr'));
-                    if (_userId != null) {
-                      await _firestoreService.updateUserProfile(_userId!, {
-                        'languageCode': 'fr',
-                      });
+                // Nom d'utilisateur
+                TrText(
+                  AppLocalizations.of(context)!.tr('your_name_label'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.tr('name_hint'),
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: _brandSurface,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return AppLocalizations.of(context)!.tr('enter_name_error');
                     }
+                    return null;
                   },
                 ),
-                const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const TrText('EN'),
-                  selected: context.watch<LocaleProvider>().locale.languageCode == 'en',
-                  onSelected: (_) async {
-                    context.read<LocaleProvider>().setLocale(const Locale('en'));
-                    if (_userId != null) {
-                      await _firestoreService.updateUserProfile(_userId!, {
-                        'languageCode': 'en',
-                      });
-                    }
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
 
-            // Nom d'utilisateur
-            TrText(
-              AppLocalizations.of(context)!.tr('your_name_label'),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                hintText: AppLocalizations.of(context)!.tr('name_hint'),
-                prefixIcon: const Icon(Icons.person_outline),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                // Devise
+                const SizedBox(height: 32),
+                TrText(
+                  AppLocalizations.of(context)!.tr('default_currency_label'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
-                filled: true,
-                fillColor: _brandSurface,
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return AppLocalizations.of(context)!.tr('enter_name_error');
-                }
-                return null;
-              },
-            ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildCurrencyOption('EUR', '€'),
+                    _buildCurrencyOption('USD', '\$'),
+                    _buildCurrencyOption('XAF', 'XAF'),
+                  ],
+                ),
+                const SizedBox(height: 32),
 
-                        // Devise
-            const SizedBox(height: 32),
-            TrText(
-              AppLocalizations.of(context)!.tr('default_currency_label'),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildCurrencyOption('EUR', '€'),
-                _buildCurrencyOption('USD', '\$'),
-                _buildCurrencyOption('XAF', 'XAF'),
-              ],
-            ),
-            const SizedBox(height: 32),
-            // Revenu mensuel
-            TrText(
-              AppLocalizations.of(context)!.tr('monthly_income_label'),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _incomeController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-              ],
-              decoration: InputDecoration(
-                hintText: '0',
-                prefixIcon: const Icon(Icons.attach_money),
-                suffixText: _currency,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                // Revenu mensuel
+                TrText(
+                  AppLocalizations.of(context)!.tr('monthly_income_label'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
-                filled: true,
-                fillColor: _brandSurface,
-              ),
-            ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _incomeController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                  ],
+                  decoration: InputDecoration(
+                    hintText: '0',
+                    prefixIcon: const Icon(Icons.attach_money),
+                    suffixText: _currency,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: _brandSurface,
+                  ),
+                ),
               ],
             ),
           ),
@@ -340,6 +631,40 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     );
   }
 
+  List<_AccountDraft> _buildSuggestedDrafts() {
+    return _suggestedAccountTemplates
+        .map(
+          (template) => _AccountDraft(
+            name: template.name,
+            type: template.type,
+            icon: template.icon,
+            color: template.color,
+          ),
+        )
+        .toList();
+  }
+
+  _AccountDraft _createEmptyAccountDraft() {
+    return _AccountDraft(
+      type: AccountType.other,
+      icon: '💠',
+      color: '#6C5CF7',
+      name: '',
+    );
+  }
+
+  void _resetDraftsToSuggested() {
+    _disposeAccountDrafts();
+    _accountDrafts = _buildSuggestedDrafts();
+  }
+
+  void _disposeAccountDrafts() {
+    for (final draft in _accountDrafts) {
+      draft.dispose();
+    }
+    _accountDrafts = [];
+  }
+
   // Étape 3: Configuration rapide
   Widget _buildStep3QuickSetup() {
     return SingleChildScrollView(
@@ -373,101 +698,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Compte principal (obligatoire)
-                _buildSectionHeader('💳 Votre premier compte', required: true),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _accountNameController,
-                  decoration: InputDecoration(
-                    labelText: t('Nom du compte'),
-                    hintText: t('Ex: Compte Courant'),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: _brandSurface,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return t('Nom requis');
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-
-                TextFormField(
-                  controller: _accountBalanceController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                  ],
-                  decoration: InputDecoration(
-                    labelText: t('Solde actuel'),
-                    hintText: '0',
-                    suffixText: _currency,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: _brandSurface,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return t('Solde requis');
-                    }
-                    final amount = double.tryParse(value);
-                    if (amount == null) {
-                      return t('Montant invalide');
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-
-                // Sélecteur d'icône et couleur
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TrText(
-                            'Icône',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            children: _accountIcons.map((icon) {
-                              final isSelected = _selectedAccountIcon == icon;
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedAccountIcon = icon;
-                                  });
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? _brandSurface : Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: isSelected ? _brandPrimary : Colors.transparent,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Text(icon, style: const TextStyle(fontSize: 24)),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                _buildAccountsSection(),
                 const SizedBox(height: 32),
 
                 // Budget mensuel (optionnel)
@@ -590,6 +821,213 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     );
   }
 
+  Widget _buildAccountsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('💳 Vos comptes suggérés', required: false),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _brandSurface,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.lightbulb_outline, color: Colors.amber, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TrText(
+                  'On pré-remplit 4 comptes à 0 pour démarrer plus vite. Modifiez-les, ajoutez-en ou passez : vous pourrez tout ajuster plus tard.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[800]),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        SwitchListTile(
+          title: const TrText('Utiliser les comptes suggérés'),
+          subtitle: const TrText('Compte principal, Épargne, Carte, Espèces'),
+          value: _useSuggestedAccounts,
+          onChanged: (value) {
+            setState(() {
+              _useSuggestedAccounts = value;
+              _skipAccounts = false;
+              if (value) {
+                _resetDraftsToSuggested();
+              } else if (_accountDrafts.isEmpty) {
+                _accountDrafts.add(_createEmptyAccountDraft());
+              }
+            });
+          },
+          activeColor: _brandPrimary,
+          contentPadding: EdgeInsets.zero,
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _skipAccounts = !_skipAccounts;
+                  if (_skipAccounts) {
+                    _useSuggestedAccounts = true;
+                    _resetDraftsToSuggested();
+                  }
+                });
+              },
+              child: TrText(_skipAccounts ? 'Revenir à la saisie' : 'Passer pour l\'instant'),
+            ),
+            if (!_skipAccounts)
+              TrText(
+                'Solde par défaut : 0 $_currency',
+                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              ),
+          ],
+        ),
+        if (_skipAccounts) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue[100]!),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue[600], size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TrText(
+                    'Si vous passez, on crée vos comptes suggérés à 0. Vous pourrez les renommer ou les supprimer plus tard.',
+                    style: TextStyle(fontSize: 13, color: Colors.blue[800]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ] else ...[
+          const SizedBox(height: 12),
+          ..._accountDrafts.asMap().entries.map((entry) {
+            final index = entry.key;
+            final draft = entry.value;
+            return Padding(
+              padding: EdgeInsets.only(bottom: index == _accountDrafts.length - 1 ? 0 : 12),
+              child: _buildAccountDraftCard(draft, index),
+            );
+          }),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () {
+              setState(() {
+                _accountDrafts.add(_createEmptyAccountDraft());
+                _useSuggestedAccounts = false;
+                _skipAccounts = false;
+              });
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _brandPrimary,
+              side: BorderSide(color: _brandPrimary.withOpacity(0.4)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            icon: const Icon(Icons.add),
+            label: const TrText('Ajouter un compte'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAccountDraftCard(_AccountDraft draft, int index) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _brandSurface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(draft.icon, style: const TextStyle(fontSize: 20)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextFormField(
+                  controller: draft.nameController,
+                  decoration: InputDecoration(
+                    labelText: t('Nom du compte'),
+                    hintText: t('Ex: Compte principal'),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: _brandSurface,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (_accountDrafts.length > 1)
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      draft.dispose();
+                      _accountDrafts.removeAt(index);
+                    });
+                  },
+                  icon: const Icon(Icons.close, color: Colors.redAccent),
+                  tooltip: 'Supprimer',
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: draft.balanceController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^-?\d+\.?\d{0,2}')),
+            ],
+            decoration: InputDecoration(
+              labelText: t('Solde initial (optionnel)'),
+              hintText: '0',
+              suffixText: _currency,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: _brandSurface,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TrText(
+            'Par défaut, on utilise 0. Vous pourrez mettre à jour le solde après connexion.',
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(String title, {required bool required}) {
     return Row(
       children: [
@@ -634,8 +1072,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     _pageController.dispose();
     _nameController.dispose();
     _incomeController.dispose();
-    _accountNameController.dispose();
-    _accountBalanceController.dispose();
+    _disposeAccountDrafts();
     _budgetAmountController.dispose();
     _goalNameController.dispose();
     _goalAmountController.dispose();
@@ -658,7 +1095,6 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
 
   Future<void> _completeOnboarding() async {
     if (_formKeyStep3.currentState?.validate() != true) {
-      // Even if optional parts, the account is required
       return;
     }
 
@@ -684,17 +1120,53 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
       // Default categories
       await _firestoreService.createDefaultCategories(_currency);
 
-      // Create first account
-      final balance = double.tryParse(_accountBalanceController.text.trim()) ?? 0;
-      await _firestoreService.addAccount(
-        userId: userId,
-        name: _accountNameController.text.trim(),
-        type: AccountType.checking,
-        balance: balance,
-        currency: _currency,
-        icon: _selectedAccountIcon,
-        color: '#6C5CF7',
-      );
+      // Build accounts to create (suggested by défaut si l'utilisateur passe)
+      final List<Map<String, dynamic>> accountsToSave = [];
+
+      if (_skipAccounts) {
+        accountsToSave.addAll(_suggestedAccountTemplates.map((template) {
+          return {
+            'name': template.name,
+            'type': template.type,
+            'balance': 0.0,
+            'icon': template.icon,
+            'color': template.color,
+          };
+        }));
+      } else {
+        final activeDrafts = _accountDrafts.where((draft) => draft.nameController.text.trim().isNotEmpty).toList();
+        if (activeDrafts.isEmpty) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: TrText('Ajoutez au moins un compte ou choisissez de passer.')),
+          );
+          return;
+        }
+
+        for (final draft in activeDrafts) {
+          final rawBalance = draft.balanceController.text.trim();
+          final parsedBalance = double.tryParse(rawBalance.isEmpty ? '0' : rawBalance) ?? 0;
+          accountsToSave.add({
+            'name': draft.nameController.text.trim(),
+            'type': draft.type,
+            'balance': parsedBalance,
+            'icon': draft.icon,
+            'color': draft.color,
+          });
+        }
+      }
+
+      for (final account in accountsToSave) {
+        await _firestoreService.addAccount(
+          userId: userId,
+          name: account['name'] as String,
+          type: account['type'] as AccountType,
+          balance: (account['balance'] as double?) ?? 0,
+          currency: _currency,
+          icon: account['icon'] as String?,
+          color: account['color'] as String?,
+        );
+      }
 
       // Optional budget
       if (_wantsBudget && _budgetAmountController.text.trim().isNotEmpty) {

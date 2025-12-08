@@ -1,83 +1,18 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <!-- Fond dégradé moderne violet -->
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Budget Pro Icon">
   <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#4F46E5;stop-opacity:1" />
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6D5BFF"/>
+      <stop offset="100%" stop-color="#F064C7"/>
     </linearGradient>
-    <linearGradient id="walletGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#F8FAFC;stop-opacity:1" />
+    <linearGradient id="strapGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#F7F7F7"/>
     </linearGradient>
-    <filter id="shadow">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.15"/>
-    </filter>
   </defs>
-  
-  <!-- Fond arrondi avec dégradé -->
-  <rect width="512" height="512" rx="115" fill="url(#bgGradient)"/>
-  
-  <!-- Groupe du portefeuille centré et agrandi -->
-  <g transform="translate(86, 96)" filter="url(#shadow)">
-    <!-- Corps principal du portefeuille avec dégradé -->
-    <rect x="0" y="80" width="340" height="260" rx="28" fill="url(#walletGradient)" stroke="#4F46E5" stroke-width="6"/>
-    
-    <!-- Rabat supérieur avec effet 3D -->
-    <path d="M 28 80 L 28 42 C 28 24.3269 42.3269 10 60 10 L 280 10 C 297.673 10 312 24.3269 312 42 L 312 80 Z" 
-          fill="url(#walletGradient)" stroke="#4F46E5" stroke-width="6"/>
-    
-    <!-- Ombre interne du rabat pour profondeur -->
-    <path d="M 34 80 L 34 46 C 34 30 45 20 60 20 L 280 20 C 295 20 306 30 306 46 L 306 80" 
-          fill="none" stroke="#4F46E5" stroke-width="2" opacity="0.2"/>
-    
-    <!-- Fente centrale pour cartes (plus visible) -->
-    <rect x="40" y="140" width="260" height="4" rx="2" fill="#4F46E5" opacity="0.4"/>
-    
-    <!-- Poche/compartiment avec détails -->
-    <g>
-      <!-- Rectangle de la poche -->
-      <rect x="40" y="180" width="260" height="120" rx="16" fill="none" stroke="#4F46E5" stroke-width="3" opacity="0.25"/>
-      
-      <!-- Cartes visibles qui dépassent -->
-      <g opacity="0.6">
-        <rect x="60" y="170" width="220" height="8" rx="3" fill="#10B981"/>
-        <rect x="65" y="183" width="210" height="8" rx="3" fill="#F59E0B"/>
-        <rect x="70" y="196" width="200" height="8" rx="3" fill="#EF4444"/>
-      </g>
-    </g>
-    
-    <!-- Fermoir/bouton moderne (coin supérieur droit) -->
-    <g transform="translate(260, 35)">
-      <!-- Base du fermoir -->
-      <circle cx="30" cy="30" r="24" fill="#4F46E5"/>
-      <circle cx="30" cy="30" r="18" fill="white"/>
-      <!-- Symbole € au centre -->
-      <text x="30" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" 
-            fill="#4F46E5" text-anchor="middle">€</text>
-    </g>
-    
-    <!-- Détails de texture (points de couture) -->
-    <g opacity="0.3">
-      <circle cx="20" cy="100" r="2" fill="#4F46E5"/>
-      <circle cx="20" cy="130" r="2" fill="#4F46E5"/>
-      <circle cx="20" cy="160" r="2" fill="#4F46E5"/>
-      <circle cx="20" cy="190" r="2" fill="#4F46E5"/>
-      <circle cx="20" cy="220" r="2" fill="#4F46E5"/>
-      <circle cx="20" cy="250" r="2" fill="#4F46E5"/>
-      <circle cx="20" cy="280" r="2" fill="#4F46E5"/>
-      <circle cx="20" cy="310" r="2" fill="#4F46E5"/>
-      
-      <circle cx="320" cy="100" r="2" fill="#4F46E5"/>
-      <circle cx="320" cy="130" r="2" fill="#4F46E5"/>
-      <circle cx="320" cy="160" r="2" fill="#4F46E5"/>
-      <circle cx="320" cy="190" r="2" fill="#4F46E5"/>
-      <circle cx="320" cy="220" r="2" fill="#4F46E5"/>
-      <circle cx="320" cy="250" r="2" fill="#4F46E5"/>
-      <circle cx="320" cy="280" r="2" fill="#4F46E5"/>
-      <circle cx="320" cy="310" r="2" fill="#4F46E5"/>
-    </g>
-    
-    <!-- Reflet pour effet brillant -->
-    <ellipse cx="100" cy="120" rx="60" ry="30" fill="white" opacity="0.15"/>
-  </g>
+  <rect x="44" y="92" width="356" height="328" rx="56" fill="url(#g)"/>
+  <path d="M412 196h42c24 0 44 20 44 44v36c0 24-20 44-44 44h-42v-18c0-24-20-44-44-44h-26v-40h26c24 0 44-20 44-44v-18z" fill="url(#g)"/>
+  <rect x="404" y="224" width="52" height="40" rx="12" fill="url(#strapGradient2)"/>
+  <circle cx="430" cy="244" r="10" fill="url(#g)"/>
+  <path d="M134 312l64-70 54 54 82-106 56 44" fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M330 174h54l-6-6m6 6l-6 6" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

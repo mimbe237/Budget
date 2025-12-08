@@ -511,6 +511,414 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =0 {No debts} one {1 debt} other {{count} debts}}'**
   String debts_count(num count);
+
+  /// No description provided for @login_success.
+  ///
+  /// In en, this message translates to:
+  /// **'Login successful!'**
+  String get login_success;
+
+  /// No description provided for @login_error.
+  ///
+  /// In en, this message translates to:
+  /// **'Login error'**
+  String get login_error;
+
+  /// No description provided for @user_not_found.
+  ///
+  /// In en, this message translates to:
+  /// **'No user found with this email'**
+  String get user_not_found;
+
+  /// No description provided for @wrong_password.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect password'**
+  String get wrong_password;
+
+  /// No description provided for @invalid_email_format.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email format'**
+  String get invalid_email_format;
+
+  /// No description provided for @user_disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has been disabled'**
+  String get user_disabled;
+
+  /// No description provided for @too_many_requests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again later'**
+  String get too_many_requests;
+
+  /// No description provided for @error.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get error;
+
+  /// No description provided for @reset_password.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get reset_password;
+
+  /// No description provided for @reset_password_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email to receive a reset link'**
+  String get reset_password_desc;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get send;
+
+  /// No description provided for @reset_email_sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset email sent'**
+  String get reset_email_sent;
+
+  /// No description provided for @google_login_soon.
+  ///
+  /// In en, this message translates to:
+  /// **'Google login coming soon'**
+  String get google_login_soon;
+
+  /// No description provided for @facebook_login_soon.
+  ///
+  /// In en, this message translates to:
+  /// **'Facebook login coming soon'**
+  String get facebook_login_soon;
+
+  /// No description provided for @no_account.
+  ///
+  /// In en, this message translates to:
+  /// **'No account yet?'**
+  String get no_account;
+
+  /// No description provided for @create_account.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get create_account;
+
+  /// No description provided for @account_created.
+  ///
+  /// In en, this message translates to:
+  /// **'Account created successfully! Please log in again'**
+  String get account_created;
+
+  /// No description provided for @email_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'user@example.com'**
+  String get email_hint;
+
+  /// No description provided for @phone_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'6 12 34 56 78'**
+  String get phone_hint;
+
+  /// No description provided for @country.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get country;
+
+  /// No description provided for @confirm_password.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get confirm_password;
+
+  /// No description provided for @create_my_account.
+  ///
+  /// In en, this message translates to:
+  /// **'Create my account'**
+  String get create_my_account;
+
+  /// No description provided for @passwords_no_match.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get passwords_no_match;
+
+  /// No description provided for @password_too_weak.
+  ///
+  /// In en, this message translates to:
+  /// **'Password too weak (minimum 8 characters)'**
+  String get password_too_weak;
+
+  /// No description provided for @email_already_used.
+  ///
+  /// In en, this message translates to:
+  /// **'This email is already in use'**
+  String get email_already_used;
+
+  /// No description provided for @min_8_chars.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum 8 characters'**
+  String get min_8_chars;
+
+  /// No description provided for @confirmation_required.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmation required'**
+  String get confirmation_required;
+
+  /// No description provided for @whatsapp_optional.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp  (optional)'**
+  String get whatsapp_optional;
+
+  /// No description provided for @secure_connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure connection'**
+  String get secure_connection;
+
+  /// No description provided for @secure_encrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure & encrypted'**
+  String get secure_encrypted;
+
+  /// No description provided for @developed_by.
+  ///
+  /// In en, this message translates to:
+  /// **'Developed by'**
+  String get developed_by;
+
+  /// No description provided for @remember_me.
+  ///
+  /// In en, this message translates to:
+  /// **'Remember me'**
+  String get remember_me;
+
+  /// No description provided for @or_continue_with.
+  ///
+  /// In en, this message translates to:
+  /// **'Or continue with'**
+  String get or_continue_with;
+
+  /// No description provided for @google.
+  ///
+  /// In en, this message translates to:
+  /// **'Google'**
+  String get google;
+
+  /// No description provided for @facebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Facebook'**
+  String get facebook;
+
+  /// No description provided for @already_account.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account?'**
+  String get already_account;
+
+  /// No description provided for @login.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get login;
+
+  /// No description provided for @privacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get privacy;
+
+  /// No description provided for @terms.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms'**
+  String get terms;
+
+  /// No description provided for @support.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get support;
+
+  /// No description provided for @documentation.
+  ///
+  /// In en, this message translates to:
+  /// **'Documentation'**
+  String get documentation;
+
+  /// No description provided for @whatsapp_support.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp Support'**
+  String get whatsapp_support;
+
+  /// No description provided for @welcome_intro.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay in control of your accounts, budgets, and goals.'**
+  String get welcome_intro;
+
+  /// No description provided for @choose_language.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your language'**
+  String get choose_language;
+
+  /// No description provided for @pick_language.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick your language'**
+  String get pick_language;
+
+  /// No description provided for @language_applied_everywhere.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'\'ll use it everywhere (login, dashboard, notifications).'**
+  String get language_applied_everywhere;
+
+  /// No description provided for @change_later_settings.
+  ///
+  /// In en, this message translates to:
+  /// **'You can change it later in Settings.'**
+  String get change_later_settings;
+
+  /// No description provided for @secure_login_encrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure login, encrypted data.'**
+  String get secure_login_encrypted;
+
+  /// No description provided for @french_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Français'**
+  String get french_label;
+
+  /// No description provided for @french_code.
+  ///
+  /// In en, this message translates to:
+  /// **'Français (FR)'**
+  String get french_code;
+
+  /// No description provided for @english_label.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get english_label;
+
+  /// No description provided for @english_code.
+  ///
+  /// In en, this message translates to:
+  /// **'English (EN)'**
+  String get english_code;
+
+  /// No description provided for @income.
+  ///
+  /// In en, this message translates to:
+  /// **'Income'**
+  String get income;
+
+  /// No description provided for @expense.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense'**
+  String get expense;
+
+  /// No description provided for @transfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get transfer;
+
+  /// No description provided for @incomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Incomplete'**
+  String get incomplete;
+
+  /// No description provided for @history.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get history;
+
+  /// No description provided for @overspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Overspend'**
+  String get overspend;
+
+  /// No description provided for @balanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get balanced;
+
+  /// No description provided for @welcome_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome'**
+  String get welcome_title;
+
+  /// No description provided for @welcome_login_msg.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to personalize your dashboard and manage your budgets.'**
+  String get welcome_login_msg;
+
+  /// No description provided for @dashboard_error_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get dashboard_error_title;
+
+  /// No description provided for @dashboard_error_body.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load your data right now.'**
+  String get dashboard_error_body;
+
+  /// No description provided for @dashboard_empty_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Start by creating an account'**
+  String get dashboard_empty_title;
+
+  /// No description provided for @dashboard_empty_body.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an account and a first budget to activate your dashboard.'**
+  String get dashboard_empty_body;
+
+  /// No description provided for @coaching_ahead.
+  ///
+  /// In en, this message translates to:
+  /// **'You are spending {delta}% slower than planned.'**
+  String coaching_ahead(String delta);
+
+  /// No description provided for @coaching_behind.
+  ///
+  /// In en, this message translates to:
+  /// **'You are spending {delta}% faster than planned.'**
+  String coaching_behind(String delta);
 }
 
 class _AppLocalizationsDelegate

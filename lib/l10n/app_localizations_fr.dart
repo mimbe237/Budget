@@ -249,4 +249,223 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get login_success => 'Connexion réussie!';
+
+  @override
+  String get login_error => 'Erreur de connexion';
+
+  @override
+  String get user_not_found => 'Aucun utilisateur trouvé avec cet email';
+
+  @override
+  String get wrong_password => 'Mot de passe incorrect';
+
+  @override
+  String get invalid_email_format => 'Format d\'email invalide';
+
+  @override
+  String get user_disabled => 'Ce compte a été désactivé';
+
+  @override
+  String get too_many_requests =>
+      'Trop de tentatives. Veuillez réessayer plus tard';
+
+  @override
+  String get error => 'Erreur';
+
+  @override
+  String get reset_password => 'Réinitialiser le mot de passe';
+
+  @override
+  String get reset_password_desc =>
+      'Entrez votre email pour recevoir un lien de réinitialisation';
+
+  @override
+  String get cancel => 'Annuler';
+
+  @override
+  String get send => 'Envoyer';
+
+  @override
+  String get reset_email_sent => 'Email de réinitialisation envoyé';
+
+  @override
+  String get google_login_soon => 'Connexion Google bientôt disponible';
+
+  @override
+  String get facebook_login_soon => 'Connexion Facebook bientôt disponible';
+
+  @override
+  String get no_account => 'Pas encore de compte ?';
+
+  @override
+  String get create_account => 'Créer un compte';
+
+  @override
+  String get account_created =>
+      'Compte créé avec succès! Veuillez vous reconnecter';
+
+  @override
+  String get email_hint => 'user@example.com';
+
+  @override
+  String get phone_hint => '6 12 34 56 78';
+
+  @override
+  String get country => 'Pays';
+
+  @override
+  String get confirm_password => 'Confirmer le mot de passe';
+
+  @override
+  String get create_my_account => 'Créer mon compte';
+
+  @override
+  String get passwords_no_match => 'Les mots de passe ne correspondent pas';
+
+  @override
+  String get password_too_weak =>
+      'Mot de passe trop faible (minimum 8 caractères)';
+
+  @override
+  String get email_already_used => 'Cet email est déjà utilisé';
+
+  @override
+  String get min_8_chars => 'Minimum 8 caractères';
+
+  @override
+  String get confirmation_required => 'Confirmation requise';
+
+  @override
+  String get whatsapp_optional => 'WhatsApp  (optionnel)';
+
+  @override
+  String get secure_connection => 'Connexion sécurisée';
+
+  @override
+  String get secure_encrypted => 'Sécurisé & chiffré';
+
+  @override
+  String get developed_by => 'Développé par';
+
+  @override
+  String get remember_me => 'Se souvenir de moi';
+
+  @override
+  String get or_continue_with => 'Ou continuer avec';
+
+  @override
+  String get google => 'Google';
+
+  @override
+  String get facebook => 'Facebook';
+
+  @override
+  String get already_account => 'Déjà un compte ?';
+
+  @override
+  String get login => 'Se connecter';
+
+  @override
+  String get privacy => 'Confidentialité';
+
+  @override
+  String get terms => 'Conditions';
+
+  @override
+  String get support => 'Support';
+
+  @override
+  String get documentation => 'Documentation';
+
+  @override
+  String get whatsapp_support => 'WhatsApp Support';
+
+  @override
+  String get welcome_intro =>
+      'Pilotez vos comptes, budgets et objectifs en toute simplicité.';
+
+  @override
+  String get choose_language => 'Choisissez votre langue';
+
+  @override
+  String get pick_language => 'Pick your language';
+
+  @override
+  String get language_applied_everywhere =>
+      'Cette langue sera appliquée partout (connexion, tableau de bord, notifications).';
+
+  @override
+  String get change_later_settings =>
+      'Vous pouvez le changer plus tard dans les paramètres.';
+
+  @override
+  String get secure_login_encrypted =>
+      'Connexion sécurisée, données chiffrées.';
+
+  @override
+  String get french_label => 'Français';
+
+  @override
+  String get french_code => 'Français (FR)';
+
+  @override
+  String get english_label => 'English';
+
+  @override
+  String get english_code => 'English (EN)';
+
+  @override
+  String get income => 'Revenus';
+
+  @override
+  String get expense => 'Dépenses';
+
+  @override
+  String get transfer => 'Transfert';
+
+  @override
+  String get incomplete => 'Incomplet';
+
+  @override
+  String get history => 'Historique';
+
+  @override
+  String get overspend => 'Dépassement';
+
+  @override
+  String get balanced => 'Équilibré';
+
+  @override
+  String get welcome_title => 'Bienvenue';
+
+  @override
+  String get welcome_login_msg =>
+      'Connectez-vous pour personnaliser votre page d’accueil et suivre vos budgets.';
+
+  @override
+  String get dashboard_error_title => 'Accueil';
+
+  @override
+  String get dashboard_error_body =>
+      'Impossible de charger vos données pour le moment.';
+
+  @override
+  String get dashboard_empty_title => 'Commencez par créer un compte';
+
+  @override
+  String get dashboard_empty_body =>
+      'Ajoutez un compte et un premier budget pour activer votre tableau de bord.';
+
+  @override
+  String coaching_ahead(String delta) {
+    return 'Vous dépensez $delta% plus lentement que prévu.';
+  }
+
+  @override
+  String coaching_behind(String delta) {
+    return 'Vous dépensez $delta% plus vite que prévu.';
+  }
 }

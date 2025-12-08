@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:budget/l10n/localization_helpers.dart';
+import 'package:budget/constants/countries_by_language.dart';
 
 class CountrySearchDialog extends StatefulWidget {
   final List<Map<String, String>> countries;
@@ -24,7 +25,7 @@ class _CountrySearchDialogState extends State<CountrySearchDialog> {
   @override
   void initState() {
     super.initState();
-    _filteredCountries = widget.countries;
+    _updateFilteredCountries();
     _searchController.addListener(_filterCountries);
   }
 
@@ -34,13 +35,30 @@ class _CountrySearchDialogState extends State<CountrySearchDialog> {
     super.dispose();
   }
 
+  void _updateFilteredCountries() {
+    setState(() {
+      if (_searchController.text.isEmpty) {
+        // Afficher seulement les pays autorisés
+        _filteredCountries = widget.countries
+            .where((country) => AllowedCountries.codes.contains(country['code']))
+            .toList();
+      }
+    });
+  }
+
   void _filterCountries() {
     final query = _searchController.text.toLowerCase();
+    
     setState(() {
       if (query.isEmpty) {
-        _filteredCountries = widget.countries;
+        _filteredCountries = widget.countries
+            .where((country) => AllowedCountries.codes.contains(country['code']))
+            .toList();
       } else {
+        // Recherche dans tous les pays autorisés
         _filteredCountries = widget.countries.where((country) {
+          if (!AllowedCountries.codes.contains(country['code'])) return false;
+          
           final name = widget.languageCode == 'en' 
               ? (country['nameEn'] ?? country['name']!).toLowerCase()
               : country['name']!.toLowerCase();

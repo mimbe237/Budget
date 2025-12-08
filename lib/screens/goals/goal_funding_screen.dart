@@ -501,7 +501,7 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
                               ),
                             IconButton(
                               icon: const Icon(Icons.receipt_long_outlined, color: Colors.grey),
-                              tooltip: t('Historique'),
+                              tooltip: AppLocalizations.of(context)!.history,
                               onPressed: () {
                                 setState(() {
                                   if (_selectedGoalForHistory == goal.goalId) {

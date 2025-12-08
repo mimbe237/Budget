@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/firestore_service.dart';
 import '../navigation/main_navigation_shell.dart';
@@ -434,6 +435,33 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
+  Widget _buildBenefitsRow() {
+    final items = [
+      {'icon': Icons.auto_graph_rounded, 'text': 'Budgets intelligents'},
+      {'icon': Icons.shield_moon_outlined, 'text': 'Alertes IA'},
+      {'icon': Icons.chat_bubble_outline, 'text': 'Support WhatsApp'},
+    ];
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
+      children: items
+          .map(
+            (i) => Chip(
+              avatar: Icon(i['icon'] as IconData, size: 16, color: _brandPrimary),
+              label: TrText(
+                i['text'] as String,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              ),
+              backgroundColor: _brandPrimary.withValues(alpha: 0.08),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          )
+          .toList(),
+    );
+  }
+
   Widget _buildLoginForm() {
     return Column(
       children: [
@@ -441,6 +469,8 @@ class _AuthScreenState extends State<AuthScreen> {
         TextFormField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.email],
+          autofocus: true,
           decoration: InputDecoration(
             labelText: t('Email'),
             prefixIcon: const Icon(Icons.mail_outline),
@@ -466,12 +496,14 @@ class _AuthScreenState extends State<AuthScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
+          autofillHints: _isLogin ? const [AutofillHints.password] : const [AutofillHints.newPassword],
           validator: (value) {
-            if (value == null || value.length < 6) {
-              return 'Minimum 6 caractères';
+            if (value == null || value.length < 8) {
+              return 'Minimum 8 caractères (ajoutez un chiffre si possible)';
             }
             return null;
           },
+          onFieldSubmitted: (_) => _submitForm(),
         ),
         Align(
           alignment: Alignment.centerRight,
@@ -551,27 +583,96 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _phoneController,
-            keyboardType: TextInputType.phone,
-            decoration: InputDecoration(
-              labelText: t('Numéro WhatsApp'),
-              prefixIcon: const Icon(Icons.phone),
-              prefixText: '${_countryOptions.firstWhere((c) => c['code'] == _selectedCountryCode)['dial']} ',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: TextSpan(
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
+                  children: [
+                    const TextSpan(text: '📱 WhatsApp  '),
+                    TextSpan(
+                      text: '(optionnel)',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            validator: (value) {
-              if (_isLogin) return null;
-              if (value == null || value.trim().isEmpty) {
-                return 'Ajoutez votre numéro WhatsApp';
-              }
-              if (value.trim().length < 6) {
-                return 'Numéro trop court';
-              }
-              return null;
-            },
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        bottomLeft: Radius.circular(12),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          _countryOptions.firstWhere((c) => c['code'] == _selectedCountryCode)['dial']!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          _selectedCountryCode,
+                          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                      ],
+                      decoration: InputDecoration(
+                        hintText: '6 12 34 56 78',
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                          borderRadius: const BorderRadius.only(
+                            topRight: Radius.circular(12),
+                            bottomRight: Radius.circular(12),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                          borderRadius: const BorderRadius.only(
+                            topRight: Radius.circular(12),
+                            bottomRight: Radius.circular(12),
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                      validator: (value) {
+                        if (_isLogin) return null;
+                        if (value == null || value.trim().isEmpty) return null;
+                        if (value.trim().length < 6) return 'Minimum 6 chiffres';
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (_phoneController.text.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(
+                    '📞 Numéro complet: ${_countryOptions.firstWhere((c) => c['code'] == _selectedCountryCode)['dial']}${_phoneController.text}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[700], fontStyle: FontStyle.italic),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
         ],
@@ -606,13 +707,25 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                   )
                 : TrText(
-                    _isLogin ? 'Se connecter' : 'S\'inscrire',
+                    _isLogin ? 'Se connecter' : 'Créer mon compte',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
           ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.verified_user, size: 16, color: Colors.black54),
+            SizedBox(width: 6),
+            TrText(
+              'Sécurisé par Firebase · Données chiffrées',
+              style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ],
         ),
         const SizedBox(height: 20),
         _buildSeparatorRow(),
@@ -644,6 +757,8 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 20),
+        _buildBenefitsRow(),
       ],
     );
   }
@@ -655,9 +770,9 @@ class _AuthScreenState extends State<AuthScreen> {
       case 'wrong-password':
         return 'Mot de passe incorrect.';
       case 'email-already-in-use':
-        return 'Cet email est déjà utilisé.';
+        return 'Email déjà utilisé. Connectez-vous ou réinitialisez le mot de passe.';
       case 'weak-password':
-        return 'Le mot de passe doit contenir au moins 6 caractères.';
+        return 'Choisissez un mot de passe plus fort (8 caractères dont un chiffre).';
       case 'invalid-email':
         return 'Email invalide.';
       default:
@@ -884,10 +999,10 @@ class _AuthScreenState extends State<AuthScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
+                            children: <Widget>[
                               TrText(
-                                'Connexion',
-                                style: TextStyle(
+                                _isLogin ? 'Connexion' : 'Inscription',
+                                style: const TextStyle(
                                   color: Colors.black87,
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
@@ -895,8 +1010,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ),
                               ),
                               TrText(
-                                'Sécurisée par Firebase',
-                                style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.w600),
+                                _isLogin ? 'Sécurisée par Firebase' : '2 minutes pour créer votre compte',
+                                style: const TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),

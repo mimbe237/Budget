@@ -18,6 +18,8 @@ import 'widgets/branding_splash.dart';
 import 'services/theme_service.dart';
 import 'services/notification_service.dart';
 import 'services/translation_service.dart';
+import 'screens/welcome/language_welcome_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -95,7 +97,7 @@ class BudgetApp extends StatelessWidget {
     final themeProvider = context.watch<ThemeProvider>();
 
     return MaterialApp(
-      title: t('app_title'),
+      title: 'Budget Pro',
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         // Empêche le clavier de compresser les écrans : hauteur stable quel que soit le formulaire
@@ -260,10 +262,13 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _showSplash = true;
+  bool _languageChecked = false;
+  bool _needsLanguageSelection = false;
 
   @override
   void initState() {
     super.initState();
+    _initLanguageCheck();
     // Timeout pour éviter le blocage sur splash
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted && _showSplash) {
@@ -274,8 +279,36 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
+  Future<void> _initLanguageCheck() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasLanguage = prefs.containsKey('languageCode');
+    if (!mounted) return;
+    setState(() {
+      _languageChecked = true;
+      _needsLanguageSelection = !hasLanguage;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!_languageChecked) {
+      return const BrandingSplash();
+    }
+
+    if (_needsLanguageSelection) {
+      return WelcomeLanguageScreen(
+        onLanguageSelected: (code) async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('intro_seen', true);
+          if (!mounted) return;
+          setState(() {
+            _needsLanguageSelection = false;
+            _showSplash = false;
+          });
+        },
+      );
+    }
+
     // Vérifier si Firebase est initialisé
     try {
       return StreamBuilder<User?>(

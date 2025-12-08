@@ -131,22 +131,21 @@ class CurrencyService extends ChangeNotifier {
   }
 
   /// Formate un montant avec la devise spécifiée (ou actuelle par défaut)
+  /// Règle métier : pas de décimales affichées, on arrondit à l'entier le plus proche.
   String formatAmount(double amount, [String? currency, bool showSymbol = true]) {
     final targetCurrency = currency ?? _currentCurrency;
     final symbol = showSymbol ? getCurrencySymbol(targetCurrency) : '';
 
-    // Supprimer les décimales si inutiles, sinon garder 2 décimales
-    final bool hasCents = (amount % 1).abs() > 0.0001;
-    final decimals = targetCurrency == 'JPY' ? 0 : (hasCents ? 2 : 0);
-    
-    // Format avec séparateurs de milliers
-    final formatter = NumberFormat('#,##0${decimals > 0 ? '.00' : ''}', 'fr_FR');
-    final formatted = formatter.format(amount);
+    // Toujours arrondir et afficher sans décimales
+    final rounded = amount.round();
+    final formatter = NumberFormat('#,##0', 'fr_FR');
+    final formatted = formatter.format(rounded);
 
     return '$formatted\u202F$symbol'.trim(); // \u202F = espace fine insécable
   }
 
   /// Format compact (K, M, B) avec symbole optionnel
+  /// Règle métier : pas de décimales, arrondi à l'entier.
   String formatAmountCompact(double amount, [String? currency, bool showSymbol = true]) {
     final targetCurrency = currency ?? _currentCurrency;
     final symbol = showSymbol ? getCurrencySymbol(targetCurrency) : '';
@@ -163,11 +162,11 @@ class CurrencyService extends ChangeNotifier {
       display = amount / 1000;
       suffix = 'K';
     }
-    // Afficher les décimales seulement si nécessaire (ex: 1,25 M) sinon 0 décimale (ex: 55 M)
-    final bool hasFraction = (display % 1).abs() > 0.0001;
-    final int decimals = hasFraction ? 2 : 0;
-    final formatter = NumberFormat(decimals > 0 ? '#,##0.##' : '#,##0', 'fr_FR');
-    final numStr = formatter.format(display);
+
+    final rounded = display.round();
+    final formatter = NumberFormat('#,##0', 'fr_FR');
+    final numStr = formatter.format(rounded);
+
     // Espace entre le nombre et le suffixe pour "55 M" au lieu de "55M"
     return '$numStr${suffix.isNotEmpty ? ' ' + suffix : ''}\u202F$symbol'.trim();
   }

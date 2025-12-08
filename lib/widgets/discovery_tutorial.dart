@@ -90,6 +90,8 @@ class _DiscoveryTutorialState extends State<DiscoveryTutorial> {
   Widget build(BuildContext context) {
     final languageCode = Localizations.localeOf(context).languageCode;
     final isEnglish = languageCode == 'en';
+    final height = MediaQuery.of(context).size.height;
+    final bool isTight = height < 720;
 
     return Container(
       decoration: BoxDecoration(
@@ -103,114 +105,133 @@ class _DiscoveryTutorialState extends State<DiscoveryTutorial> {
         ),
       ),
       child: SafeArea(
-        child: Column(
-          children: [
-            // Header avec bouton Passer
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TrText(
-                    'Découverte',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: _brandPrimary,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _skip,
-                    child: TrText(
-                      'Passer',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 16,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final contentHeight = constraints.maxHeight;
+            final slideHeight = (contentHeight * (isTight ? 0.46 : 0.52)).clamp(260.0, contentHeight - 220);
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: contentHeight - 12),
+                child: Column(
+                  children: [
+                    // Header avec bouton Passer
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: isTight ? 4.0 : 8.0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TrText(
+                            'Découverte',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: _brandPrimary,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _skip,
+                            child: TrText(
+                              'Passer',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
 
-            // PageView avec slides
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                },
-                itemCount: _slides.length,
-                itemBuilder: (context, index) {
-                  final slide = _slides[index];
-                  return _buildSlide(
-                    slide,
-                    isEnglish,
-                  );
-                },
-              ),
-            ),
-
-            // Indicateurs de page
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  _slides.length,
-                  (index) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: _currentPage == index ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
-                      color: _currentPage == index
-                          ? _slides[index].color
-                          : Colors.grey[300],
+                    // PageView avec slides
+                    SizedBox(
+                      height: slideHeight,
+                      child: PageView.builder(
+                        controller: _pageController,
+                        onPageChanged: (index) {
+                          if (!mounted) return;
+                          setState(() {
+                            _currentPage = index;
+                          });
+                        },
+                        itemCount: _slides.length,
+                        itemBuilder: (context, index) {
+                          final slide = _slides[index];
+                          return _buildSlide(
+                            slide,
+                            isEnglish,
+                            isTight,
+                          );
+                        },
+                      ),
                     ),
-                  ),
+
+                    // Indicateurs de page
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: isTight ? 8.0 : 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          _slides.length,
+                          (index) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: _currentPage == index ? 24 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              color: _currentPage == index
+                                  ? _slides[index].color
+                                  : Colors.grey[300],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Bouton Suivant / Terminer
+                    Padding(
+                      padding: EdgeInsets.all(isTight ? 12.0 : 16.0),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _nextPage,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _slides[_currentPage].color,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: isTight ? 12 : 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: TrText(
+                            _currentPage == _slides.length - 1 ? 'Commencer' : 'Suivant',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-
-            // Bouton Suivant / Terminer
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _nextPage,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _slides[_currentPage].color,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
-                  ),
-                  child: TrText(
-                    _currentPage == _slides.length - 1 ? 'Commencer' : 'Suivant',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildSlide(_TutorialSlide slide, bool isEnglish) {
+  Widget _buildSlide(_TutorialSlide slide, bool isEnglish, bool isTight) {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: EdgeInsets.all(isTight ? 16.0 : 24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -222,8 +243,8 @@ class _DiscoveryTutorialState extends State<DiscoveryTutorial> {
               return Transform.scale(
                 scale: value,
                 child: Container(
-                  width: 120,
-                  height: 120,
+                  width: isTight ? 90 : 120,
+                  height: isTight ? 90 : 120,
                   decoration: BoxDecoration(
                     color: slide.color.withOpacity(0.1),
                     shape: BoxShape.circle,
@@ -231,7 +252,7 @@ class _DiscoveryTutorialState extends State<DiscoveryTutorial> {
                   child: Center(
                     child: Text(
                       slide.icon,
-                      style: const TextStyle(fontSize: 64),
+                      style: TextStyle(fontSize: isTight ? 44 : 64),
                     ),
                   ),
                 ),
@@ -239,33 +260,33 @@ class _DiscoveryTutorialState extends State<DiscoveryTutorial> {
             },
           ),
 
-          const SizedBox(height: 32),
+          SizedBox(height: isTight ? 20 : 32),
 
           // Titre
           Text(
             isEnglish ? slide.titleKeyEn : slide.titleKey,
             style: TextStyle(
-              fontSize: 28,
+              fontSize: isTight ? 22 : 28,
               fontWeight: FontWeight.bold,
               color: slide.color,
             ),
             textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: isTight ? 10 : 16),
 
           // Description
           Text(
             isEnglish ? slide.descriptionKeyEn : slide.descriptionKey,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: isTight ? 14 : 16,
               color: Colors.grey[700],
               height: 1.5,
             ),
             textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 40),
+          SizedBox(height: isTight ? 20 : 40),
 
           // Décoration visuelle
           Container(
