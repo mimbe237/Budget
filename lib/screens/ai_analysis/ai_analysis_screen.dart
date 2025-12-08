@@ -5,6 +5,7 @@ import '../../constants/app_design.dart';
 import '../../models/budget_plan.dart';
 import '../../models/goal.dart';
 import '../../models/projection_result.dart';
+import '../../models/category.dart' as app_category;
 import '../../models/transaction.dart' as app_transaction;
 import '../../services/firestore_service.dart';
 import '../../services/mock_data_service.dart';
@@ -33,6 +34,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
   bool _usingMockData = false;
   String? _loadError;
   List<app_transaction.Transaction> _transactions = [];
+  List<app_category.Category> _categories = [];
+  Map<String, String> _categoryNameById = {};
   BudgetPlan? _currentBudget;
   List<Goal> _goals = [];
   ProjectionResult? _projectionResult;
@@ -83,6 +86,10 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
           endDate: now,
           limit: 800,
         );
+        _categories = await _firestoreService.getCategories(userId);
+        _categoryNameById = {
+          for (final c in _categories) c.categoryId: c.name,
+        };
         _goals = await _firestoreService.getGoals(userId);
         final budgetMap = await _firestoreService.getCurrentBudgetPlan(userId);
         _currentBudget = _mapBudgetPlanFromFirestore(userId, budgetMap);
@@ -150,6 +157,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
 
   Future<void> _hydrateFromMock() async {
     _transactions = await _mockDataService.getTransactions();
+    _categories = [];
+    _categoryNameById = {};
     _currentBudget = await _mockDataService.getCurrentBudgetPlan();
     _goals = await _mockDataService.getGoals();
     _projectionResult = await _mockDataService.getMockProjection();
@@ -159,12 +168,33 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
   void _refreshCategoryFilters() {
     final categories = <String>{};
     for (final t in _transactions) {
-      final name = t.category ?? t.categoryId;
+      final name = _resolveCategoryName(t.category, t.categoryId);
       if (name != null && name.isNotEmpty) {
         categories.add(name);
       }
     }
     _availableCategories = categories.toList()..sort();
+  }
+
+  /// Retourne un nom de catégorie lisible pour l'utilisateur
+  String _resolveCategoryName(String? categoryName, String? categoryId) {
+    final cleanedName = categoryName?.trim();
+    if (cleanedName != null && cleanedName.isNotEmpty && !_looksLikeId(cleanedName)) {
+      return cleanedName;
+    }
+
+    if (categoryId != null) {
+      final mapped = _categoryNameById[categoryId];
+      if (mapped != null && mapped.isNotEmpty) return mapped;
+      if (!_looksLikeId(categoryId)) return categoryId;
+    }
+
+    return 'Catégorie inconnue';
+  }
+
+  bool _looksLikeId(String value) {
+    // Identifiants Firestore ou UUID-like sont longs et alphanumériques
+    return RegExp(r'^[A-Za-z0-9_-]{12,}$').hasMatch(value);
   }
 
   BudgetPlan? _mapBudgetPlanFromFirestore(
@@ -234,14 +264,14 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     final currentTxCountByCategory = <String, int>{};
     
     for (var t in currentMonthTransactions) {
-      final key = t.category ?? t.categoryId ?? 'Inconnu';
+      final key = _resolveCategoryName(t.category, t.categoryId);
       currentSpendingByCategory[key] = (currentSpendingByCategory[key] ?? 0) + t.amount;
       currentTxCountByCategory[key] = (currentTxCountByCategory[key] ?? 0) + 1;
     }
 
     final historicalSpendingByCategory = <String, List<double>>{};
     for (var t in lastThreeMonths) {
-      final key = t.category ?? t.categoryId ?? 'Inconnu';
+      final key = _resolveCategoryName(t.category, t.categoryId);
       historicalSpendingByCategory.putIfAbsent(key, () => []);
       historicalSpendingByCategory[key]!.add(t.amount);
     }
@@ -249,7 +279,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     // Analyser les transactions exceptionnelles en détail
     if (_projectionResult != null && _projectionResult!.exceptionalTransactions.isNotEmpty) {
       for (final tx in _projectionResult!.exceptionalTransactions) {
-        final category = tx.category ?? 'Dépense';
+        final category = _resolveCategoryName(tx.category, tx.categoryId);
         final currentCatTotal = currentSpendingByCategory[category] ?? 0;
         final avgHistorical = historicalSpendingByCategory[category]?.isEmpty ?? true
             ? 0.0
@@ -848,7 +878,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
 
       final spendingByCategory = <String, double>{};
       for (var t in currentMonthTransactions) {
-        final key = t.categoryId ?? 'Inconnu';
+        final key = t.categoryId ?? t.category ?? 'Inconnu';
         spendingByCategory[key] = (spendingByCategory[key] ?? 0) + t.amount;
       }
 
@@ -857,19 +887,20 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
         final allocatedAmount = _currentBudget!.totalIncome * percent;
         final spent = spendingByCategory[category] ?? 0.0;
         final percentUsed = allocatedAmount > 0 ? (spent / allocatedAmount * 100).round() : 0;
+        final categoryLabel = _resolveCategoryName(_categoryNameById[category], category);
 
         if (percentUsed > 100) {
           recommendations.add({
             'icon': '🔴',
             'title': 'Budget Dépassé',
-            'description': 'Vous avez dépassé votre budget "$category" de ${percentUsed - 100}%.',
+            'description': 'Vous avez dépassé votre budget "$categoryLabel" de ${percentUsed - 100}%.',
             'type': 'danger',
           });
         } else if (percentUsed > 80 && percentUsed <= 100) {
           recommendations.add({
             'icon': '⚠️',
             'title': 'Attention au Budget',
-            'description': 'Vous avez utilisé $percentUsed% de votre budget "$category".',
+            'description': 'Vous avez utilisé $percentUsed% de votre budget "$categoryLabel".',
             'type': 'warning',
           });
         }

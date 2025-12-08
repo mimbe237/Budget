@@ -185,7 +185,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                                 border: Border.all(color: statusColor.withValues(alpha: 0.35)),
                               ),
                               child: TrText(
-                                '$statusLabel · ${allocationPct.toStringAsFixed(1)}%',
+                                '$statusLabel · ${allocationPct.toStringAsFixed(0)}%',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w900,
@@ -335,7 +335,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               _budgetHeroPill(
                 label: t('Total alloué'),
                 value: currency.formatAmount(totalAllocated),
-                helper: '${allocationPct.toStringAsFixed(1)}%',
+                helper: '${allocationPct.toStringAsFixed(0)}%',
               ),
               _budgetHeroPill(
                 label: t('Dépensé'),
@@ -2148,14 +2148,15 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
 
   void _updateController(String key, double value) {
     _percentageControllers[key]!.text = (value * 100).toStringAsFixed(1);
-    _amountControllers[key]!.text = (_totalIncome * value).toStringAsFixed(2);
+    final amt = _totalIncome * value;
+    _amountControllers[key]!.text = amt.toStringAsFixed(amt % 1 == 0 ? 0 : 2);
   }
 
   void _updateAmountsFromPercentages() {
     for (var entry in _allocations.entries) {
       final amount = _totalIncome * entry.value;
       if (_amountControllers.containsKey(entry.key)) {
-        _amountControllers[entry.key]!.text = amount.toStringAsFixed(2);
+        _amountControllers[entry.key]!.text = amount.toStringAsFixed(amount % 1 == 0 ? 0 : 2);
       }
     }
   }

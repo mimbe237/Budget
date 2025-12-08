@@ -1015,25 +1015,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              TrText(
-                                'Enveloppe',
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
-                              ),
-                              TrText(
-                                currency.formatAmount(totalBudget),
-                                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                    LayoutBuilder(
+                      builder: (context, c) {
+                        final isNarrow = c.maxWidth < 360;
+                        final left = Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TrText(
+                              'Enveloppe',
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
+                            ),
+                            TrText(
+                              currency.formatAmount(totalBudget),
+                              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        );
+                        final right = Column(
+                          crossAxisAlignment: isNarrow ? CrossAxisAlignment.start : CrossAxisAlignment.end,
                           children: [
                             TrText(
                               'Dépenses',
@@ -1044,8 +1043,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
                             ),
                           ],
-                        ),
-                      ],
+                        );
+
+                        if (isNarrow) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              left,
+                              const SizedBox(height: 8),
+                              right,
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          children: [
+                            Expanded(child: left),
+                            right,
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -1651,6 +1668,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         }
         final currency = context.watch<CurrencyService>();
+        final balanceStr = currency.formatAmount(totalBalance);
+        final balanceFontSize = balanceStr.length > 15
+            ? 22.0
+            : balanceStr.length > 12
+                ? 24.0
+                : 28.0;
 
         final totalBalance = accounts.fold<double>(0.0, (sum, acc) => sum + acc.balance);
         double income = 0;
@@ -1749,13 +1772,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TrText(
-                      currency.formatAmount(totalBalance),
+                      balanceStr,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
-                        fontSize: 26,
+                        fontSize: balanceFontSize > 26 ? 22 : 26,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1859,13 +1882,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           TrText(
-                            currency.formatAmount(totalBalance),
+                            balanceStr,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w900,
-                              fontSize: 28,
+                              fontSize: balanceFontSize,
                             ),
                           ),
                           const SizedBox(height: 4),

@@ -1009,10 +1009,6 @@ class _AuthScreenState extends State<AuthScreen> {
                                   letterSpacing: -0.3,
                                 ),
                               ),
-                              TrText(
-                                _isLogin ? 'Sécurisée par Firebase' : '2 minutes pour créer votre compte',
-                                style: const TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.w600),
-                              ),
                             ],
                           ),
                         ],

@@ -570,8 +570,12 @@ Future<void> _showResetDialog(BuildContext context) async {
               onPressed: (countdown == 0 && agreedToTerms)
                   ? () async {
                       Navigator.pop(ctx);
-                      // Demander le mot de passe avant de procéder
-                      final confirmed = await _confirmWithPassword(context);
+                      // Si l'utilisateur a un compte email/mot de passe, demander la confirmation.
+                      final requiresPassword = _requiresPasswordReauth();
+                      bool confirmed = true;
+                      if (requiresPassword) {
+                        confirmed = await _confirmWithPassword(context);
+                      }
                       if (confirmed && context.mounted) {
                         await _performReset(context, userId);
                       }
@@ -701,6 +705,13 @@ Future<bool> _confirmWithPassword(BuildContext context) async {
   
   passwordController.dispose();
   return result ?? false;
+}
+
+bool _requiresPasswordReauth() {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return false;
+  // Si l'utilisateur n'a pas de provider "password", inutile de demander un mot de passe
+  return user.providerData.any((p) => p.providerId == 'password');
 }
 
 Future<void> _performReset(BuildContext context, String userId) async {
