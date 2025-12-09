@@ -26,6 +26,7 @@ import '../settings/settings_hub_screen.dart';
 import '../settings/notification_settings_screen.dart';
 import '../ai_analysis/ai_analysis_screen.dart';
 import '../../providers/locale_provider.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Dashboard principal affichant le solde global, les performances mensuelles
 /// et l'historique récent des transactions en temps réel
@@ -796,9 +797,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildCompactSummaryRow() {
     return Column(
       children: [
-        _buildTotalBalanceCard(),
-        const SizedBox(height: AppDesign.spacingMedium),
         _buildBudgetExcellenceCard(),
+        const SizedBox(height: AppDesign.spacingMedium),
+        _buildTotalBalanceCard(),
       ],
     );
   }
@@ -1794,16 +1795,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Center(
-                          child: _BudgetGauge(
-                            value: burnRate.clamp(0.0, 1.5),
-                            ideal: idealRatio.clamp(0.0, 1.0),
-                            label: 'Rythme ${(burnRate * 100).toStringAsFixed(0)}%',
-                            coaching: isAhead ? 'Dans le rythme' : 'Au-dessus',
-                            color: isAhead ? AppDesign.incomeColor : AppDesign.expenseColor,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
                         _HeroCTAButton(
                           label: 'Ajuster budget',
                           icon: Icons.tune_rounded,
@@ -2203,96 +2194,148 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ? 'En avance de $deltaText'
                 : 'En dessous de $deltaText';
 
-        return Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDesign.radiusXLarge)),
-          child: Padding(
-            padding: const EdgeInsets.all(AppDesign.paddingMedium),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const TrText(
-                      'Revenus vs prévision',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.white,
+                Colors.white,
+                Colors.grey.shade100,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
+            boxShadow: AppDesign.mediumShadow,
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          padding: const EdgeInsets.all(AppDesign.paddingMedium),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isAhead ? Icons.trending_up : Icons.trending_down,
+                          color: statusColor,
+                          size: 18,
+                        ),
                       ),
-                      child: TrText(
-                        statusLabel,
-                        style: TextStyle(color: statusColor, fontWeight: FontWeight.w700, fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
+                      const SizedBox(width: 10),
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                        children: const [
                           TrText(
-                            context.read<CurrencyService>().formatAmount(actualIncome),
-                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                            'Revenus vs prévision',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black87),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 2),
                           TrText(
-                            'Réalisé ce mois',
-                            style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                            'Écart en temps réel sur le mois',
+                            style: TextStyle(fontSize: 12, color: Colors.black54),
                           ),
                         ],
                       ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    child: TrText(
+                      statusLabel,
+                      style: TextStyle(color: statusColor, fontWeight: FontWeight.w800, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         TrText(
-                          context.read<CurrencyService>().formatAmount(expectedIncome),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                          context.read<CurrencyService>().formatAmount(actualIncome),
+                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.3),
                         ),
                         const SizedBox(height: 4),
                         TrText(
-                          'Prévu',
+                          'Réalisé ce mois',
                           style: TextStyle(color: Colors.grey[700], fontSize: 12),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: ratio.clamp(0.0, 1.5) > 1 ? 1 : ratio.clamp(0.0, 1.5),
-                    minHeight: 8,
-                    backgroundColor: Colors.grey[200],
-                    valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      TrText(
+                        context.read<CurrencyService>().formatAmount(expectedIncome),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      TrText(
+                        'Prévu',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  height: 12,
+                  child: Stack(
+                    children: [
+                      Container(color: Colors.grey[200]),
+                      FractionallySizedBox(
+                        widthFactor: ratio.clamp(0.0, 1.25) > 1 ? 1 : ratio.clamp(0.0, 1.25),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                statusColor.withValues(alpha: 0.85),
+                                statusColor,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TrText(
+                    expectedIncome > 0 ? 'Écart: $percent' : 'Prévision manquante',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                  if (expectedIncome > 0)
                     TrText(
-                      expectedIncome > 0 ? 'Écart: $percent%' : 'Aucune prévision saisie',
-                      style: TextStyle(color: Colors.grey[700], fontSize: 12, fontWeight: FontWeight.w600),
+                      isAhead ? '+$deltaText' : '-$deltaText',
+                      style: TextStyle(color: statusColor, fontWeight: FontWeight.w900, fontSize: 13),
                     ),
-                    if (expectedIncome > 0)
-                      TrText(
-                        isAhead ? '+$deltaText' : '-$deltaText',
-                        style: TextStyle(color: statusColor, fontWeight: FontWeight.w800, fontSize: 12),
-                      ),
-                  ],
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
         );
       },

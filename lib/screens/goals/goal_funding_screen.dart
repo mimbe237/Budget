@@ -13,6 +13,7 @@ import '../../widgets/modern_page_app_bar.dart';
 import '../../widgets/screen_header.dart';
 import '../../widgets/app_modal.dart';
 import 'package:budget/l10n/localization_helpers.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran de suivi et financement des objectifs d'épargne
 class GoalFundingScreen extends StatefulWidget {
@@ -54,15 +55,14 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
     });
 
     // S'assurer que des comptes existent (création par défaut si besoin, sauf si onboarding complété)
-    try {
-      final profile = await _firestoreService.getUserProfile(userId);
-      final onboardingCompleted = profile?.onboardingCompleted ?? false;
-      if (!onboardingCompleted) {
+    _firestoreService.getUserProfile(userId).then((profile) {
+      final needsOnboarding = profile?.needsOnboarding ?? false;
+      if (needsOnboarding) {
         _firestoreService.createDefaultAccounts(userId);
       }
-    } catch (_) {
+    }).catchError((_) {
       // Silently handle errors
-    }
+    });
 
     _accountsSub = _firestoreService.getAccountsStream(userId).listen((data) {
       if (mounted) setState(() => _accounts = data);

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../constants/app_design.dart';
 import '../services/currency_service.dart';
 import 'package:budget/l10n/localization_helpers.dart';
+import 'package:budget/l10n/app_localizations.dart';
 import '../l10n/app_localizations.dart';
 
 /// Dialog shown when user switches currency

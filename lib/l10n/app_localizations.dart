@@ -919,6 +919,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You are spending {delta}% faster than planned.'**
   String coaching_behind(String delta);
+
+  /// No description provided for @greeting_morning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning'**
+  String get greeting_morning;
+
+  /// No description provided for @greeting_afternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon'**
+  String get greeting_afternoon;
+
+  /// No description provided for @greeting_evening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening'**
+  String get greeting_evening;
 }
 
 class _AppLocalizationsDelegate

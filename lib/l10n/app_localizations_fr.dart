@@ -468,4 +468,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String coaching_behind(String delta) {
     return 'Vous dépensez $delta% plus vite que prévu.';
   }
+
+  @override
+  String get greeting_morning => 'Bonjour';
+
+  @override
+  String get greeting_afternoon => 'Bon après-midi';
+
+  @override
+  String get greeting_evening => 'Bonsoir';
 }

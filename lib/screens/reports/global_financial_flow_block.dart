@@ -7,6 +7,7 @@ import '../../models/account.dart';
 import '../../services/firestore_service.dart';
 import '../../constants/app_design.dart';
 import 'package:budget/l10n/localization_helpers.dart';
+import 'package:budget/l10n/app_localizations.dart';
 import 'package:budget/services/currency_service.dart';
 import '../auth/login_screen.dart';
 

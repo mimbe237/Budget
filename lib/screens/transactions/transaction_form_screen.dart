@@ -68,9 +68,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       // Initialiser les comptes et catégories par défaut seulement si onboarding n'est pas complété
       try {
         final profile = await _firestoreService.getUserProfile(userId);
-        final onboardingCompleted = profile?.onboardingCompleted ?? false;
-        
-        if (!onboardingCompleted) {
+        final needsOnboarding = profile?.needsOnboarding ?? false;
+        if (needsOnboarding) {
           _firestoreService.createDefaultAccounts(userId);
         }
       } catch (_) {

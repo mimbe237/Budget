@@ -311,6 +311,7 @@ class MockDataService {
     return BudgetPlan(
       budgetPlanId: 'budget_mock',
       userId: mockUserId,
+      expectedIncome: 2500,
       totalIncome: 2500,
       categoryAllocations: {
         'Logement': 0.30,

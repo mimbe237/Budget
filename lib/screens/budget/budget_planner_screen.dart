@@ -24,6 +24,7 @@ import 'package:budget/l10n/localization_helpers.dart';
 import '../../widgets/modern_page_app_bar.dart';
 import '../settings/notification_settings_screen.dart';
 import '../ai_analysis/ai_analysis_screen.dart';
+import 'package:budget/l10n/app_localizations.dart';
 
 /// Écran de planification budgétaire avec répartition intelligente
 class BudgetPlannerScreen extends StatefulWidget {
@@ -47,6 +48,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   TransactionType? _txFilter;
   DateTimeRange? _txRange;
   bool _usePreviousIncomePeriod = false;
+  bool _fieldsLocked = false;
   
   // Contrôleurs pour chaque champ de montant
   final Map<String, TextEditingController> _amountControllers = {};
@@ -625,6 +627,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         _actualSpending = spending;
         _incomeController.text = _totalIncome.toStringAsFixed(0);
         _expectedIncomeController.text = _expectedIncome.toStringAsFixed(_expectedIncome % 1 == 0 ? 0 : 2);
+        _fieldsLocked = budgetPlan != null;
         _initializeControllers();
       });
     } catch (_) {
@@ -1023,6 +1026,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             constraints: const BoxConstraints(minWidth: 140, maxWidth: 220),
             child: TextFormField(
               controller: _incomeController,
+              readOnly: _fieldsLocked,
               decoration: InputDecoration(
                 prefixIcon: Icon(Icons.euro, color: AppDesign.incomeColor),
                 suffixText: currencySymbol,
@@ -1098,7 +1102,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   ),
                 const SizedBox(height: 12),
                 TrText(
-                  'Prévision de revenus (optionnel)',
+                  'Prévision de revenus (obligatoire)',
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 6),
@@ -1108,6 +1112,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d{0,2}')),
                   ],
+                  readOnly: _fieldsLocked,
                   decoration: InputDecoration(
                     hintText: 'Ex: ${_totalIncome.toStringAsFixed(0)}',
                     suffixText: currencySymbol,
@@ -1115,7 +1120,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: AppDesign.backgroundCard,
+                    fillColor: AppDesign.backgroundGrey,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
                   onChanged: (value) {
@@ -1127,9 +1132,9 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 ),
                 const SizedBox(height: 10),
                 TextButton.icon(
-                  onPressed: _resetToDefaultAllocation,
-                  icon: const Icon(Icons.tune),
-                  label: const TrText('Rééquilibrer'),
+                  onPressed: _fieldsLocked ? _unlockFieldsWithConfirm : _resetToDefaultAllocation,
+                  icon: Icon(_fieldsLocked ? Icons.edit : Icons.tune),
+                  label: TrText(_fieldsLocked ? 'Modifier montants' : 'Rééquilibrer'),
                   style: TextButton.styleFrom(
                     foregroundColor: AppDesign.primaryIndigo,
                   ),
@@ -2355,6 +2360,17 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
 
   void _saveBudgetPlan() {
     final totalPercentage = _getTotalAllocation();
+    final parsedIncome = double.tryParse(_incomeController.text.trim()) ?? 0;
+    if (parsedIncome <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: TrText('Le budget mensuel doit être supérieur à 0.'),
+          backgroundColor: AppDesign.expenseColor,
+        ),
+      );
+      return;
+    }
+    _totalIncome = parsedIncome;
     if (_expectedIncomeController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2406,6 +2422,34 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     _performSave();
   }
 
+  Future<void> _unlockFieldsWithConfirm() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const TrText('Modifier les montants ?'),
+        content: const TrText('Déverrouiller les champs budget et prévision pour les ajuster ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const TrText('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppDesign.primaryIndigo,
+              foregroundColor: Colors.white,
+            ),
+            child: const TrText('Modifier'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _fieldsLocked = false);
+    }
+  }
+
   Future<void> _performSave() async {
     final userId = _firestoreService.currentUserId;
     if (userId == null) {
@@ -2449,6 +2493,9 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           backgroundColor: AppDesign.incomeColor,
         ),
       );
+      setState(() {
+        _fieldsLocked = true;
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -9,7 +9,6 @@ import '../../services/firestore_service.dart';
 import '../../widgets/discovery_tutorial.dart';
 import '../navigation/main_navigation_shell.dart';
 import '../../providers/locale_provider.dart';
-import '../../l10n/app_localizations.dart';
 
 class _AccountTemplate {
   final String name;
@@ -482,12 +481,12 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                   child: Column(
                     children: [
                       TrText(
-                        AppLocalizations.of(context)!.tr('onboarding_welcome_title'),
+                        'Bienvenue sur Budget Pro',
                         style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 6),
                       TrText(
-                        AppLocalizations.of(context)!.tr('onboarding_welcome_subtitle'),
+                        'Configurez votre budget en 3 étapes simples',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                       ),
@@ -498,14 +497,14 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
 
                 // Nom d'utilisateur
                 TrText(
-                  AppLocalizations.of(context)!.tr('your_name_label'),
+                  'Votre nom',
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    hintText: AppLocalizations.of(context)!.tr('name_hint'),
+                    hintText: 'Ex: Jean Dupont',
                     prefixIcon: const Icon(Icons.person_outline),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -515,7 +514,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return AppLocalizations.of(context)!.tr('enter_name_error');
+                      return 'Veuillez entrer votre nom';
                     }
                     return null;
                   },
@@ -524,7 +523,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                 // Devise
                 const SizedBox(height: 32),
                 TrText(
-                  AppLocalizations.of(context)!.tr('default_currency_label'),
+                  'Votre devise par défaut',
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 16),

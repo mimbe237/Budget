@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/locale_provider.dart';
+import 'package:budget/l10n/app_localizations.dart';
 import '../../widgets/revolutionary_logo.dart';
 import '../../l10n/app_localizations.dart';
 
