@@ -9,6 +9,7 @@ import '../../services/firestore_service.dart';
 import '../../widgets/discovery_tutorial.dart';
 import '../navigation/main_navigation_shell.dart';
 import '../../providers/locale_provider.dart';
+import '../../constants/default_budget_allocations.dart';
 
 class _AccountTemplate {
   final String name;
@@ -1070,19 +1071,15 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         final budgetAmount = double.tryParse(_budgetAmountController.text.trim()) ?? 0;
           if (budgetAmount > 0) {
             // Répartition par défaut équilibrée des poches budgétaires
-            final defaultAllocations = {
-              'alimentation': budgetAmount * 0.25,      // 25%
-              'transport': budgetAmount * 0.15,         // 15%
-            'logement': budgetAmount * 0.30,          // 30%
-            'loisirs': budgetAmount * 0.10,           // 10%
-            'sante': budgetAmount * 0.08,             // 8%
-            'autre': budgetAmount * 0.12,             // 12%
-            };
+            final allocations = DefaultBudgetAllocations.calculateAllocationAmounts(
+              budgetAmount,
+              DefaultBudgetAllocations.defaultAllocations,
+            );
             await _firestoreService.saveBudgetPlan(
               userId: userId,
               totalBudget: budgetAmount,
               expectedIncome: budgetAmount,
-              categoryAllocations: defaultAllocations,
+              categoryAllocations: allocations,
             );
           }
         }

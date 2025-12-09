@@ -1030,6 +1030,13 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               decoration: InputDecoration(
                 prefixIcon: Icon(Icons.euro, color: AppDesign.incomeColor),
                 suffixText: currencySymbol,
+                suffixIcon: _fieldsLocked
+                    ? IconButton(
+                        tooltip: 'Modifier',
+                        icon: const Icon(Icons.edit, size: 18),
+                        onPressed: _unlockFieldsWithConfirm,
+                      )
+                    : null,
                 hintText: t('Ex: 3000'),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
@@ -1100,37 +1107,6 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       Flexible(flex: 0, child: saveButton),
                     ],
                   ),
-                const SizedBox(height: 12),
-                TrText(
-                  'Prévision de revenus (obligatoire)',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _expectedIncomeController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d{0,2}')),
-                  ],
-                  readOnly: _fieldsLocked,
-                  decoration: InputDecoration(
-                    hintText: 'Ex: ${_totalIncome.toStringAsFixed(0)}',
-                    suffixText: currencySymbol,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: AppDesign.backgroundGrey,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
-                  onChanged: (value) {
-                    final newVal = double.tryParse(value);
-                    if (newVal != null) {
-                      setState(() => _expectedIncome = newVal);
-                    }
-                  },
-                ),
-                const SizedBox(height: 10),
                 TextButton.icon(
                   onPressed: _fieldsLocked ? _unlockFieldsWithConfirm : _resetToDefaultAllocation,
                   icon: Icon(_fieldsLocked ? Icons.edit : Icons.tune),
@@ -2371,27 +2347,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
       return;
     }
     _totalIncome = parsedIncome;
-    if (_expectedIncomeController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: TrText('Veuillez saisir une prévision de revenus.'),
-          backgroundColor: AppDesign.expenseColor,
-        ),
-      );
-      return;
-    }
-
-    final parsedExpected = double.tryParse(_expectedIncomeController.text.trim()) ?? 0;
-    if (parsedExpected <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: TrText('La prévision de revenus doit être supérieure à 0.'),
-          backgroundColor: AppDesign.expenseColor,
-        ),
-      );
-      return;
-    }
-    _expectedIncome = parsedExpected;
+    _expectedIncome = _totalIncome;
 
     if (totalPercentage > 1.0 + 0.0001) {
       final overflowPercent = (totalPercentage - 1.0) * 100;

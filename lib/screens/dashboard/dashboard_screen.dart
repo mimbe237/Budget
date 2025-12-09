@@ -2187,24 +2187,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final delta = actualIncome - expectedIncome;
         final deltaText = context.read<CurrencyService>().formatAmount(delta.abs());
         final isAhead = delta >= 0;
-        final statusColor = isAhead ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+        final statusColor = isAhead ? const Color(0xFF00A76F) : const Color(0xFFEF5350);
         final statusLabel = expectedIncome <= 0
             ? 'Prévision manquante'
             : isAhead
-                ? 'En avance de $deltaText'
-                : 'En dessous de $deltaText';
+                ? 'En avance'
+                : 'En dessous';
 
         return Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white,
-                Colors.white,
-                Colors.grey.shade100,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
             boxShadow: AppDesign.mediumShadow,
             border: Border.all(color: Colors.grey.shade200),
@@ -2221,13 +2213,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.1),
+                          color: statusColor.withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          isAhead ? Icons.trending_up : Icons.trending_down,
+                          isAhead ? Icons.verified_rounded : Icons.warning_amber_rounded,
                           color: statusColor,
-                          size: 18,
+                          size: 20,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -2240,7 +2232,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           SizedBox(height: 2),
                           TrText(
-                            'Écart en temps réel sur le mois',
+                            'Suivi en temps réel ce mois-ci',
                             style: TextStyle(fontSize: 12, color: Colors.black54),
                           ),
                         ],
@@ -2254,71 +2246,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: TrText(
-                      statusLabel,
+                      isAhead ? '100%+ alloué' : 'Sous le prévu',
                       style: TextStyle(color: statusColor, fontWeight: FontWeight.w800, fontSize: 12),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TrText(
-                          context.read<CurrencyService>().formatAmount(actualIncome),
-                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.3),
-                        ),
-                        const SizedBox(height: 4),
-                        TrText(
-                          'Réalisé ce mois',
-                          style: TextStyle(color: Colors.grey[700], fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      TrText(
-                        context.read<CurrencyService>().formatAmount(expectedIncome),
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 4),
-                      TrText(
-                        'Prévu',
-                        style: TextStyle(color: Colors.grey[700], fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: SizedBox(
-                  height: 12,
+                  height: 10,
                   child: Stack(
                     children: [
                       Container(color: Colors.grey[200]),
                       FractionallySizedBox(
                         widthFactor: ratio.clamp(0.0, 1.25) > 1 ? 1 : ratio.clamp(0.0, 1.25),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                statusColor.withValues(alpha: 0.85),
-                                statusColor,
-                              ],
-                            ),
-                          ),
-                        ),
+                        child: Container(color: statusColor),
                       ),
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.arrow_downward_rounded, size: 16, color: Colors.black54),
+                      const SizedBox(width: 6),
+                      TrText(
+                        'Réalisé',
+                        style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      const Icon(Icons.stacked_bar_chart_rounded, size: 16, color: Colors.black54),
+                      const SizedBox(width: 6),
+                      TrText(
+                        'Prévu',
+                        style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TrText(
+                    context.read<CurrencyService>().formatAmount(actualIncome),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                  ),
+                  TrText(
+                    context.read<CurrencyService>().formatAmount(expectedIncome),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               Row(
@@ -2482,7 +2470,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const TrText(
-                  'Summary by pocket',
+                  'Résumé par poche',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
