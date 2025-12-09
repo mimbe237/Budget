@@ -212,12 +212,15 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
 
     final totalIncome =
         (data['totalBudget'] ?? data['totalIncome'] ?? 0).toDouble();
+    final expectedIncome =
+        (data['expectedIncome'] ?? data['totalIncome'] ?? 0).toDouble();
 
     return BudgetPlan(
       budgetPlanId:
           data['id'] ?? 'budget_${DateTime.now().millisecondsSinceEpoch}',
       userId: userId,
       totalIncome: totalIncome,
+      expectedIncome: expectedIncome,
       categoryAllocations: allocations,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -2128,6 +2131,24 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
     final recCount = _visibleRecommendations.length;
     final hasPositiveScore = _healthScore >= 7.5;
 
+    // Calcul revenus vs prévision (mois courant)
+    final now = DateTime.now();
+    final currentIncome = _transactions
+        .where((t) =>
+            t.type == app_transaction.TransactionType.income &&
+            t.date.year == now.year &&
+            t.date.month == now.month)
+        .fold<double>(0, (s, t) => s + t.amount);
+    final expectedIncome = _currentBudget?.expectedIncome ?? _currentBudget?.totalIncome ?? 0.0;
+    final hasForecast = expectedIncome > 0;
+    final incomeRatio = hasForecast && expectedIncome > 0 ? (currentIncome / expectedIncome) : 1.0;
+    final incomeDelta = currentIncome - (expectedIncome > 0 ? expectedIncome : currentIncome);
+    final incomeStatusColor = incomeDelta >= 0 ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+    final incomeStatusLabel = !hasForecast
+        ? 'Prévision manquante'
+        : (incomeDelta >= 0 ? 'En avance' : 'En dessous');
+    final incomePercent = hasForecast ? '${(incomeRatio * 100).toStringAsFixed(1)}%' : '—';
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -2196,19 +2217,38 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    TrText(
-                      'Recommandations prêtes',
+                  children: [
+                    const TrText(
+                      'Revenus vs prévision (mois)',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Colors.black87,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        TrText(
+                          hasForecast
+                              ? '${_currencyService.formatAmount(currentIncome)} / ${_currencyService.formatAmount(expectedIncome)}'
+                              : _currencyService.formatAmount(currentIncome),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _pill(incomePercent, incomeStatusColor),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
                     TrText(
-                      'Passez à l’action sur vos anomalies et projections en 2 clics.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      hasForecast
+                          ? '$incomeStatusLabel (${_currencyService.formatAmount(incomeDelta.abs())})'
+                          : 'Ajoutez une prévision dans Budget pour affiner.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                     ),
                   ],
                 ),

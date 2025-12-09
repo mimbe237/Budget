@@ -422,6 +422,7 @@ class FirestoreService {
     await saveBudgetPlan(
       userId: userId,
       totalBudget: 2500,
+      expectedIncome: 2500,
       categoryAllocations: {
         if (housingCat != null) housingCat: 1200,
         if (foodCat != null) foodCat: 600,
@@ -1811,6 +1812,7 @@ class FirestoreService {
     required String userId,
     required double totalBudget,
     required Map<String, double> categoryAllocations,
+    required double expectedIncome,
   }) async {
     try {
       if (userId.isEmpty) {
@@ -1824,6 +1826,7 @@ class FirestoreService {
         'id': docRef.id,
         'totalBudget': totalBudget,
         'categoryAllocations': categoryAllocations,
+        'expectedIncome': expectedIncome,
         'createdAt': Timestamp.fromDate(now),
         'updatedAt': Timestamp.fromDate(now),
       };
@@ -1868,6 +1871,7 @@ class FirestoreService {
     required String budgetId,
     required Map<String, double> categoryAllocations,
     double? totalBudget,
+    double? expectedIncome,
   }) async {
     try {
       final updates = <String, dynamic>{
@@ -1877,6 +1881,9 @@ class FirestoreService {
 
       if (totalBudget != null) {
         updates['totalBudget'] = totalBudget;
+      }
+      if (expectedIncome != null) {
+        updates['expectedIncome'] = expectedIncome;
       }
 
       await _budgetsCollection(userId).doc(budgetId).update(updates);

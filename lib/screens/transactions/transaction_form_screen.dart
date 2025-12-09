@@ -65,8 +65,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         _isInitializing = false;
       });
     } else {
-      // Initialiser les comptes et catégories par défaut si nécessaire
-      _firestoreService.createDefaultAccounts(userId);
+      // Initialiser les comptes et catégories par défaut seulement si onboarding n'est pas complété
+      try {
+        final profile = await _firestoreService.getUserProfile(userId);
+        final onboardingCompleted = profile?.onboardingCompleted ?? false;
+        
+        if (!onboardingCompleted) {
+          _firestoreService.createDefaultAccounts(userId);
+        }
+      } catch (_) {
+        // Silently handle errors
+      }
+      
       _firestoreService.createDefaultCategories(userId);
       
       setState(() {
@@ -278,49 +288,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   }
 
   List<_TxTemplate> get _templates {
-    if (_isExpense) {
-      return [
-        _TxTemplate(
-          name: 'Loyer',
-          amount: 1200,
-          categoryLabel: 'Logement',
-          note: 'Loyer mensuel',
-        ),
-        _TxTemplate(
-          name: 'Internet',
-          amount: 50,
-          categoryLabel: 'Internet',
-          note: 'Fibre',
-        ),
-        _TxTemplate(
-          name: 'Courses',
-          amount: 150,
-          categoryLabel: 'Alimentation',
-          note: 'Hebdo',
-        ),
-      ];
-    } else {
-      return [
-        _TxTemplate(
-          name: 'Salaire',
-          amount: 3200,
-          categoryLabel: 'Salaire',
-          note: 'Mensuel',
-        ),
-        _TxTemplate(
-          name: 'Prime',
-          amount: 300,
-          categoryLabel: 'Prime',
-          note: 'Exceptionnel',
-        ),
-        _TxTemplate(
-          name: 'Remboursement',
-          amount: 100,
-          categoryLabel: 'Autres revenus',
-          note: 'Remboursement',
-        ),
-      ];
-    }
+    // Pas de templates prédéfinis : l'utilisateur crée ses propres transactions
+    return [];
   }
 
   @override

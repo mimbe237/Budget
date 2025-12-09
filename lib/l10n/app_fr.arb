@@ -151,5 +151,8 @@
         "type": "String"
       }
     }
-  }
+  },
+  "greeting_morning": "Bonjour",
+  "greeting_afternoon": "Bon après-midi",
+  "greeting_evening": "Bonsoir"
 }

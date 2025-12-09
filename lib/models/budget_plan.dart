@@ -5,6 +5,7 @@ class BudgetPlan {
   final String budgetPlanId;
   final String userId;
   final double totalIncome;
+  final double expectedIncome;
   
   /// Map où la clé est l'ID de catégorie et la valeur est le pourcentage (0.0 à 1.0)
   /// Exemple: {'cat_1': 0.30} = 30% pour la catégorie cat_1
@@ -17,6 +18,7 @@ class BudgetPlan {
     required this.budgetPlanId,
     required this.userId,
     required this.totalIncome,
+    required this.expectedIncome,
     required this.categoryAllocations,
     required this.createdAt,
     required this.updatedAt,
@@ -27,6 +29,7 @@ class BudgetPlan {
     return {
       'userId': userId,
       'totalIncome': totalIncome,
+      'expectedIncome': expectedIncome,
       'categoryAllocations': categoryAllocations,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
@@ -39,6 +42,7 @@ class BudgetPlan {
       budgetPlanId: id,
       userId: map['userId'] ?? '',
       totalIncome: (map['totalIncome'] ?? 0).toDouble(),
+      expectedIncome: (map['expectedIncome'] ?? map['totalIncome'] ?? 0).toDouble(),
       categoryAllocations: Map<String, double>.from(map['categoryAllocations'] ?? {}),
       createdAt: map['createdAt']?.toDate() ?? DateTime.now(),
       updatedAt: map['updatedAt']?.toDate() ?? DateTime.now(),
@@ -50,6 +54,7 @@ class BudgetPlan {
     String? budgetPlanId,
     String? userId,
     double? totalIncome,
+    double? expectedIncome,
     Map<String, double>? categoryAllocations,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -58,6 +63,7 @@ class BudgetPlan {
       budgetPlanId: budgetPlanId ?? this.budgetPlanId,
       userId: userId ?? this.userId,
       totalIncome: totalIncome ?? this.totalIncome,
+       expectedIncome: expectedIncome ?? this.expectedIncome,
       categoryAllocations: categoryAllocations ?? this.categoryAllocations,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

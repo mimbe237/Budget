@@ -35,10 +35,12 @@ class BudgetPlannerScreen extends StatefulWidget {
 
 class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   final TextEditingController _incomeController = TextEditingController(text: '3000');
+  final TextEditingController _expectedIncomeController = TextEditingController(text: '3000');
   final MockDataService _mockService = MockDataService();
   final FirestoreService _firestoreService = FirestoreService();
   
   double _totalIncome = 3000.0;
+  double _expectedIncome = 3000.0;
   Map<String, double> _allocations = Map.from(DEFAULT_ALLOCATION);
   Map<String, double> _actualSpending = {}; // Dépenses réelles par catégorie
   Stream<List<Transaction>> _transactionsStream = const Stream.empty();
@@ -516,6 +518,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         text: amount.toStringAsFixed(amount % 1 == 0 ? 0 : 2),
       );
     }
+    _expectedIncomeController.text = _expectedIncome.toStringAsFixed(_expectedIncome % 1 == 0 ? 0 : 2);
   }
 
   Future<void> _loadBudgetData() async {
@@ -574,6 +577,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
 
       Map<String, double> allocations = Map.from(DEFAULT_ALLOCATION);
       double totalBudget = _totalIncome;
+      double? expectedIncomeFromPlan;
 
       if (budgetPlan != null) {
         final rawAlloc = (budgetPlan['categoryAllocations'] as Map<String, dynamic>?);
@@ -606,6 +610,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         }
         final tb = budgetPlan['totalBudget'];
         if (tb is num) totalBudget = tb.toDouble();
+        final ei = budgetPlan['expectedIncome'];
+        if (ei is num) expectedIncomeFromPlan = ei.toDouble();
       }
 
       if (totalBudget <= 0 && incomeTotal > 0) {
@@ -615,8 +621,10 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
       setState(() {
         _allocations = allocations;
         _totalIncome = totalBudget > 0 ? totalBudget : _totalIncome;
+        _expectedIncome = expectedIncomeFromPlan ?? _totalIncome;
         _actualSpending = spending;
         _incomeController.text = _totalIncome.toStringAsFixed(0);
+        _expectedIncomeController.text = _expectedIncome.toStringAsFixed(_expectedIncome % 1 == 0 ? 0 : 2);
         _initializeControllers();
       });
     } catch (_) {
@@ -682,6 +690,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   @override
   void dispose() {
     _incomeController.dispose();
+    _expectedIncomeController.dispose();
     for (var controller in _amountControllers.values) {
       controller.dispose();
     }
@@ -1030,6 +1039,10 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   setState(() {
                     _totalIncome = newIncome;
                     _updateAmountsFromPercentages();
+                    if (_expectedIncomeController.text.trim().isEmpty) {
+                      _expectedIncome = newIncome;
+                      _expectedIncomeController.text = newIncome.toStringAsFixed(newIncome % 1 == 0 ? 0 : 2);
+                    }
                   });
                 }
               },
@@ -1083,6 +1096,35 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                       Flexible(flex: 0, child: saveButton),
                     ],
                   ),
+                const SizedBox(height: 12),
+                TrText(
+                  'Prévision de revenus (optionnel)',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: _expectedIncomeController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d{0,2}')),
+                  ],
+                  decoration: InputDecoration(
+                    hintText: 'Ex: ${_totalIncome.toStringAsFixed(0)}',
+                    suffixText: currencySymbol,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: AppDesign.backgroundCard,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                  onChanged: (value) {
+                    final newVal = double.tryParse(value);
+                    if (newVal != null) {
+                      setState(() => _expectedIncome = newVal);
+                    }
+                  },
+                ),
                 const SizedBox(height: 10),
                 TextButton.icon(
                   onPressed: _resetToDefaultAllocation,
@@ -2313,6 +2355,27 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
 
   void _saveBudgetPlan() {
     final totalPercentage = _getTotalAllocation();
+    if (_expectedIncomeController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: TrText('Veuillez saisir une prévision de revenus.'),
+          backgroundColor: AppDesign.expenseColor,
+        ),
+      );
+      return;
+    }
+
+    final parsedExpected = double.tryParse(_expectedIncomeController.text.trim()) ?? 0;
+    if (parsedExpected <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: TrText('La prévision de revenus doit être supérieure à 0.'),
+          backgroundColor: AppDesign.expenseColor,
+        ),
+      );
+      return;
+    }
+    _expectedIncome = parsedExpected;
 
     if (totalPercentage > 1.0 + 0.0001) {
       final overflowPercent = (totalPercentage - 1.0) * 100;
@@ -2343,14 +2406,58 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     _performSave();
   }
 
-  void _performSave() {
-    // TODO: Sauvegarder dans Firestore
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: TrText('Budget enregistré avec succès !'),
-        backgroundColor: AppDesign.incomeColor,
-      ),
-    );
+  Future<void> _performSave() async {
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: TrText('Connectez-vous pour enregistrer votre budget.'),
+          backgroundColor: AppDesign.expenseColor,
+        ),
+      );
+      return;
+    }
+
+    // Préparer les allocations (poche -> pourcentage)
+    final allocations = {
+      for (final entry in _allocations.entries) entry.key: (entry.value)
+    };
+
+    try {
+      final existingPlan = await _firestoreService.getCurrentBudgetPlan(userId);
+      if (existingPlan != null && existingPlan['id'] != null) {
+        await _firestoreService.updateBudgetPlan(
+          userId: userId,
+          budgetId: existingPlan['id'] as String,
+          categoryAllocations: allocations,
+          totalBudget: _totalIncome,
+          expectedIncome: _expectedIncome,
+        );
+      } else {
+        await _firestoreService.saveBudgetPlan(
+          userId: userId,
+          totalBudget: _totalIncome,
+          expectedIncome: _expectedIncome,
+          categoryAllocations: allocations,
+        );
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: TrText('Budget enregistré avec succès !'),
+          backgroundColor: AppDesign.incomeColor,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: TrText('Erreur lors de l’enregistrement: $e'),
+          backgroundColor: AppDesign.expenseColor,
+        ),
+      );
+    }
   }
 
   String _resolveTxCategoryLabel(Transaction tx) {

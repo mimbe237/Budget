@@ -53,8 +53,16 @@ class _GoalFundingScreenState extends State<GoalFundingScreen> {
       if (mounted) setState(() => _goals = data);
     });
 
-    // S'assurer que des comptes existent (création par défaut si besoin)
-    _firestoreService.createDefaultAccounts(userId);
+    // S'assurer que des comptes existent (création par défaut si besoin, sauf si onboarding complété)
+    try {
+      final profile = await _firestoreService.getUserProfile(userId);
+      final onboardingCompleted = profile?.onboardingCompleted ?? false;
+      if (!onboardingCompleted) {
+        _firestoreService.createDefaultAccounts(userId);
+      }
+    } catch (_) {
+      // Silently handle errors
+    }
 
     _accountsSub = _firestoreService.getAccountsStream(userId).listen((data) {
       if (mounted) setState(() => _accounts = data);
@@ -1343,7 +1351,7 @@ class _FundGoalModalState extends State<FundGoalModal> {
               ),
               const SizedBox(height: 16),
               
-              // Boutons rapides
+              // Boutons rapides avec pourcentages dynamiques
               const TrText(
                 'Montants rapides',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
@@ -1353,19 +1361,19 @@ class _FundGoalModalState extends State<FundGoalModal> {
                 spacing: 8,
                 children: [
                   ActionChip(
-                    label: TrText('10 ${currencyService.getCurrencySymbol(currencyService.currentCurrency)}'),
-                    onPressed: () => _amountController.text = 10.0.toStringAsFixed(2),
+                    label: TrText('25% (${currencyService.formatAmount(remaining * 0.25)})'),
+                    onPressed: () => _amountController.text = (remaining * 0.25).toStringAsFixed(2),
                   ),
                   ActionChip(
-                    label: TrText('50 ${currencyService.getCurrencySymbol(currencyService.currentCurrency)}'),
-                    onPressed: () => _amountController.text = 50.0.toStringAsFixed(2),
+                    label: TrText('50% (${currencyService.formatAmount(remaining * 0.5)})'),
+                    onPressed: () => _amountController.text = (remaining * 0.5).toStringAsFixed(2),
                   ),
                   ActionChip(
-                    label: TrText('100 ${currencyService.getCurrencySymbol(currencyService.currentCurrency)}'),
-                    onPressed: () => _amountController.text = 100.0.toStringAsFixed(2),
+                    label: TrText('75% (${currencyService.formatAmount(remaining * 0.75)})'),
+                    onPressed: () => _amountController.text = (remaining * 0.75).toStringAsFixed(2),
                   ),
                   ActionChip(
-                    label: const TrText('Reste'),
+                    label: TrText('Reste (${currencyService.formatAmount(remaining)})'),
                     onPressed: () => _amountController.text = remaining.toStringAsFixed(2),
                   ),
                 ],

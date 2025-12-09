@@ -293,6 +293,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const SizedBox(height: AppDesign.spacingLarge),
       _buildCompactSummaryRow(),
       const SizedBox(height: AppDesign.spacingLarge),
+      _buildIncomeForecastCard(),
+      const SizedBox(height: AppDesign.spacingLarge),
       _buildIASnapshotCard(),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildSummaryByPocketCard(),
@@ -353,6 +355,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _buildQuickAccess(context, limit: 3),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildCompactSummaryRow(),
+      const SizedBox(height: AppDesign.spacingLarge),
+      _buildIncomeForecastCard(),
       const SizedBox(height: AppDesign.spacingLarge),
       _buildSummaryByPocketCard(),
       const SizedBox(height: AppDesign.spacingLarge),
@@ -790,27 +794,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildCompactSummaryRow() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 720;
-        if (isWide) {
-          return Row(
-            children: [
-              Expanded(child: _buildTotalBalanceCard()),
-              const SizedBox(width: AppDesign.spacingMedium),
-              Expanded(child: _buildBudgetExcellenceCard()),
-            ],
-          );
-        } else {
-          return Column(
-            children: [
-              _buildTotalBalanceCard(),
-              const SizedBox(height: AppDesign.spacingMedium),
-              _buildBudgetExcellenceCard(),
-            ],
-          );
-        }
-      },
+    return Column(
+      children: [
+        _buildTotalBalanceCard(),
+        const SizedBox(height: AppDesign.spacingMedium),
+        _buildBudgetExcellenceCard(),
+      ],
     );
   }
 
@@ -2014,9 +2003,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   String _greetingLabel(int hour) {
-    if (hour < 12) return t('Bonjour');
-    if (hour < 18) return t('Bon après-midi');
-    return t('Bonsoir');
+    if (hour < 12) return t('greeting_morning');
+    if (hour < 18) return t('greeting_afternoon');
+    return t('greeting_evening');
   }
 
   Widget _heroLoadingShell() {
@@ -2159,6 +2148,155 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildNotificationsCard() {
     // Conservé pour compatibilité, non utilisé après remplacement
     return const SizedBox.shrink();
+  }
+
+  /// Carte revenus vs prévision (global)
+  Widget _buildIncomeForecastCard() {
+    final userId = _firestoreService.currentUserId;
+    if (userId == null) {
+      return _placeholderCard(
+        title: t('Revenus prévus'),
+        message: 'Connectez-vous pour voir vos revenus.',
+      );
+    }
+
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final budget$ = _firestoreService.getBudgetPlanStream(userId);
+    final incomes$ = _firestoreService.getTransactionsStream(
+      userId,
+      type: TransactionType.income,
+      startDate: startOfMonth,
+      endDate: now,
+      limit: 400,
+    );
+
+    return StreamBuilder<List<dynamic>>(
+      stream: CombineLatestStream.list([budget$, incomes$]),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Padding(
+            padding: EdgeInsets.all(12),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final budgetPlan = snapshot.data![0] as Map<String, dynamic>?;
+        final incomes = snapshot.data![1] as List<Transaction>;
+
+        final actualIncome = incomes.fold<double>(0.0, (s, tx) => s + tx.amount);
+        double expectedIncome = (budgetPlan?['expectedIncome'] as num?)?.toDouble() ?? 0.0;
+        if (expectedIncome <= 0) {
+          final tb = (budgetPlan?['totalBudget'] as num?)?.toDouble() ?? 0.0;
+          expectedIncome = tb > 0 ? tb : actualIncome;
+        }
+
+        final ratio = expectedIncome > 0 ? (actualIncome / expectedIncome) : 1.0;
+        final percent = expectedIncome > 0 ? (ratio * 100).toStringAsFixed(1) : '—';
+        final delta = actualIncome - expectedIncome;
+        final deltaText = context.read<CurrencyService>().formatAmount(delta.abs());
+        final isAhead = delta >= 0;
+        final statusColor = isAhead ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+        final statusLabel = expectedIncome <= 0
+            ? 'Prévision manquante'
+            : isAhead
+                ? 'En avance de $deltaText'
+                : 'En dessous de $deltaText';
+
+        return Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDesign.radiusXLarge)),
+          child: Padding(
+            padding: const EdgeInsets.all(AppDesign.paddingMedium),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const TrText(
+                      'Revenus vs prévision',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TrText(
+                        statusLabel,
+                        style: TextStyle(color: statusColor, fontWeight: FontWeight.w700, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TrText(
+                            context.read<CurrencyService>().formatAmount(actualIncome),
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 4),
+                          TrText(
+                            'Réalisé ce mois',
+                            style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        TrText(
+                          context.read<CurrencyService>().formatAmount(expectedIncome),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        TrText(
+                          'Prévu',
+                          style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: ratio.clamp(0.0, 1.5) > 1 ? 1 : ratio.clamp(0.0, 1.5),
+                    minHeight: 8,
+                    backgroundColor: Colors.grey[200],
+                    valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TrText(
+                      expectedIncome > 0 ? 'Écart: $percent%' : 'Aucune prévision saisie',
+                      style: TextStyle(color: Colors.grey[700], fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    if (expectedIncome > 0)
+                      TrText(
+                        isAhead ? '+$deltaText' : '-$deltaText',
+                        style: TextStyle(color: statusColor, fontWeight: FontWeight.w800, fontSize: 12),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   /// Carte "Summary by pocket" – synthèse des poches avec Prévu / Engagé
@@ -2455,40 +2593,11 @@ class _BudgetGauge extends StatelessWidget {
     return SizedBox(
       width: 140,
       height: 96,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CircularProgressIndicator(
-            value: clampedValue > 1 ? 1 : clampedValue,
-            strokeWidth: 9,
-            backgroundColor: Colors.white.withValues(alpha: 0.18),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TrText(
-                '$label',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 4),
-              TrText(
-                'Idéal ${(ideal * 100).toStringAsFixed(0)}% • $coaching',
-                maxLines: 2,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ],
+      child: CircularProgressIndicator(
+        value: clampedValue > 1 ? 1 : clampedValue,
+        strokeWidth: 9,
+        backgroundColor: Colors.white.withValues(alpha: 0.18),
+        valueColor: AlwaysStoppedAnimation<Color>(color),
       ),
     );
   }

@@ -76,7 +76,6 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   
   String? _userId;
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _incomeController = TextEditingController();
   String _currency = 'XAF';
 
   final List<_AccountTemplate> _suggestedAccountTemplates = const [
@@ -107,10 +106,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   ];
 
   late List<_AccountDraft> _accountDrafts;
-  bool _useSuggestedAccounts = true;
-  bool _skipAccounts = false;
 
-  bool _wantsBudget = false;
   final TextEditingController _budgetAmountController = TextEditingController();
 
   bool _wantsGoal = false;
@@ -541,30 +537,6 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                   ],
                 ),
                 const SizedBox(height: 32),
-
-                // Revenu mensuel
-                TrText(
-                  AppLocalizations.of(context)!.tr('monthly_income_label'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _incomeController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                  ],
-                  decoration: InputDecoration(
-                    hintText: '0',
-                    prefixIcon: const Icon(Icons.attach_money),
-                    suffixText: _currency,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: _brandSurface,
-                  ),
-                ),
               ],
             ),
           ),
@@ -701,25 +673,15 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                 _buildAccountsSection(),
                 const SizedBox(height: 32),
 
-                // Budget mensuel (optionnel)
-                _buildSectionHeader('🎯 Budget mensuel', required: false),
+                // Budget mensuel (obligatoire)
+                _buildSectionHeader('💰 Budget mensuel', required: true),
                 const SizedBox(height: 8),
-                SwitchListTile(
-                  title: const TrText('Définir un budget'),
-                  subtitle: const TrText('Contrôlez vos dépenses mensuelles'),
-                  value: _wantsBudget,
-                  onChanged: (value) {
-                    setState(() {
-                      _wantsBudget = value;
-                      if (value && _incomeController.text.isNotEmpty) {
-                        _budgetAmountController.text = _incomeController.text;
-                      }
-                    });
-                  },
-                  activeColor: _brandPrimary,
-                  contentPadding: EdgeInsets.zero,
+                const TrText(
+                  'Définissez votre enveloppe mensuelle pour contrôler vos dépenses',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
                 ),
-                if (_wantsBudget) ...[
+                const SizedBox(height: 12),
+                if (true) ...[
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _budgetAmountController,
@@ -727,6 +689,16 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                     ],
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return t('Le budget est obligatoire');
+                      }
+                      final amount = double.tryParse(value);
+                      if (amount == null || amount <= 0) {
+                        return t('Veuillez entrer un montant valide');
+                      }
+                      return null;
+                    },
                     decoration: InputDecoration(
                       labelText: t('Montant du budget'),
                       hintText: '0',
@@ -825,7 +797,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('💳 Vos comptes suggérés', required: false),
+        _buildSectionHeader('💳 Vos comptes', required: true),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -840,7 +812,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: TrText(
-                  'On pré-remplit 4 comptes à 0 pour démarrer plus vite. Modifiez-les, ajoutez-en ou passez : vous pourrez tout ajuster plus tard.',
+                  'Au moins 1 compte est obligatoire. Créez votre compte principal, épargne, carte ou espèces.',
                   style: TextStyle(fontSize: 13, color: Colors.grey[800]),
                 ),
               ),
@@ -848,97 +820,34 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        SwitchListTile(
-          title: const TrText('Utiliser les comptes suggérés'),
-          subtitle: const TrText('Compte principal, Épargne, Carte, Espèces'),
-          value: _useSuggestedAccounts,
-          onChanged: (value) {
+        TrText(
+          'Solde initial : 0 $_currency par défaut',
+          style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+        ),
+        const SizedBox(height: 12),
+        ..._accountDrafts.asMap().entries.map((entry) {
+          final index = entry.key;
+          final draft = entry.value;
+          return Padding(
+            padding: EdgeInsets.only(bottom: index == _accountDrafts.length - 1 ? 0 : 12),
+            child: _buildAccountDraftCard(draft, index),
+          );
+        }),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () {
             setState(() {
-              _useSuggestedAccounts = value;
-              _skipAccounts = false;
-              if (value) {
-                _resetDraftsToSuggested();
-              } else if (_accountDrafts.isEmpty) {
-                _accountDrafts.add(_createEmptyAccountDraft());
-              }
+              _accountDrafts.add(_createEmptyAccountDraft());
             });
           },
-          activeColor: _brandPrimary,
-          contentPadding: EdgeInsets.zero,
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _skipAccounts = !_skipAccounts;
-                  if (_skipAccounts) {
-                    _useSuggestedAccounts = true;
-                    _resetDraftsToSuggested();
-                  }
-                });
-              },
-              child: TrText(_skipAccounts ? 'Revenir à la saisie' : 'Passer pour l\'instant'),
-            ),
-            if (!_skipAccounts)
-              TrText(
-                'Solde par défaut : 0 $_currency',
-                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-              ),
-          ],
-        ),
-        if (_skipAccounts) ...[
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue[100]!),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline, color: Colors.blue[600], size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TrText(
-                    'Si vous passez, on crée vos comptes suggérés à 0. Vous pourrez les renommer ou les supprimer plus tard.',
-                    style: TextStyle(fontSize: 13, color: Colors.blue[800]),
-                  ),
-                ),
-              ],
-            ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _brandPrimary,
+            side: BorderSide(color: _brandPrimary.withOpacity(0.4)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-        ] else ...[
-          const SizedBox(height: 12),
-          ..._accountDrafts.asMap().entries.map((entry) {
-            final index = entry.key;
-            final draft = entry.value;
-            return Padding(
-              padding: EdgeInsets.only(bottom: index == _accountDrafts.length - 1 ? 0 : 12),
-              child: _buildAccountDraftCard(draft, index),
-            );
-          }),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () {
-              setState(() {
-                _accountDrafts.add(_createEmptyAccountDraft());
-                _useSuggestedAccounts = false;
-                _skipAccounts = false;
-              });
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _brandPrimary,
-              side: BorderSide(color: _brandPrimary.withOpacity(0.4)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: const Icon(Icons.add),
-            label: const TrText('Ajouter un compte'),
-          ),
-        ],
+          icon: const Icon(Icons.add),
+          label: const TrText('Ajouter un compte'),
+        ),
       ],
     );
   }
@@ -1071,7 +980,6 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   void dispose() {
     _pageController.dispose();
     _nameController.dispose();
-    _incomeController.dispose();
     _disposeAccountDrafts();
     _budgetAmountController.dispose();
     _goalNameController.dispose();
@@ -1097,6 +1005,16 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
     if (_formKeyStep3.currentState?.validate() != true) {
       return;
     }
+    
+    // Vérifier qu'au moins 1 compte est défini
+    final activeDrafts = _accountDrafts.where((draft) => draft.nameController.text.trim().isNotEmpty).toList();
+    if (activeDrafts.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: TrText('Au moins 1 compte est obligatoire')),
+      );
+      return;
+    }
 
     final userId = _firestoreService.currentUserId;
     if (userId == null) {
@@ -1112,7 +1030,6 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
       await _firestoreService.updateUserProfile(userId, {
         'displayName': _nameController.text.trim(),
         'currency': _currency,
-        'monthlyIncome': double.tryParse(_incomeController.text.trim()) ?? 0,
         'languageCode': context.read<LocaleProvider>().locale.languageCode,
         'onboardingCompleted': true,
         'needsOnboarding': false,
@@ -1121,40 +1038,20 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
       // Default categories
       await _firestoreService.createDefaultCategories(_currency);
 
-      // Build accounts to create (suggested by défaut si l'utilisateur passe)
+      // Build accounts to create (au moins 1 compte est obligatoire)
       final List<Map<String, dynamic>> accountsToSave = [];
 
-      if (_skipAccounts) {
-        accountsToSave.addAll(_suggestedAccountTemplates.map((template) {
-          return {
-            'name': template.name,
-            'type': template.type,
-            'balance': 0.0,
-            'icon': template.icon,
-            'color': template.color,
-          };
-        }));
-      } else {
-        final activeDrafts = _accountDrafts.where((draft) => draft.nameController.text.trim().isNotEmpty).toList();
-        if (activeDrafts.isEmpty) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: TrText('Ajoutez au moins un compte ou choisissez de passer.')),
-          );
-          return;
-        }
-
-        for (final draft in activeDrafts) {
-          final rawBalance = draft.balanceController.text.trim();
-          final parsedBalance = double.tryParse(rawBalance.isEmpty ? '0' : rawBalance) ?? 0;
-          accountsToSave.add({
-            'name': draft.nameController.text.trim(),
-            'type': draft.type,
-            'balance': parsedBalance,
-            'icon': draft.icon,
-            'color': draft.color,
-          });
-        }
+      final activeDrafts = _accountDrafts.where((draft) => draft.nameController.text.trim().isNotEmpty).toList();
+      for (final draft in activeDrafts) {
+        final rawBalance = draft.balanceController.text.trim();
+        final parsedBalance = double.tryParse(rawBalance.isEmpty ? '0' : rawBalance) ?? 0;
+        accountsToSave.add({
+          'name': draft.nameController.text.trim(),
+          'type': draft.type,
+          'balance': parsedBalance,
+          'icon': draft.icon,
+          'color': draft.color,
+        });
       }
 
       for (final account in accountsToSave) {
@@ -1169,15 +1066,27 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         );
       }
 
-      // Optional budget
-      if (_wantsBudget && _budgetAmountController.text.trim().isNotEmpty) {
+      // Budget obligatoire avec répartition par défaut
+      if (_budgetAmountController.text.trim().isNotEmpty) {
         final budgetAmount = double.tryParse(_budgetAmountController.text.trim()) ?? 0;
-        await _firestoreService.saveBudgetPlan(
-          userId: userId,
-          totalBudget: budgetAmount,
-          categoryAllocations: {'general': budgetAmount},
-        );
-      }
+          if (budgetAmount > 0) {
+            // Répartition par défaut équilibrée des poches budgétaires
+            final defaultAllocations = {
+              'alimentation': budgetAmount * 0.25,      // 25%
+              'transport': budgetAmount * 0.15,         // 15%
+            'logement': budgetAmount * 0.30,          // 30%
+            'loisirs': budgetAmount * 0.10,           // 10%
+            'sante': budgetAmount * 0.08,             // 8%
+            'autre': budgetAmount * 0.12,             // 12%
+            };
+            await _firestoreService.saveBudgetPlan(
+              userId: userId,
+              totalBudget: budgetAmount,
+              expectedIncome: budgetAmount,
+              categoryAllocations: defaultAllocations,
+            );
+          }
+        }
 
       // Optional goal
       if (_wantsGoal && _goalNameController.text.trim().isNotEmpty && _goalAmountController.text.trim().isNotEmpty) {
