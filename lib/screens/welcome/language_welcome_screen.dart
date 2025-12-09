@@ -75,7 +75,7 @@ class WelcomeLanguageScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Pilotez vos comptes, budgets et objectifs en toute simplicité | Manage your accounts, budgets and goals with ease',
+                              'Pilotez vos finances comme un Pro | Manage your finances like a Pro',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 14,
@@ -91,12 +91,6 @@ class WelcomeLanguageScreen extends StatelessWidget {
                               isWide: isWide,
                             ),
                             const SizedBox(height: 16),
-                            Text(
-                              'Sécurisé & chiffré | Secure & encrypted',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 12, color: Colors.black.withOpacity(0.65)),
-                            ),
-                            const SizedBox(height: 12),
                             _footNote(primary),
                           ],
                         ),
@@ -236,27 +230,7 @@ class WelcomeLanguageScreen extends StatelessWidget {
             data.subtitle,
             style: TextStyle(fontSize: 13, color: Colors.black.withOpacity(0.7), height: 1.4),
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: secondary.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.lock_outline, size: 16, color: secondary.withOpacity(0.85)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Sécurisé & chiffré | Secure & encrypted',
-                    style: TextStyle(fontSize: 12, color: Colors.black.withOpacity(0.65)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
           _languageButton(
             context: context,
             label: data.buttonLabel,

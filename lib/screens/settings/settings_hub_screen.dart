@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:budget/l10n/localization_helpers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../constants/app_design.dart';
 import '../../services/currency_service.dart';
 import '../../services/firestore_service.dart';
@@ -124,9 +125,7 @@ class SettingsHubScreen extends StatelessWidget {
                 icon: Icons.policy_outlined,
                 title: 'Confidentialité & CGU',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: TrText('Lien vers la politique de confidentialité')),
-                  );
+                  _showLegalLinks(context);
                 },
               ),
             ],
@@ -738,11 +737,8 @@ Future<void> _performReset(BuildContext context, String userId) async {
   );
 
   try {
-    // Créer un backup avant
-    await FirestoreService().createBackupBeforeReset(userId);
-    
-    // Effectuer la réinitialisation
-    await FirestoreService().fullDataReset(userId);
+    // Effectuer la réinitialisation complète
+    await FirestoreService().resetAllUserData();
     
     if (context.mounted) {
       Navigator.pop(context); // Fermer le loader
@@ -750,11 +746,16 @@ Future<void> _performReset(BuildContext context, String userId) async {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: TrText('✓ Réinitialisation réussie. Un backup a été créé.'),
+            content: TrText('✓ Réinitialisation réussie. Veuillez vous reconnecter.'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 4),
           ),
         );
+        
+        // Rediriger vers l'écran de connexion
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        }
       }
     }
   } catch (e) {
@@ -771,6 +772,82 @@ Future<void> _performReset(BuildContext context, String userId) async {
       }
     }
   }
+}
+
+void _showLegalLinks(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const TrText(
+              'Documents légaux',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const TrText('Politique de confidentialité'),
+              trailing: const Icon(Icons.open_in_new, size: 18),
+              onTap: () async {
+                Navigator.pop(sheetContext);
+                final Uri url = Uri.parse('https://budgetpro.net/privacy');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                } else {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: TrText('Impossible d\'ouvrir le lien')),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: const TrText('Conditions d\'utilisation'),
+              trailing: const Icon(Icons.open_in_new, size: 18),
+              onTap: () async {
+                Navigator.pop(sheetContext);
+                final Uri url = Uri.parse('https://budgetpro.net/terms');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                } else {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: TrText('Impossible d\'ouvrir le lien')),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outlined),
+              title: const TrText('À propos'),
+              trailing: const Icon(Icons.open_in_new, size: 18),
+              onTap: () async {
+                Navigator.pop(sheetContext);
+                final Uri url = Uri.parse('https://budgetpro.net/about');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                } else {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: TrText('Impossible d\'ouvrir le lien')),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 Future<void> _showCurrencySheet(

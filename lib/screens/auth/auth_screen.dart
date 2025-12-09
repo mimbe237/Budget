@@ -264,6 +264,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
       // Navigation vers l'écran principal
       if (mounted) {
+        setState(() => _isLoading = false);
+
         // Appliquer la langue du profil si disponible
         try {
           final profile = await firestore.getUserProfile(auth.currentUser!.uid);
@@ -313,6 +315,11 @@ class _AuthScreenState extends State<AuthScreen> {
           _isLoading = false;
         });
       }
+    }
+
+    // Sécurité : s'assurer que l'état de chargement retombe si aucune navigation n'a eu lieu
+    if (mounted && _isLoading) {
+      setState(() => _isLoading = false);
     }
   }
 

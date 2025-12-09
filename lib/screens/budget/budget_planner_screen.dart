@@ -513,7 +513,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
         text: (percentage * 100).toStringAsFixed(1),
       );
       _amountControllers[category] = TextEditingController(
-        text: amount.toStringAsFixed(2),
+        text: amount.toStringAsFixed(amount % 1 == 0 ? 0 : 2),
       );
     }
   }
@@ -2058,7 +2058,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,1}')),
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,1}')),
                     ],
                     onTap: () {
                       setState(() {
@@ -2088,7 +2088,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                     ],
                     onTap: () {
                       setState(() {
@@ -2285,7 +2285,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                   _allocations = Map.from(DEFAULT_ALLOCATION);
                   for (var entry in _allocations.entries) {
                     _percentageControllers[entry.key]!.text = (entry.value * 100).toStringAsFixed(1);
-                    _amountControllers[entry.key]!.text = (_totalIncome * entry.value).toStringAsFixed(2);
+                    final amt = _totalIncome * entry.value;
+                    _amountControllers[entry.key]!.text = amt.toStringAsFixed(amt % 1 == 0 ? 0 : 2);
                   }
                 });
                 Navigator.pop(context);

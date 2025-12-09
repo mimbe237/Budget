@@ -18,22 +18,42 @@ class RevolutionaryLogo extends StatelessWidget {
     final isMobile = mediaQuery != null && mediaQuery.size.width < 600;
     final showFullLockup = withText && !isMobile;
     final semantics = t('Budget Pro');
-    if (showFullLockup) {
-      // Full lockup (icône + texte) for marketing/hero contexts; drop text on mobile.
+
+    Widget buildSvg() {
+      if (showFullLockup) {
+        // Full lockup (icône + texte) for marketing/hero contexts; drop text on mobile.
+        return SvgPicture.asset(
+          'assets/images/logo-full.svg',
+          height: size * 1.6,
+          semanticsLabel: semantics,
+          fit: BoxFit.fitHeight,
+        );
+      }
+
+      // Icon-only for compact UI (app bars, badges, splash).
       return SvgPicture.asset(
-        'assets/images/logo-full.svg',
-        height: size * 1.6,
+        'assets/images/logo-icon.svg',
+        width: size,
+        height: size,
         semanticsLabel: semantics,
-        fit: BoxFit.fitHeight,
       );
     }
 
-    // Icon-only for compact UI (app bars, badges, splash).
-    return SvgPicture.asset(
-      'assets/images/logo-icon.svg',
-      width: size,
-      height: size,
-      semanticsLabel: semantics,
-    );
+    // Fallback PNG si le SVG ne se charge pas (protection runtime)
+    Widget buildPngFallback() {
+      return Image.asset(
+        'assets/images/logo-icon.png',
+        width: size,
+        height: size,
+        semanticLabel: semantics,
+        fit: BoxFit.contain,
+      );
+    }
+
+    try {
+      return buildSvg();
+    } catch (_) {
+      return buildPngFallback();
+    }
   }
 }

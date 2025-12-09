@@ -310,24 +310,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     ),
                                   ),
                                   const SizedBox(height: 22),
-                                  Center(
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          AppLocalizations.of(context)!.tr('login_title'),
-                                          style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w700),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          AppLocalizations.of(context)!.tr('login_secure'),
-                                          style: const TextStyle(fontSize: 13, color: Colors.grey),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 18),
+                                  const SizedBox(height: 12),
                                   _buildEmailField(),
                                   const SizedBox(height: 14),
                                   _buildPasswordField(),

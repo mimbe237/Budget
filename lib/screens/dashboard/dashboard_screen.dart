@@ -1668,14 +1668,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         }
         final currency = context.watch<CurrencyService>();
+
+        final totalBalance = accounts.fold<double>(0.0, (sum, acc) => sum + acc.balance);
         final balanceStr = currency.formatAmount(totalBalance);
         final balanceFontSize = balanceStr.length > 15
             ? 22.0
             : balanceStr.length > 12
                 ? 24.0
                 : 28.0;
-
-        final totalBalance = accounts.fold<double>(0.0, (sum, acc) => sum + acc.balance);
+        
         double income = 0;
         double expense = 0;
         for (final tx in txs) {

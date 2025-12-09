@@ -1115,6 +1115,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         'monthlyIncome': double.tryParse(_incomeController.text.trim()) ?? 0,
         'languageCode': context.read<LocaleProvider>().locale.languageCode,
         'onboardingCompleted': true,
+        'needsOnboarding': false,
       });
 
       // Default categories
