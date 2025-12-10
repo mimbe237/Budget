@@ -23,10 +23,10 @@ class LocalizationHelper {
 
 /// Global translation function - requires a context to work properly
 /// For use in widgets with BuildContext
+/// DEPRECATED: Use AppLocalizations.of(context)! instead
+@Deprecated('Use AppLocalizations.of(context)! for translations')
 String t(String key, {Map<String, String>? params, Locale? locale}) {
-  // This function cannot properly translate without a BuildContext
-  // Use AppLocalizations.of(context)! instead to access generated getters
-  // For now, return the key to indicate proper translation is not available
+  // Return the key as fallback - proper translation requires BuildContext
   return key;
 }
 

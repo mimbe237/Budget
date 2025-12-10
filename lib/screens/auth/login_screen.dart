@@ -17,6 +17,7 @@ import '../../services/currency_service.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/country_search_dialog.dart';
 import '../onboarding/onboarding_wizard_screen.dart';
+import '../navigation/main_navigation_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -102,6 +103,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       if (!mounted) return;
       setState(() => _isLoading = false);
+      
+      // Navigation immédiate vers le dashboard
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainNavigationShell()),
+        (route) => false,
+      );
+      
+      // SnackBar de confirmation (s'affichera sur le dashboard)
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -291,20 +300,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   const SizedBox(height: 6),
-                                  const Center(
+                                  Center(
                                     child: Column(
                                       children: [
-                                        RevolutionaryLogo(size: 90),
-                                        SizedBox(height: 14),
+                                        const RevolutionaryLogo(size: 90),
+                                        const SizedBox(height: 14),
                                         Text(
-                                          'Budget Pro',
-                                          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                                          AppLocalizations.of(context)!.app_title,
+                                          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5),
                                           textAlign: TextAlign.center,
                                         ),
-                                        SizedBox(height: 4),
+                                        const SizedBox(height: 4),
                                         Text(
-                                          'Gérez votre budget intelligemment',
-                                          style: TextStyle(fontSize: 13, color: Colors.black54),
+                                          AppLocalizations.of(context)!.tr('welcome_intro'),
+                                          style: const TextStyle(fontSize: 13, color: Colors.black54),
                                           textAlign: TextAlign.center,
                                         ),
                                       ],
@@ -335,10 +344,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                             ),
                                           ),
                                           const SizedBox(width: 8),
-                                          const Flexible(
+                                          Flexible(
                                             child: Text(
-                                              'Se souvenir de moi',
-                                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                              AppLocalizations.of(context)!.tr('remember_me'),
+                                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                                             ),
                                           ),
                                         ],
@@ -878,6 +887,7 @@ class _SignupFullScreenState extends State<_SignupFullScreen> {
     try {
       final auth = FirebaseAuth.instance;
       final firestore = FirestoreService();
+      final localeCode = context.read<LocaleProvider>().locale.languageCode;
       
       // Créer le compte
       final userCredential = await auth.createUserWithEmailAndPassword(
@@ -904,7 +914,7 @@ class _SignupFullScreenState extends State<_SignupFullScreen> {
         countryCode: _selectedCountryCode,
         phoneNumber: fullPhone,
         currency: guessedCurrency,
-        languageCode: 'fr',
+        languageCode: localeCode,
         needsOnboarding: true,
       );
 

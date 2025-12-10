@@ -1467,14 +1467,19 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               ),
             ),
             const SizedBox(width: 4),
-            TrText(
-              '${(percentage * 100).toStringAsFixed(0)}%',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            Builder(builder: (_) {
+              final total = _getTotalAllocation();
+              final normalized = total > 0 ? (percentage / total).clamp(0.0, 1.0) : 0.0;
+              final display = (normalized * 100).clamp(0.0, 100.0);
+              return TrText(
+                '${display.toStringAsFixed(0)}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              );
+            }),
           ],
         );
       }).toList(),
@@ -1482,16 +1487,21 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   }
 
   List<PieChartSectionData> _buildPieChartSections(bool isOver) {
+    final total = _getTotalAllocation();
+    if (total <= 0) return [];
+
     return _allocations.entries.where((entry) => entry.value > 0.001).map((entry) {
       final name = entry.key;
-      final percentage = entry.value;
-      final color = isOver 
-          ? AppDesign.expenseColor 
+      final rawPercent = entry.value;
+      final normalized = (rawPercent / total).clamp(0.0, 1.0);
+      final displayPercent = (normalized * 100).clamp(0.0, 100.0);
+      final color = isOver
+          ? AppDesign.expenseColor
           : (_categoryColors[name] ?? Colors.grey);
 
       return PieChartSectionData(
-        value: percentage * 100,
-        title: '${(percentage * 100).toStringAsFixed(0)}%',
+        value: displayPercent,
+        title: '${displayPercent.toStringAsFixed(0)}%',
         radius: 80,
         titleStyle: const TextStyle(
           fontSize: 14,

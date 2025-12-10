@@ -59,6 +59,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     try {
       final profile = await FirestoreService().getUserProfile(uid);
       final status = profile?.status ?? 'active';
+
+      // Appliquer la langue du profil (persistance multi-devices)
+      final lang = profile?.languageCode;
+      final currentLang = localeProvider.locale.languageCode;
+      if (lang != null && lang.isNotEmpty && lang != currentLang) {
+        await localeProvider.setLocale(Locale(lang));
+      }
+
       if (status == 'blocked' || status == 'disabled') {
         await FirebaseAuth.instance.signOut();
         if (!mounted) return;

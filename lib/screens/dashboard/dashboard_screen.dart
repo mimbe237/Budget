@@ -262,9 +262,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const TrText(
-                'Bienvenue 👋',
-                style: TextStyle(
+              TrText(
+                AppLocalizations.of(context)!.tr('welcome_title'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -272,7 +272,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 12),
               TrText(
-                'Connectez-vous pour accéder à votre tableau de bord et gérer vos budgets.',
+                AppLocalizations.of(context)!.tr('welcome_login_msg'),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 14,
@@ -325,9 +325,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const TrText(
-                'Bienvenue 👋',
-                style: TextStyle(
+              TrText(
+                AppLocalizations.of(context)!.tr('welcome_title'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
@@ -335,7 +335,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 12),
               TrText(
-                'Connectez-vous pour accéder à votre tableau de bord et gérer vos budgets.',
+                AppLocalizations.of(context)!.tr('welcome_login_msg'),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 16,
