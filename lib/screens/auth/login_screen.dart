@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:budget/l10n/localization_helpers.dart';
 import 'package:budget/l10n/app_localizations.dart';
-import 'package:budget/l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +16,7 @@ import '../../services/firestore_service.dart';
 import '../../services/currency_service.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/country_search_dialog.dart';
+import '../onboarding/onboarding_wizard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -912,17 +912,18 @@ class _SignupFullScreenState extends State<_SignupFullScreen> {
       await userCredential.user!.updateDisplayName(displayName);
 
       if (!mounted) return;
-      
-      // Fermer et retourner
-      Navigator.pop(context);
+
+      // Rediriger vers l'onboarding (parcours immersif)
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const OnboardingWizardScreen()),
+        (route) => false,
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.account_created),
           backgroundColor: Colors.green,
         ),
       );
-      
-      await auth.signOut();
     } catch (e) {
       String errorMessage = 'Une erreur est survenue. Réessayez.';
       if (e is FirebaseAuthException) {

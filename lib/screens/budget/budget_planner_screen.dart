@@ -1028,7 +1028,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               controller: _incomeController,
               readOnly: _fieldsLocked,
               decoration: InputDecoration(
-                prefixIcon: Icon(Icons.euro, color: AppDesign.incomeColor),
+                labelText: 'Budget (dépenses)',
+                prefixIcon: Icon(Icons.account_balance_wallet, color: AppDesign.expenseColor),
                 suffixText: currencySymbol,
                 suffixIcon: _fieldsLocked
                     ? IconButton(
@@ -1060,6 +1061,33 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             ),
           );
 
+          final expectedIncomeField = ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 140, maxWidth: 220),
+            child: TextFormField(
+              controller: _expectedIncomeController,
+              readOnly: _fieldsLocked,
+              decoration: InputDecoration(
+                labelText: 'Revenu estimé',
+                prefixIcon: Icon(Icons.trending_up, color: AppDesign.incomeColor),
+                suffixText: currencySymbol,
+                hintText: t('Ex: 3000'),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\\d+\\.?\\d{0,2}')),
+              ],
+              onChanged: (value) {
+                final newExpected = double.tryParse(value);
+                if (newExpected != null && newExpected > 0) {
+                  setState(() {
+                    _expectedIncome = newExpected;
+                  });
+                }
+              },
+            ),
+          );
+
           final saveButton = ElevatedButton.icon(
             onPressed: _saveBudgetPlan,
             style: ElevatedButton.styleFrom(
@@ -1067,7 +1095,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               elevation: 0,
-              minimumSize: const Size(148, 52),
+              minimumSize: const Size(160, 52),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
             icon: const Icon(Icons.save, size: 18),
@@ -1091,8 +1119,14 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     children: [
                       header,
                       const SizedBox(height: 12),
-                      SizedBox(width: double.infinity, child: incomeField),
-                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: incomeField),
+                          const SizedBox(width: 12),
+                          Expanded(child: expectedIncomeField),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                       SizedBox(width: double.infinity, child: saveButton),
                     ],
                   )
@@ -1101,9 +1135,17 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(child: header),
-                      const SizedBox(width: 12),
-                      Flexible(flex: 0, child: incomeField),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(child: incomeField),
+                            const SizedBox(width: 12),
+                            Expanded(child: expectedIncomeField),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
                       Flexible(flex: 0, child: saveButton),
                     ],
                   ),
@@ -2337,6 +2379,8 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   void _saveBudgetPlan() {
     final totalPercentage = _getTotalAllocation();
     final parsedIncome = double.tryParse(_incomeController.text.trim()) ?? 0;
+    final parsedExpected = double.tryParse(_expectedIncomeController.text.trim()) ?? 0;
+
     if (parsedIncome <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2346,8 +2390,17 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
       );
       return;
     }
+    if (parsedExpected <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: TrText('Le revenu estimé doit être renseigné.'),
+          backgroundColor: AppDesign.expenseColor,
+        ),
+      );
+      return;
+    }
     _totalIncome = parsedIncome;
-    _expectedIncome = _totalIncome;
+    _expectedIncome = parsedExpected;
 
     if (totalPercentage > 1.0 + 0.0001) {
       final overflowPercent = (totalPercentage - 1.0) * 100;
