@@ -714,7 +714,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: AppDesign.backgroundGrey,
       appBar: ModernPageAppBar(
         title: t('Gestion Budget'),
@@ -740,7 +740,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
       ),
       body: SafeArea(
         bottom: true,
-        top: false,
+        top: true,
         child: SingleChildScrollView(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).padding.bottom + 96,
@@ -865,6 +865,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             ),
           );
         },
+        expand: !isWide,
       ),
       _budgetActionButton(
         label: t('Analyses IA'),
@@ -881,6 +882,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
             ),
           );
         },
+        expand: !isWide,
       ),
     ];
 
@@ -924,13 +926,18 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
     required IconData icon,
     required List<Color> colors,
     required VoidCallback onTap,
+    bool expand = false,
   }) {
     final Color base = colors.last;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppDesign.radiusXLarge),
       child: Container(
-        constraints: const BoxConstraints(minWidth: 240, maxWidth: 380),
+        width: expand ? double.infinity : null,
+        constraints: BoxConstraints(
+          minWidth: 0,
+          maxWidth: expand ? double.infinity : 380,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -998,6 +1005,7 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 640;
+          final isTiny = constraints.maxWidth < 380;
 
           final header = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1023,7 +1031,9 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           );
 
           final incomeField = ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 140, maxWidth: 220),
+            constraints: BoxConstraints(
+              maxWidth: isCompact ? double.infinity : 220,
+            ),
             child: TextFormField(
               controller: _incomeController,
               readOnly: _fieldsLocked,
@@ -1036,10 +1046,13 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                         tooltip: 'Modifier',
                         icon: const Icon(Icons.edit, size: 18),
                         onPressed: _unlockFieldsWithConfirm,
-                      )
+                    )
                     : null,
                 hintText: t('Ex: 3000'),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: isCompact ? 12 : 14,
+                ),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
@@ -1062,7 +1075,9 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
           );
 
           final expectedIncomeField = ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 140, maxWidth: 220),
+            constraints: BoxConstraints(
+              maxWidth: isCompact ? double.infinity : 220,
+            ),
             child: TextFormField(
               controller: _expectedIncomeController,
               readOnly: _fieldsLocked,
@@ -1071,11 +1086,14 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                 prefixIcon: Icon(Icons.trending_up, color: AppDesign.incomeColor),
                 suffixText: currencySymbol,
                 hintText: t('Ex: 3000'),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: isCompact ? 12 : 14,
+                ),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\\d+\\.?\\d{0,2}')),
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
               ],
               onChanged: (value) {
                 final newExpected = double.tryParse(value);
@@ -1119,13 +1137,18 @@ class _BudgetPlannerScreenState extends State<BudgetPlannerScreen> {
                     children: [
                       header,
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: incomeField),
-                          const SizedBox(width: 12),
-                          Expanded(child: expectedIncomeField),
-                        ],
-                      ),
+                      if (isTiny) ...[
+                        incomeField,
+                        const SizedBox(height: 12),
+                        expectedIncomeField,
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(child: incomeField),
+                            const SizedBox(width: 12),
+                            Expanded(child: expectedIncomeField),
+                          ],
+                        ),
                       const SizedBox(height: 16),
                       SizedBox(width: double.infinity, child: saveButton),
                     ],

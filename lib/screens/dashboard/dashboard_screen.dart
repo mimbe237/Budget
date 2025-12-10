@@ -1936,15 +1936,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Center(
-                      child: _BudgetGauge(
-                        value: burnRate.clamp(0.0, 1.5),
-                        ideal: idealRatio.clamp(0.0, 1.0),
-                        label: 'Rythme ${(burnRate * 100).toStringAsFixed(0)}%',
-                        coaching: isAhead ? 'Dans le rythme' : 'Au-dessus',
-                        color: isAhead ? AppDesign.incomeColor : AppDesign.expenseColor,
-                      ),
-                    ),
+                    const SizedBox.shrink(),
                     const SizedBox(height: 12),
                     _HeroCTAButton(
                       label: 'Ajuster budget',
@@ -2470,8 +2462,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const TrText(
-                  'Résumé par poche',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  'Synthèse par poche',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const TrText(
+                  'Top 3 poches en tension en premier',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
                 ...items.map((e) => _PocketSummaryRow(item: e)),
@@ -3485,7 +3485,6 @@ class _PocketSummaryRow extends StatelessWidget {
     final ratio = item.planned > 0 ? (item.engaged / item.planned) : 0.0;
     final currencyService = context.watch<CurrencyService>();
     final targetCurrency = currencyService.currentCurrency;
-    // Montants déjà dans la devise courante : ne pas reconvertir
     final plannedConverted = item.planned;
     final engagedConverted = item.engaged;
     final remaining = plannedConverted - engagedConverted;
@@ -3503,88 +3502,138 @@ class _PocketSummaryRow extends StatelessWidget {
     if (ratio >= 1) {
       barColor = const Color(0xFFEF5350);
     } else if (ratio >= 0.75) {
-      barColor = const Color(0xFF26A69A); // teal-ish like screenshot
+      barColor = const Color(0xFFFFB300); // orange pour alerte
     } else {
       barColor = const Color(0xFF26A69A);
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      shape: BoxShape.circle,
+              // Icône + nom (flexible)
+              Expanded(
+                flex: 2,
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        shape: BoxShape.circle,
+                      ),
+                      child: TrText(item.icon, style: const TextStyle(fontSize: 16)),
                     ),
-                    child: TrText(item.icon, style: const TextStyle(fontSize: 16)),
-                  ),
-                  const SizedBox(width: 10),
-                  TrText(
-                    item.name,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  TrText(
-                    '${t('Prévu')} ${currencyService.formatAmount(plannedConverted, targetCurrency)}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                  TrText(
-                    '${t('Engagé')} ${currencyService.formatAmount(engagedConverted, targetCurrency)}',
-                    style: const TextStyle(
-                      color: AppDesign.incomeColor,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                  TrText(
-                    '${t('Reste')} ${currencyService.formatAmount(remaining, targetCurrency)}',
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: TrText(
-                      statusLabel,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11,
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TrText(
+                            item.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: TrText(
+                              statusLabel,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Montants (flexible)
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: TrText(
+                        '${t('Prévu')} ${currencyService.formatAmount(plannedConverted, targetCurrency)}',
+                        style: const TextStyle(color: Colors.grey, fontSize: 11),
+                        maxLines: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: TrText(
+                        '${t('Engagé')} ${currencyService.formatAmount(engagedConverted, targetCurrency)}',
+                        style: const TextStyle(
+                          color: AppDesign.incomeColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: ratio.clamp(0.0, 1.0),
-              minHeight: 9,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation<Color>(barColor),
-            ),
+          const SizedBox(height: 6),
+          // Reste + barre de progression
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: TrText(
+                        '${t('Reste')} : ${currencyService.formatAmount(remaining, targetCurrency)}',
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: ratio.clamp(0.0, 1.0),
+                        minHeight: 8,
+                        backgroundColor: Colors.grey.shade200,
+                        valueColor: AlwaysStoppedAnimation<Color>(barColor),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

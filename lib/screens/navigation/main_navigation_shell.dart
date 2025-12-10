@@ -61,6 +61,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       final status = profile?.status ?? 'active';
 
       // Appliquer la langue du profil (persistance multi-devices)
+      final localeProvider = context.read<LocaleProvider>();
       final lang = profile?.languageCode;
       final currentLang = localeProvider.locale.languageCode;
       if (lang != null && lang.isNotEmpty && lang != currentLang) {

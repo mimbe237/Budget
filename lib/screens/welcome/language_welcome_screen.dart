@@ -283,6 +283,7 @@ class WelcomeLanguageScreen extends StatelessWidget {
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

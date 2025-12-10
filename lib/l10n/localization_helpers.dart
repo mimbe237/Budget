@@ -1,23 +1,74 @@
 import 'package:flutter/material.dart';
 import 'app_localizations.dart';
+import '../services/translation_service.dart';
 
 export 'app_localizations.dart';
 
 /// Shared translation helpers using gen_l10n generated classes
 class LocalizationHelper {
   static Locale currentLocale = const Locale('fr');
+  static const Locale _fallbackLocale = Locale('fr');
+
+  static Locale _ensureSupported(Locale locale) {
+    return AppLocalizations.supportedLocales
+            .any((l) => l.languageCode == locale.languageCode)
+        ? locale
+        : _fallbackLocale;
+  }
 
   static void setLocale(Locale locale) {
-    currentLocale = locale;
+    currentLocale = _ensureSupported(locale);
+  }
+
+  static String _applyParams(String value, Map<String, String>? params) {
+    if (params == null || params.isEmpty) return value;
+    var result = value;
+    params.forEach((k, v) {
+      result = result.replaceAll('{$k}', v);
+    });
+    return result;
+  }
+
+  /// Resolve a key using generated localizations first, then Firestore translations.
+  static String translate(String key,
+      {Locale? locale, Map<String, String>? params}) {
+    final loc = _ensureSupported(locale ?? currentLocale);
+
+    // 1) Generated ARB/localizations (fast, offline)
+    try {
+      final appLoc = lookupAppLocalizations(loc);
+      final value = appLoc.tr(key, params: params);
+      if (value != key) {
+        return _applyParams(value, params);
+      }
+    } catch (_) {
+      // ignore and fall through
+    }
+
+    // 2) Firestore translations (runtime overrides)
+    try {
+      final translations = TranslationService().translations;
+      final data = translations[key];
+      if (data != null) {
+        final code = loc.languageCode;
+        final value =
+            data[code] ?? data['en'] ?? data['fr'] ?? key;
+        return _applyParams(value, params);
+      }
+    } catch (_) {
+      // ignore and fall through
+    }
+
+    // 3) Fallback: key itself
+    return key;
   }
 
   /// Resolve a translation key using the provided context
   /// Falls back to the key itself if not found
   static String resolve(String key,
       {String? languageCode, Map<String, String>? params}) {
-    // Since we're using gen_l10n, keys are resolved via getters, not strings
-    // This fallback just returns the key - use AppLocalizations.of(context) instead
-    return key;
+    final loc = languageCode != null ? Locale(languageCode) : currentLocale;
+    return translate(key, locale: loc, params: params);
   }
 }
 
@@ -26,8 +77,7 @@ class LocalizationHelper {
 /// DEPRECATED: Use AppLocalizations.of(context)! instead
 @Deprecated('Use AppLocalizations.of(context)! for translations')
 String t(String key, {Map<String, String>? params, Locale? locale}) {
-  // Return the key as fallback - proper translation requires BuildContext
-  return key;
+  return LocalizationHelper.translate(key, locale: locale, params: params);
 }
 
 extension AppLocalizationsX on AppLocalizations {
@@ -172,6 +222,42 @@ extension AppLocalizationsX on AppLocalizations {
           return settings;
         case 'notifications_coming':
           return notifications_coming;
+        case 'welcome_intro':
+          return welcome_intro;
+        case 'remember_me':
+          return remember_me;
+        case 'welcome_title':
+          return welcome_title;
+        case 'welcome_login_msg':
+          return welcome_login_msg;
+        case 'or_continue_with':
+          return or_continue_with;
+        case 'google':
+          return google;
+        case 'facebook':
+          return facebook;
+        case 'already_account':
+          return already_account;
+        case 'create_account':
+          return create_account;
+        case 'privacy':
+          return privacy;
+        case 'terms':
+          return terms;
+        case 'support':
+          return support;
+        case 'documentation':
+          return documentation;
+        case 'whatsapp_support':
+          return whatsapp_support;
+        case 'secure_connection':
+          return secure_connection;
+        case 'developed_by':
+          return developed_by;
+        case 'no_account':
+          return no_account;
+        case 'login':
+          return login;
         default:
           return key;
       }
@@ -251,4 +337,3 @@ class RichTrText extends StatelessWidget {
     );
   }
 }
-
